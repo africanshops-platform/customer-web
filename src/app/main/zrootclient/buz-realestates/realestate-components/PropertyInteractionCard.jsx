@@ -26,6 +26,13 @@ import {
 
 const FINANCING_TYPES = ["Cash", "Mortgage", "Installment"];
 
+// Mirrors the gateway's REALESTATE_OFFER_MIN_BALANCE_MESSAGE
+// (apps/africanshops-gateway/src/app/realestate-offers/realestate-offers.service.ts) —
+// used to detect the financial-engagement-gate rejection and show a "top up"
+// CTA instead of just a generic error toast.
+const WALLET_GATE_KEYWORD = "minimum wallet balance";
+const FUND_WALLET_ROUTE = "/africanshops/finance-v2/fund-account";
+
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -62,6 +69,7 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
   const [specialConditions, setSpecialConditions] = useState("");
   const [attachments, setAttachments] = useState([]);
   const [offerStep, setOfferStep] = useState("form"); // 'form' | 'review'
+  const [offerSubmitError, setOfferSubmitError] = useState(null);
   const fileInputRef = useRef(null);
 
   // Mutations
@@ -81,6 +89,7 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
     setSpecialConditions("");
     setAttachments([]);
     setOfferStep("form");
+    setOfferSubmitError(null);
   };
 
   const handleCloseOfferDialog = () => {
@@ -119,7 +128,7 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
         user?.name ||
         `${user?.data?.firstName || ""} ${user?.data?.lastName || ""}`.trim(),
       userEmail: user?.data?.email || user?.email,
-      userPhone: userPhone, // Use the phone number from the form input
+      userPhone, // Use the phone number from the form input
       notes: inspectionNotes,
     };
 
@@ -137,6 +146,7 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
   };
 
   const handleMakeOffer = () => {
+    setOfferSubmitError(null);
     // Prepare offer data with all required fields
     const offerData = {
       propertyId: propertyData?.id,
@@ -164,6 +174,16 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
         setOfferDialogOpen(false);
         resetOfferForm();
       },
+      onError: (error) => {
+        // The hook itself already toasts this error; this keeps the dialog
+        // open (so the user doesn't lose their filled-out form/attachments)
+        // and shows an inline, actionable message on the review step.
+        const errorData = error?.response?.data;
+        const message = Array.isArray(errorData?.message)
+          ? errorData.message.join(" ")
+          : errorData?.message || error?.message || "Failed to submit offer";
+        setOfferSubmitError(message);
+      },
     });
   };
 
@@ -182,7 +202,7 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
         <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="bg-white p-1.5 rounded-lg shadow-md">
-              <i className="fas fa-handshake text-orange-600 text-lg"></i>
+              <i className="fas fa-handshake text-orange-600 text-lg" />
             </div>
             <Typography className="text-white font-bold text-lg tracking-wide">
               PROPERTY ACTIONS
@@ -202,14 +222,14 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="bg-white rounded-lg p-3 text-center border border-gray-200 shadow-sm">
               <div className="flex items-center justify-center mb-1">
-                <i className="fas fa-eye text-blue-500 text-xl"></i>
+                <i className="fas fa-eye text-blue-500 text-xl" />
               </div>
               <p className="text-xl font-bold text-gray-900">{propertyData?.views || 243}</p>
               <p className="text-sm text-gray-600 font-medium">Views</p>
             </div>
             <div className="bg-white rounded-lg p-3 text-center border border-gray-200 shadow-sm">
               <div className="flex items-center justify-center mb-1">
-                <i className="fas fa-heart text-red-500 text-xl"></i>
+                <i className="fas fa-heart text-red-500 text-xl" />
               </div>
               <p className="text-xl font-bold text-gray-900">{propertyData?.favorites || 18}</p>
               <p className="text-sm text-gray-600 font-medium">Favorites</p>
@@ -237,7 +257,7 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
                 gap: 1.5,
               }}
             >
-              <i className="fas fa-calendar-check text-base"></i>
+              <i className="fas fa-calendar-check text-base" />
               Schedule Inspection
             </Button>
 
@@ -263,7 +283,7 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
                 gap: 1.5,
               }}
             >
-              <i className="fas fa-tag text-base"></i>
+              <i className="fas fa-tag text-base" />
               Make an Offer
             </Button>
 
@@ -289,7 +309,7 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
                 gap: 1.5,
               }}
             >
-              <i className="fas fa-comments text-orange-500 text-base"></i>
+              <i className="fas fa-comments text-orange-500 text-base" />
               Chat with Agent
             </Button>
           </div>
@@ -297,7 +317,7 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
           {/* Property Status Info */}
           <div className="mt-3 bg-blue-50 rounded-lg p-3 border border-blue-200">
             <div className="flex items-start gap-2">
-              <i className="fas fa-info-circle text-blue-600 text-base mt-0.5"></i>
+              <i className="fas fa-info-circle text-blue-600 text-base mt-0.5" />
               <div>
                 <Typography className="text-sm font-semibold text-blue-900 mb-0.5">
                   Property Status
@@ -314,11 +334,11 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
           {/* Trust Badges */}
           <div className="mt-3 flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-sm font-semibold px-3 py-1.5 rounded-full border border-green-200">
-              <i className="fas fa-shield-check text-sm"></i>
+              <i className="fas fa-shield-check text-sm" />
               Verified
             </span>
             <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-sm font-semibold px-3 py-1.5 rounded-full border border-purple-200">
-              <i className="fas fa-clock text-sm"></i>
+              <i className="fas fa-clock text-sm" />
               Quick Response
             </span>
           </div>
@@ -331,14 +351,14 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
                 href={`tel:${realtorInfo?.phone || "+234-XXX-XXX-XXXX"}`}
                 className="flex items-center gap-2 text-gray-700 hover:text-orange-600 transition-colors"
               >
-                <i className="fas fa-phone text-orange-500 text-sm"></i>
+                <i className="fas fa-phone text-orange-500 text-sm" />
                 <span className="text-sm">{realtorInfo?.phone || "+234-XXX-XXX-XXXX"}</span>
               </a>
               <a
                 href={`mailto:${realtorInfo?.email || "info@realestate.com"}`}
                 className="flex items-center gap-2 text-gray-700 hover:text-orange-600 transition-colors"
               >
-                <i className="fas fa-envelope text-orange-500 text-sm"></i>
+                <i className="fas fa-envelope text-orange-500 text-sm" />
                 <span className="text-sm">{realtorInfo?.email || "info@realestate.com"}</span>
               </a>
             </div>
@@ -355,14 +375,14 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
       >
         <DialogTitle className="bg-orange-500 text-white">
           <div className="flex items-center gap-2">
-            <i className="fas fa-calendar-check"></i>
+            <i className="fas fa-calendar-check" />
             Schedule Property Inspection
           </div>
         </DialogTitle>
         <DialogContent className="mt-4">
           {!isAuthenticated ? (
             <div className="py-6 text-center">
-              <i className="fas fa-lock text-orange-500 text-5xl mb-4"></i>
+              <i className="fas fa-lock text-orange-500 text-5xl mb-4" />
               <Typography variant="h6" className="font-semibold mb-3 text-gray-900">
                 Login Required
               </Typography>
@@ -476,14 +496,14 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
       <Dialog open={offerDialogOpen} onClose={handleCloseOfferDialog} maxWidth="sm" fullWidth>
         <DialogTitle className="bg-orange-500 text-white">
           <div className="flex items-center gap-2">
-            <i className="fas fa-tag"></i>
+            <i className="fas fa-tag" />
             {offerStep === "review" ? "Review Your Offer" : "Make an Offer"}
           </div>
         </DialogTitle>
         <DialogContent className="mt-4">
           {!isAuthenticated && (
             <div className="py-6 text-center">
-              <i className="fas fa-lock text-orange-500 text-5xl mb-4"></i>
+              <i className="fas fa-lock text-orange-500 text-5xl mb-4" />
               <Typography variant="h6" className="font-semibold mb-3 text-gray-900">
                 Login Required
               </Typography>
@@ -510,6 +530,29 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
           )}
           {isAuthenticated && offerStep === "review" && (
             <div className="py-4 space-y-1">
+              {offerSubmitError && (
+                <div className="mb-3 bg-red-50 p-3 rounded-lg border border-red-200">
+                  <Typography className="text-sm text-red-800 font-medium">
+                    {offerSubmitError}
+                  </Typography>
+                  {offerSubmitError.toLowerCase().includes(WALLET_GATE_KEYWORD) && (
+                    <Button
+                      component={NavLinkAdapter}
+                      to={FUND_WALLET_ROUTE}
+                      size="small"
+                      variant="contained"
+                      sx={{
+                        mt: 1,
+                        backgroundColor: "#ea580c",
+                        "&:hover": { backgroundColor: "#c2410c" },
+                        textTransform: "none",
+                      }}
+                    >
+                      Top Up Wallet
+                    </Button>
+                  )}
+                </div>
+              )}
               <ReviewRow label="Offer amount" value={`₦${Number(offerAmount || 0).toLocaleString()}`} />
               <ReviewRow label="Financing" value={financingType} />
               {financingType !== "Cash" && <ReviewRow label="Pre-approved" value={isPreApproved ? "Yes" : "No"} />}
@@ -531,6 +574,17 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
           )}
           {isAuthenticated && offerStep === "form" && (
             <div className="py-4 space-y-4">
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 flex items-start gap-2">
+                <i className="fas fa-info-circle text-blue-600 text-base mt-0.5" />
+                <Typography className="text-sm text-blue-800">
+                  Making an offer requires a minimum wallet balance of ₦500,000. If your balance is
+                  below that, you'll need to{" "}
+                  <NavLinkAdapter to={FUND_WALLET_ROUTE} className="font-semibold underline">
+                    top up your wallet
+                  </NavLinkAdapter>{" "}
+                  before submitting.
+                </Typography>
+              </div>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <Typography className="text-sm text-gray-600 mb-1">Listed Price</Typography>
                 <Typography className="text-2xl font-bold text-gray-900">
@@ -685,7 +739,13 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
         <DialogActions className="p-4">
           {offerStep === "review" ? (
             <>
-              <Button onClick={() => setOfferStep("form")} sx={{ textTransform: "none", fontSize: "0.95rem" }}>
+              <Button
+                onClick={() => {
+                  setOfferStep("form");
+                  setOfferSubmitError(null);
+                }}
+                sx={{ textTransform: "none", fontSize: "0.95rem" }}
+              >
                 Edit
               </Button>
               <Button
@@ -718,7 +778,7 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
                 <Button
                   onClick={() => setOfferStep("review")}
                   variant="contained"
-                  disabled={!offerAmount || !offerPhone}
+                  disabled={!offerAmount || !offerPhone || uploadAttachmentMutation.isLoading}
                   sx={{
                     backgroundColor: "#ea580c",
                     "&:hover": { backgroundColor: "#c2410c" },
@@ -726,7 +786,14 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
                     fontSize: "0.95rem",
                   }}
                 >
-                  Continue to Review
+                  {uploadAttachmentMutation.isLoading ? (
+                    <>
+                      <CircularProgress size={20} sx={{ color: "white", mr: 1 }} />
+                      Uploading...
+                    </>
+                  ) : (
+                    "Continue to Review"
+                  )}
                 </Button>
               )}
             </>
