@@ -247,7 +247,7 @@ function ReviewReservationPaymentSucces() {
                   <Button
                     variant="contained"
                     component={NavLinkAdapter}
-                    to={`/bookings/${reservationId}/review`}
+                    to={`/bookings/reservation/review/${reservationId}`}
                     sx={{
                       background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
                       textTransform: "none",

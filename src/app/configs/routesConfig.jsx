@@ -11,6 +11,7 @@ import authRoleExamplesConfigs from "../main/auth/authRoleExamplesConfigs";
 import SignAcceptInviteConfig from "../main/sign-accept-invite/SignAcceptInviteConfig";
 import forgotPasswordConfig from "../main/sign-forgot-password/forgotPasswordPagesConfig";
 import resetPasswordConfig from "../main/sign-reset-password/resetPasswordPagesConfig";
+import SignOutConfig from "../main/sign-out/SignOutConfig";
 /***##########################Authentication-based-config ends#########################*/
 
 /***Bookings & Reservations-based-config  starts*/
@@ -56,6 +57,7 @@ const routeConfigs = [
   SignAcceptInviteConfig,
   forgotPasswordConfig,
   resetPasswordConfig,
+  SignOutConfig,
   /***
    * ##########################################################################
    * Authentication concern routes ends here
