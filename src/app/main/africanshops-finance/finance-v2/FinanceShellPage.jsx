@@ -8,6 +8,7 @@ import FinanceSidebarLeft from './screens/shared/FinanceSidebarLeft';
 import FinanceSidebarRight from './screens/shared/FinanceSidebarRight';
 import { useMyAccount, useBalance, useTransactionHistory, useKycStatus } from './hooks/useFintechApi';
 import WalletSetupWizard from './screens/WalletSetupWizard';
+import FinanceKycRequiredScreen from './screens/FinanceKycRequiredScreen';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import { useSelector } from 'react-redux';
@@ -48,7 +49,7 @@ function FinanceShellInner() {
   const { data: rawAccount, isLoading: accountLoading } = useMyAccount();
   const { data: balance, isLoading: balanceLoading, refetch: refetchBalance } = useBalance('NGN');
   const { data: txHistory, refetch: refetchTxHistory } = useTransactionHistory({ limit: 5 });
-  const { data: kycStatus } = useKycStatus();
+  const { data: kycStatus, isLoading: kycLoading } = useKycStatus();
   const authUser = useSelector(selectUser);
 
   // Retail-9 (2026-07-12) bugfix: accountName on the fintech `accounts` row
@@ -99,22 +100,35 @@ function FinanceShellInner() {
     />
   ), [balance, balanceLoading, recentTx, account]);
 
-  // Show wallet setup wizard for brand-new users
-  if (!accountLoading && account === null) {
+  // Real gap closed 2026-08-02 (Finance & KYC Gating item 1): a user with
+  // no fintech account used to be sent straight into WalletSetupWizard
+  // regardless of KYC status — wallets could be created with zero identity
+  // check. Now: no account AND not FULLY_VERIFIED -> gate on KYC first.
+  // Already FULLY_VERIFIED (or already has an account) -> unchanged below.
+  if (!accountLoading && !kycLoading && account === null && kycStatus?.kycStatus !== 'FULLY_VERIFIED') {
     return (
       <div style={{ background: tokens.pageBg, minHeight: '100vh' }}>
-        <WalletSetupWizard onComplete={() => window.location.reload()} />
+        <FinanceKycRequiredScreen kycStatus={kycStatus?.kycStatus ?? 'NONE'} />
       </div>
     );
   }
 
-  if (accountLoading) {
+  if (accountLoading || kycLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ background: tokens.pageBg }}>
         <div className="text-center">
           <CircularProgress sx={{ color: tokens.accentSolid }} />
           <Typography className="mt-16 text-sm" style={{ color: tokens.textPrimary }}>Loading your wallet…</Typography>
         </div>
+      </div>
+    );
+  }
+
+  // Show wallet setup wizard for brand-new, already-verified users
+  if (account === null) {
+    return (
+      <div style={{ background: tokens.pageBg, minHeight: '100vh' }}>
+        <WalletSetupWizard onComplete={() => window.location.reload()} />
       </div>
     );
   }
