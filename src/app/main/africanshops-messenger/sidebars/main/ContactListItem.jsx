@@ -19,7 +19,7 @@ function ContactListItem(props) {
     <StyledListItem
       component={NavLinkAdapter}
       className="px-32 py-12 min-h-80"
-      to={`/apps/messenger/${item.id}`}
+      to={`/africanshops/messenger/${item.id}`}
       end
       activeClassName="active"
     >

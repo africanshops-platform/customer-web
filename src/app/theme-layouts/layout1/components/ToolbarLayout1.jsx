@@ -18,7 +18,6 @@ import { selectUser } from "src/app/auth/user/store/userSlice";
 import CartToggleButton from "app/theme-layouts/shared-components/quickPanel/CartToggleButton";
 import LanHubSwitcher from "app/theme-layouts/shared-components/LanHubSwitcher";
 import { useRouteData } from "src/app/main/zrootclient/useRouteData";
-import CivicHubSwitcher from "app/theme-layouts/shared-components/CivicHubSwitcher";
 // import AdjustFontSize from "../../shared-components/AdjustFontSize";
 // import FullScreenToggle from "../../shared-components/FullScreenToggle";
 // import LanguageSwitcher from "../../shared-components/LanguageSwitcher";
@@ -95,7 +94,6 @@ function ToolbarLayout1(props) {
           <div className="flex h-full items-center overflow-x-auto px-8">
             {/* <LinkPanelButton /> */}
 
-            <CivicHubSwitcher />
             <LanHubSwitcher />
             {/* <LanguageSwitcher /> */}
 

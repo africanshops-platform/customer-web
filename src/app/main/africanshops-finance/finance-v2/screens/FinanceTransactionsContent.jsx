@@ -43,15 +43,22 @@ function inputSx(tokens, fontSize) {
 
 function statusStyle(tokens, status) {
   const map = {
-    COMPLETED: { bg: tokens.successBg, text: tokens.success },
-    PENDING:   { bg: tokens.warningBg, text: tokens.warning },
-    FAILED:    { bg: tokens.dangerBg,  text: tokens.danger },
+    COMPLETED:  { bg: tokens.successBg, text: tokens.success },
+    PROCESSING: { bg: tokens.warningBg, text: tokens.warning },
+    OTP_PENDING:{ bg: tokens.warningBg, text: tokens.warning },
+    INITIATED:  { bg: tokens.warningBg, text: tokens.warning },
+    FAILED:     { bg: tokens.dangerBg,  text: tokens.danger },
+    REVERSED:   { bg: tokens.dangerBg,  text: tokens.danger },
+    CANCELLED:  { bg: tokens.dangerBg,  text: tokens.danger },
   };
   return map[status] ?? map.COMPLETED;
 }
 
+// Retail-N (2026-07-16): this screen now reads the ledger-backed statement
+// (see TxRow's direction check below) — 'IN'/'OUT', not the old Mongo
+// history's 'CREDIT'/'DEBIT'.
 function TxRow({ tx, tokens }) {
-  const isCredit = tx?.direction === 'CREDIT' || tx?.type === 'CREDIT';
+  const isCredit = tx?.direction === 'IN';
   const status = (tx?.status ?? 'COMPLETED').toUpperCase();
   const st = statusStyle(tokens, status);
   const dotColor = isCredit ? tokens.success : tokens.danger;
@@ -68,10 +75,10 @@ function TxRow({ tx, tokens }) {
           </div>
           <div className="min-w-0">
             <Typography className="truncate max-w-xs" style={{ fontSize: F.body, fontWeight: 600, color: tokens.textPrimary }}>
-              {tx?.narration ?? tx?.description ?? 'Transaction'}
+              {tx?.description ?? 'Transaction'}
             </Typography>
             <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>
-              {tx?.reference ?? tx?.id ?? '—'}
+              {tx?.sourceReference ?? tx?.id ?? '—'}
             </Typography>
           </div>
         </div>
@@ -83,7 +90,7 @@ function TxRow({ tx, tokens }) {
       </td>
       <td className="py-14 px-12">
         <Typography style={{ fontSize: F.body, fontWeight: 700, color: dotColor }}>
-          {isCredit ? '+' : '-'}{formatKobo(tx?.amount ?? tx?.amountKobo)}
+          {isCredit ? '+' : '-'}{formatKobo(tx?.amount)}
         </Typography>
       </td>
       <td className="py-14 px-12">
@@ -91,23 +98,23 @@ function TxRow({ tx, tokens }) {
           {status}
         </span>
       </td>
-      <td className="py-14 px-12">
-        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>
-          {tx?.accountNumber ?? '—'}
-        </Typography>
-      </td>
     </motion.tr>
   );
 }
 
 export default function FinanceTransactionsContent() {
-  const { account } = useOutletContext();
+  useOutletContext();
   const { tokens } = useFinanceTheme();
   const card = { background: tokens.cardBg, border: `1px solid ${tokens.cardBorder}`, boxShadow: tokens.cardShadow };
 
-  const [filters, setFilters] = useState({
-    startDate: '', endDate: '', status: '', accountNumber: account?.accountNumber ?? '', search: '',
-  });
+  // Retail-N (2026-07-16): `destinationAccountNumber` filters to "my
+  // transactions to/from this specific account" only — the backend always
+  // additionally requires the caller's own wallet be one side of the
+  // transaction (see zxfx-ledger-service's getWalletStatement()), so this
+  // can never be used to browse a different account's history in its own
+  // right. Not prefilled with the caller's own account anymore — that
+  // filtered a destination equal to yourself, which is meaningless.
+  const [filters, setFilters] = useState({ startDate: '', endDate: '', status: '', destinationAccountNumber: '' });
   const [page, setPage] = useState(1);
   const limit = 20;
 
@@ -119,10 +126,10 @@ export default function FinanceTransactionsContent() {
     setIsLoading(true);
     try {
       const params = Object.fromEntries(
-        Object.entries({ ...filters, page, limit, offset: (page - 1) * limit }).filter(([, v]) => v)
+        Object.entries({ ...filters, page, limit }).filter(([, v]) => v)
       );
       const q = new URLSearchParams(params).toString();
-      const res = await AuthApi().get(`/fintech-accounts/user/transaction/history?${q}`);
+      const res = await AuthApi().get(`/fintech-accounts/user/statement?${q}`);
       setData(res.data?.payload ?? res.data?.data ?? res.data);
     } catch {
       setData(null);
@@ -133,9 +140,9 @@ export default function FinanceTransactionsContent() {
 
   useEffect(() => { fetchTx(); }, [fetchTx]);
 
-  const transactions = useMemo(() => data?.transactions ?? data ?? [], [data]);
-  const total = data?.total ?? transactions.length;
-  const pageCount = Math.ceil(total / limit);
+  const transactions = useMemo(() => data?.transactions ?? [], [data]);
+  const total = data?.pagination?.total ?? 0;
+  const pageCount = data?.pagination?.pages ?? 0;
 
   async function downloadCsv() {
     setCsvLoading(true);
@@ -159,8 +166,8 @@ export default function FinanceTransactionsContent() {
   }
 
   function updateFilter(key, value) { setFilters(f => ({ ...f, [key]: value })); setPage(1); }
-  function clearFilters() { setFilters({ startDate: '', endDate: '', status: '', accountNumber: account?.accountNumber ?? '', search: '' }); setPage(1); }
-  const activeFilterCount = Object.values(filters).filter(v => v && v !== account?.accountNumber).length;
+  function clearFilters() { setFilters({ startDate: '', endDate: '', status: '', destinationAccountNumber: '' }); setPage(1); }
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
 
   return (
     <div className="w-full px-16 md:px-24 xl:px-32 py-24">
@@ -189,11 +196,16 @@ export default function FinanceTransactionsContent() {
 
         {/* Filters */}
         <div className="rounded-2xl p-16 mb-16" style={card}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-12 items-end">
-            <TextField label="Search" value={filters.search} onChange={e => updateFilter('search', e.target.value)} size="small"
-              InputProps={{ startAdornment: <FuseSvgIcon size={16} style={{ color: tokens.textMuted, marginRight: 4 }}>heroicons-outline:search</FuseSvgIcon> }}
-              sx={inputSx(tokens, F.small)} />
-            <TextField label="Account Number" value={filters.accountNumber} onChange={e => updateFilter('accountNumber', e.target.value)} size="small" sx={inputSx(tokens, F.small)} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 items-end">
+            <TextField
+              label="Destination Account"
+              value={filters.destinationAccountNumber}
+              onChange={e => updateFilter('destinationAccountNumber', e.target.value.replace(/\D/g, '').slice(0, 10))}
+              size="small"
+              placeholder="10-digit account number"
+              helperText="Only your own transactions to/from this account"
+              sx={inputSx(tokens, F.small)}
+            />
             <TextField label="Start Date" type="date" value={filters.startDate} onChange={e => updateFilter('startDate', e.target.value)} size="small" InputLabelProps={{ shrink: true }} sx={inputSx(tokens, F.small)} />
             <TextField label="End Date" type="date" value={filters.endDate} onChange={e => updateFilter('endDate', e.target.value)} size="small" InputLabelProps={{ shrink: true }} sx={inputSx(tokens, F.small)} />
             <FormControl size="small" sx={inputSx(tokens, F.small)}>
@@ -203,8 +215,11 @@ export default function FinanceTransactionsContent() {
               >
                 <MenuItem value="">All</MenuItem>
                 <MenuItem value="COMPLETED">Completed</MenuItem>
-                <MenuItem value="PENDING">Pending</MenuItem>
+                <MenuItem value="PROCESSING">Processing</MenuItem>
+                <MenuItem value="OTP_PENDING">Awaiting OTP</MenuItem>
                 <MenuItem value="FAILED">Failed</MenuItem>
+                <MenuItem value="REVERSED">Reversed</MenuItem>
+                <MenuItem value="CANCELLED">Cancelled</MenuItem>
               </Select>
             </FormControl>
           </div>
@@ -227,7 +242,7 @@ export default function FinanceTransactionsContent() {
           <table className="w-full min-w-max">
             <thead>
               <tr style={{ borderBottom: `1px solid ${tokens.borderColor}`, background: tokens.pageBg }}>
-                {['Transaction', 'Date', 'Amount', 'Status', 'Account'].map(col => (
+                {['Transaction', 'Date', 'Amount', 'Status'].map(col => (
                   <th key={col} className="py-14 px-12 text-left">
                     <Typography className="uppercase tracking-wider font-semibold" style={{ fontSize: F.small, color: tokens.textMuted }}>{col}</Typography>
                   </th>
@@ -239,7 +254,7 @@ export default function FinanceTransactionsContent() {
                 {isLoading
                   ? Array.from({ length: 8 }).map((_, i) => (
                       <tr key={i} className="border-b" style={{ borderColor: tokens.borderColor }}>
-                        {Array.from({ length: 5 }).map((_, j) => (
+                        {Array.from({ length: 4 }).map((_, j) => (
                           <td key={j} className="py-14 px-12">
                             <Skeleton variant="text" sx={{ width: j === 0 ? '80%' : '60%', height: 22 }} />
                           </td>
@@ -249,7 +264,7 @@ export default function FinanceTransactionsContent() {
                   : transactions.length === 0
                     ? (
                       <tr>
-                        <td colSpan={5} className="py-48 text-center">
+                        <td colSpan={4} className="py-48 text-center">
                           <FuseSvgIcon size={44} style={{ color: tokens.textMuted, margin: '0 auto 12px', display: 'block' }}>heroicons-outline:clipboard-list</FuseSvgIcon>
                           <Typography style={{ fontSize: F.body, color: tokens.textMuted }}>No transactions found</Typography>
                         </td>
