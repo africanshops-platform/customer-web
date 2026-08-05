@@ -2,7 +2,6 @@ import { Controller, useForm } from "react-hook-form";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { Link } from "react-router-dom";
 import _ from "@lodash";
 import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
@@ -389,9 +388,18 @@ function UserModernReversedActivatePage({ resendOTP }) {
                 <Typography variant="body2" className="text-gray-600">
                   Want to use a different email?
                 </Typography>
-                <Link
-                  className="ml-8 font-semibold text-sm"
-                  to="/sign-up"
+                <a
+                  className="ml-8 font-semibold text-sm cursor-pointer"
+                  onClick={() => {
+                    // Clearing the cookie alone isn't enough: this Link's target is the
+                    // same "/sign-up" path we're already on, so react-router treats it as
+                    // a no-op and never remounts this component to re-read the (now
+                    // cleared) cookie. A hard navigation guarantees a fresh mount that
+                    // actually lands on the registration form instead of back here.
+                    removeUserSignUpToken();
+                    removeResendMerchantSignUpOtp();
+                    window.location.href = "/sign-up";
+                  }}
                   style={{
                     background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
                     WebkitBackgroundClip: "text",
@@ -400,7 +408,7 @@ function UserModernReversedActivatePage({ resendOTP }) {
                   }}
                 >
                   Sign Up Again
-                </Link>
+                </a>
               </div>
             </form>
           </div>
