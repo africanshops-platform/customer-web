@@ -258,7 +258,7 @@ export const logOutAdmin = () => {
 
 	// removeUserCredentialsStorage()
 	Cookies.remove(config.userCredentials);
-	Cookies.remove('jwt_auth_credentials');
+	Cookies.remove('marketplace_jwt_auth_credentials');
 
 	window.location.reload();
 };

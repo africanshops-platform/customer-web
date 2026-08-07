@@ -455,7 +455,7 @@ export const merchantLogOutCall = () => {
 			/** Fuse admin starts */
 			resetSessionForShopUsers();
 
-			Cookies.remove('jwt_auth_credentials');
+			Cookies.remove('marketplace_jwt_auth_credentials');
 			/** *Fuse admin ends */
 
 			Cookies.remove('authUserInfo');
@@ -470,7 +470,7 @@ export const merchantLogOutCall = () => {
 			Cookies.remove('ADMIN_AFSP_Show_Hide_tmp_Lead');
 			Cookies.remove('ADMIN_AFSP_Show_Hide_tmp_Lead_ARC');
 
-			localStorage.removeItem('jwt_auth_credentials');
+			localStorage.removeItem('marketplace_jwt_auth_credentials');
 			localStorage.clear();
 
 			// Cookies.set(

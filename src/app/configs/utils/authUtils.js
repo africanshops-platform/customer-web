@@ -189,13 +189,13 @@ export function removeResendMerchantSignUpOtp() {
 }
 
 export const resetSessionForShopUsers = () => {
-	localStorage.removeItem('jwt_auth_credentials');
+	localStorage.removeItem('marketplace_jwt_auth_credentials');
 
 	// delete axios.defaults.headers.common.Authorization;
 	// delete axios.defaults.headers.common.accessToken;
 	localStorage.removeItem('jwt_is_authenticated_status');
 	localStorage.removeItem('jwt_is_authStatus');
-	// localStorage.removeItem('jwt_auth_credentials');
+	// localStorage.removeItem('marketplace_jwt_auth_credentials');
 	window.location.reload();
 };
 
