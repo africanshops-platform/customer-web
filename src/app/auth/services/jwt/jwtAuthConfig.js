@@ -22,7 +22,12 @@ const jwtAuthConfig = {
 	getAuthAdminInBravortAdminUrl: `${baseUrl}/shop/get-auth-shop`,
 	isAuthenticatedStatus: 'jwt_is_authenticated_status',
 	authStatus: 'jwt_is_authStatus',
-	adminCredentials: 'jwt_auth_credentials'
+	// App-specific (2026-08-07): was the identical literal cookie name in every
+	// frontend app. Cookies are host-scoped, not port-scoped, so on localhost
+	// every app's dev server (different ports, same host) was silently
+	// overwriting the others' session cookie. Prod uses distinct subdomains
+	// per app so this never showed up there.
+	adminCredentials: 'marketplace_jwt_auth_credentials'
 };
 
 export default jwtAuthConfig;
