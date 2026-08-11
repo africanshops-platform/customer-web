@@ -9,13 +9,14 @@ import InputAdornment from '@mui/material/InputAdornment';
 import Checkbox from '@mui/material/Checkbox';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useWithdrawalInitiate, useWithdrawalConfirm, useBanksList, useDeleteBeneficiary } from '../hooks/useFintechApi';
+import { useWithdrawalInitiate, useWithdrawalConfirm, useBanksList, useDeleteBeneficiary, useFintechKycStatus } from '../hooks/useFintechApi';
 import { useFinanceTheme } from '../FinanceThemeContext';
 import { F, fieldSx } from '../financeUiTokens';
 import OtpTimer from './shared/OtpTimer';
 import BeneficiaryPicker from './shared/BeneficiaryPicker';
 import TransactionPinField from './shared/TransactionPinField';
 import ForgotPinDialog from './shared/ForgotPinDialog';
+import PartialKycAllowanceBanner, { exceedsMonthlyAllowance } from './shared/PartialKycAllowanceBanner';
 
 export default function FinanceWithdrawalContent() {
   const { account, balance, refetchFinanceData } = useOutletContext();
@@ -23,6 +24,7 @@ export default function FinanceWithdrawalContent() {
   const { mutate: confirm, isLoading: confirming } = useWithdrawalConfirm();
   const { mutate: deleteBeneficiary } = useDeleteBeneficiary();
   const { data: banks, isLoading: banksLoading } = useBanksList();
+  const { data: kycSubmission } = useFintechKycStatus(account?.accountNumber);
   const { tokens } = useFinanceTheme();
   const card = { background: tokens.cardBg, border: `1px solid ${tokens.cardBorder}`, boxShadow: tokens.cardShadow };
   const errorAlertSx = { borderRadius: '10px', background: tokens.dangerBg, color: tokens.danger, fontSize: F.small, '& .MuiAlert-icon': { color: tokens.danger } };
@@ -49,6 +51,10 @@ export default function FinanceWithdrawalContent() {
 
   const availableNGN = parseFloat(balance?.availableBalance ?? 0) / 100;
   const amountNGN = parseFloat(form.amountNGN || 0);
+  const overMonthlyAllowance = exceedsMonthlyAllowance(kycSubmission, amountNGN);
+  let amountHelperText = 'Paystack + platform fees are added on top and shown at confirmation';
+  if (amountNGN > availableNGN && amountNGN > 0) amountHelperText = 'Exceeds available balance';
+  else if (overMonthlyAllowance) amountHelperText = 'Exceeds your remaining monthly allowance';
 
   function update(key, value) {
     setForm(f => ({ ...f, [key]: value }));
@@ -136,11 +142,13 @@ export default function FinanceWithdrawalContent() {
                   value={form.amountNGN}
                   onChange={e => update('amountNGN', e.target.value.replace(/[^0-9.]/g, ''))}
                   fullWidth
-                  error={amountNGN > availableNGN && amountNGN > 0}
-                  helperText={amountNGN > availableNGN && amountNGN > 0 ? 'Exceeds available balance' : 'Paystack + platform fees are added on top and shown at confirmation'}
+                  error={(amountNGN > availableNGN && amountNGN > 0) || overMonthlyAllowance}
+                  helperText={amountHelperText}
                   InputProps={{ startAdornment: <InputAdornment position="start"><Typography style={{ color: tokens.textMuted, fontSize: F.body }}>₦</Typography></InputAdornment> }}
                   sx={{ ...fieldSx(tokens), '& .MuiFormHelperText-root.Mui-error': { color: tokens.danger } }}
                 />
+
+                <PartialKycAllowanceBanner submission={kycSubmission} />
               </div>
 
               <BeneficiaryPicker
@@ -160,7 +168,7 @@ export default function FinanceWithdrawalContent() {
               <Button
                 variant="contained"
                 fullWidth
-                disabled={!form.amountNGN || !beneficiary || amountNGN > availableNGN || amountNGN <= 0}
+                disabled={!form.amountNGN || !beneficiary || amountNGN > availableNGN || amountNGN <= 0 || overMonthlyAllowance}
                 onClick={() => setStep('confirm')}
                 sx={{ background: tokens.accentGradient, borderRadius: '12px', fontWeight: 700, py: 1.5, textTransform: 'none', fontSize: F.body, '&:disabled': { background: tokens.borderColor, color: tokens.textMuted } }}
               >
