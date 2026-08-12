@@ -90,8 +90,8 @@ function JwtAuthProvider(props) {
   /**Get User credentials */
   const getUserCredentialsStorage = useCallback(() => {
     //Get Item in Cookie-based-SETTERS
-    const { userCredentials } = Cookie.get("jwt_auth_credentials")
-      ? JSON.parse(Cookie.get("jwt_auth_credentials"))
+    const { userCredentials } = Cookie.get("marketplace_jwt_auth_credentials")
+      ? JSON.parse(Cookie.get("marketplace_jwt_auth_credentials"))
       : "";
     if (userCredentials) {
       return userCredentials;
@@ -101,9 +101,9 @@ function JwtAuthProvider(props) {
   /***Remove user credentials */
   const removeUserCredentialsStorage = useCallback(() => {
     localStorage.removeItem(config.userCredentials);
-    localStorage.removeItem("jwt_auth_credentials");
+    localStorage.removeItem("marketplace_jwt_auth_credentials");
     Cookie.remove(config.userCredentials);
-    Cookie.remove("jwt_auth_credentials");
+    Cookie.remove("marketplace_jwt_auth_credentials");
   }, []);
 
   const [user, setUser] = useState(getUserCredentialsStorage());

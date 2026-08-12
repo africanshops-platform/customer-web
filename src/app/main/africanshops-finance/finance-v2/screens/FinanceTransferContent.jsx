@@ -8,8 +8,9 @@ import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTransfer, useResolveInternalAccount } from '../hooks/useFintechApi';
+import { useTransfer, useResolveInternalAccount, useFintechKycStatus } from '../hooks/useFintechApi';
 import { useFinanceTheme } from '../FinanceThemeContext';
+import PartialKycAllowanceBanner, { exceedsMonthlyAllowance } from './shared/PartialKycAllowanceBanner';
 
 const F = {
   sectionHead: 'clamp(1.76rem, 2.6vw, 2.2rem)',
@@ -81,6 +82,7 @@ export default function FinanceTransferContent() {
   const { account, balance, refetchFinanceData } = useOutletContext();
   const { mutate, isLoading } = useTransfer();
   const { mutate: resolveAccount } = useResolveInternalAccount();
+  const { data: kycSubmission } = useFintechKycStatus(account?.accountNumber);
   const { tokens } = useFinanceTheme();
   const card = { background: tokens.cardBg, border: `1px solid ${tokens.cardBorder}`, boxShadow: tokens.cardShadow };
 
@@ -175,7 +177,11 @@ export default function FinanceTransferContent() {
   const stepKeys   = [STEPS.FORM, STEPS.PIN, STEPS.OTP, STEPS.SUCCESS];
   const errorAlertSx = { borderRadius: '10px', background: tokens.dangerBg, color: tokens.danger, fontSize: F.small, '& .MuiAlert-icon': { color: tokens.danger } };
 
-  const canContinue = !!recipient && !isSelf && form.amount && amountNaira > 0 && amountNaira <= availableNGN;
+  const overMonthlyAllowance = exceedsMonthlyAllowance(kycSubmission, amountNaira);
+  const canContinue = !!recipient && !isSelf && form.amount && amountNaira > 0 && amountNaira <= availableNGN && !overMonthlyAllowance;
+  let amountHelperText = '';
+  if (amountNaira > availableNGN) amountHelperText = 'Insufficient balance';
+  else if (overMonthlyAllowance) amountHelperText = 'Exceeds your remaining monthly allowance';
 
   return (
     <div className="w-full px-16 md:px-24 xl:px-32 py-24 flex justify-center">
@@ -220,12 +226,14 @@ export default function FinanceTransferContent() {
 
                 <RecipientCard tokens={tokens} verifying={verifying} recipient={recipient} selfError={isSelf} notFoundError={notFoundError} />
 
+                <PartialKycAllowanceBanner submission={kycSubmission} />
+
                 <TextField label="Amount (₦)" value={form.amount}
                   onChange={e => update('amount', e.target.value.replace(/[^0-9.]/g, ''))}
                   fullWidth
                   InputProps={{ startAdornment: <InputAdornment position="start"><Typography style={{ color: tokens.textMuted, fontSize: F.body }}>₦</Typography></InputAdornment> }}
-                  error={amountNaira > availableNGN}
-                  helperText={amountNaira > availableNGN ? 'Insufficient balance' : ''}
+                  error={amountNaira > availableNGN || overMonthlyAllowance}
+                  helperText={amountHelperText}
                   sx={{ ...fieldSx(tokens, F.body), '& .MuiFormHelperText-root.Mui-error': { color: tokens.danger } }} />
 
                 <TextField label="Narration (optional)" value={form.narration}

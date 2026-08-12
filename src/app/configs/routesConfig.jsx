@@ -23,6 +23,7 @@ import AfricanshopsMessengerAppConfig from "../main/africanshops-messenger/Afric
 
 import blogAppConfig from "../main/newsblog/blogAppConfig";
 import userMarketPlacePagesConfig from "../main/zrootclient/buz-marketplace/userMarketPlacePagesConfig";
+import userDisputesPagesConfig from "../main/zrootclient/buz-disputes/userDisputesPagesConfig";
 import userFoodMartPagesConfig from "../main/zrootclient/buz-foodmart/userFoodMartPagesConfig";
 import UserSettingsAppConfig from "../main/zrootclient/settings/UserSettingsAppConfig";
 import userProfileAppConfig from "../main/zrootclient/profile/userProfileAppConfig";
@@ -103,6 +104,18 @@ const routeConfigs = [
   /****
    * #########################################################################################
    * Africanshops MARKET-PLACE-ROUTES Configs ends Here
+   * #########################################################################################
+   * */
+
+  /****
+   * #########################################################################################
+   * Africanshops DISPUTES Configs starts Here
+   * #########################################################################################
+   * */
+  userDisputesPagesConfig,
+  /****
+   * #########################################################################################
+   * Africanshops DISPUTES Configs ends Here
    * #########################################################################################
    * */
 
