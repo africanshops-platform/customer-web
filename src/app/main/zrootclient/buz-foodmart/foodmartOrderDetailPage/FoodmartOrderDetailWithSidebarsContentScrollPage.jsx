@@ -59,6 +59,7 @@ function FoodmartOrderDetailWithSidebarsContentScrollPage() {
       content={
         <DemoContent
           orderData={orderData?.data?.rcs_order}
+          orderId={foodOrderId}
           isLoading={isLoading}
           isError={isError}
         />

@@ -204,6 +204,29 @@ export const requestRefundOnUserItemInInvoiceApi = (id) => AuthApi().put(`/usero
  * ############################################################
  */
 
+/** ***
+ * #################################################################
+ * DISPUTES (2026-08-12) — self-service, customer side.
+ * #################################################################
+ */
+
+export const createDisputeApi = (dto) => AuthApi().post('/disputes', dto);
+
+export const getMyDisputesApi = (params = {}) => {
+	const query = serializeQuery(
+		Object.fromEntries(Object.entries(params).filter(([, value]) => value !== undefined && value !== ''))
+	);
+	return AuthApi().get(query ? `/disputes/my?${query}` : '/disputes/my');
+};
+
+export const getMyDisputeDetailApi = (disputeId) => AuthApi().get(`/disputes/${disputeId}`);
+
+export const addMyDisputeNoteApi = (disputeId, note) => AuthApi().post(`/disputes/${disputeId}/note`, { note });
+
+/**
+ * ############################################################
+ */
+
 /** *****
  *                      FINTEC-PAYMENTS APP
  * #######################################################################################
