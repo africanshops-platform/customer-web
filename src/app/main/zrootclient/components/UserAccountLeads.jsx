@@ -4,7 +4,14 @@ import { selectUser } from "src/app/auth/user/store/userSlice";
 import Typography from "@mui/material/Typography";
 import Avatar from "@mui/material/Avatar";
 import NavLinkAdapter from "@fuse/core/NavLinkAdapter";
-import { Person, ShoppingBag, Restaurant, BeachAccess, ChevronRight } from "@mui/icons-material";
+import {
+  Person,
+  ShoppingBag,
+  Restaurant,
+  BeachAccess,
+  ChevronRight,
+  ReportProblemOutlined,
+} from "@mui/icons-material";
 
 /**
  * UserAccountLeads Component
@@ -37,6 +44,12 @@ const UserAccountLeads = () => {
       label: "Trips",
       icon: BeachAccess,
       to: "/bookings/my-reservations",
+    },
+    {
+      id: "disputes",
+      label: "My Disputes",
+      icon: ReportProblemOutlined,
+      to: "/disputes/user/my-disputes",
     },
   ];
 

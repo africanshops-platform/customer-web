@@ -58,7 +58,12 @@ function MarketplaceOrderDetailWithSidebarsContentScrollPage() {
         />
       }
       content={
-        <DemoContent userOrder={orderData?.data?.order} isLoading={isLoading} isError={isError} />
+        <DemoContent
+          userOrder={orderData?.data?.order}
+          orderId={orderId}
+          isLoading={isLoading}
+          isError={isError}
+        />
       }
       leftSidebarOpen={leftSidebarOpen}
       leftSidebarOnClose={() => {

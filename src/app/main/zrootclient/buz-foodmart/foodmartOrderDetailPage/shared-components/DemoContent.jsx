@@ -12,6 +12,7 @@ import { CheckCircle, RestaurantMenu, DeliveryDining } from "@mui/icons-material
 import NavLinkAdapter from "@fuse/core/NavLinkAdapter";
 import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
 import ClienttErrorPage from "src/app/main/zrootclient/components/ClienttErrorPage";
+import RaiseDisputeDialog from "src/app/main/zrootclient/buz-disputes/RaiseDisputeDialog";
 
 const FOOD_STEPS = [
   { key: "ordered",    label: "Order Received",    icon: <CheckCircle sx={{ fontSize: "1.15rem" }} /> },
@@ -347,10 +348,11 @@ function ChatWidget({ restaurantName, orderRef }) {
 }
 
 /* ─── Main Content ─── */
-function DemoContent({ isLoading, isError, orderData }) {
+function DemoContent({ isLoading, isError, orderData, orderId }) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
   const [selectedItemId, setSelectedItemId]     = useState(null);
+  const [disputeDialogOpen, setDisputeDialogOpen] = useState(false);
 
   const handleCancelOpen  = (id) => { setSelectedItemId(id); setCancelDialogOpen(true); };
   const handleCancelClose = ()  => { setCancelDialogOpen(false); setSelectedItemId(null); };
@@ -753,6 +755,24 @@ function DemoContent({ isLoading, isError, orderData }) {
                           Request Refund
                         </motion.button>
                       )}
+                      {/* Order-level flag, not isItemDelivered — matches
+                          what the backend actually checks for dispute
+                          eligibility (the parent order's isDelivered). */}
+                      {orderData?.isDelivered && (
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setDisputeDialogOpen(true)}
+                          className="px-6 py-2 rounded-xl font-semibold text-sm transition-all"
+                          style={{
+                            background: "white",
+                            color: "#dc2626",
+                            border: "1px solid rgba(220,38,38,0.4)",
+                          }}
+                        >
+                          Report an issue
+                        </motion.button>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -760,6 +780,13 @@ function DemoContent({ isLoading, isError, orderData }) {
             })}
           </div>
         </motion.div>
+
+        <RaiseDisputeDialog
+          open={disputeDialogOpen}
+          onClose={() => setDisputeDialogOpen(false)}
+          orderId={orderId}
+          orderType="FOOD"
+        />
 
         {/* Payment Info + Order Progress grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
