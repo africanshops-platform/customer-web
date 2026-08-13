@@ -423,8 +423,14 @@ export const userWithdrawRequestApi = (withdrawFormData) =>
  * --------------------------------------------------------------------------------------------------------------------
  */
 
+/** List this user's active sessions/devices — GET /auth-user/sessions */
+export const getSessionsApi = () => AuthApi().get('/auth-user/sessions');
+
 /** Revoke a specific session on the server — DELETE /auth-user/sessions/:sessionId */
 export const revokeSessionApi = (sessionId) => AuthApi().delete(`/auth-user/sessions/${sessionId}`);
+
+/** Revoke every other session, keeping the current one — DELETE /auth-user/sessions/all */
+export const revokeAllSessionsApi = () => AuthApi().delete('/auth-user/sessions/all');
 
 // Users Logout functionality  usersproducts
 export const logOut = () => {
