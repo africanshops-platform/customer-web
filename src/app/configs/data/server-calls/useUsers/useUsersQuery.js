@@ -207,7 +207,8 @@ export function useShopSignUp() {
 
 export function useShopSignUpWithOtp() {
 	// (Msvs => Done)
-	return useMutation(preSignUpWithOtp, {
+	// mutate({ formData, refParams }) — refParams is optional, see preSignUpWithOtp.
+	return useMutation(({ formData, refParams }) => preSignUpWithOtp(formData, refParams), {
 		onSuccess: (data) => {
 			//   console.log("preShopSignUp", data?.data);
 

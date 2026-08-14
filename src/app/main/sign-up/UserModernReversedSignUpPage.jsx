@@ -5,7 +5,7 @@ import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import _ from "@lodash";
 import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
@@ -197,6 +197,20 @@ function UserModernReversedSignUpPage() {
   const remoteResponseToken = getMerchantSignUpToken();
   const sigupClientUsers = useShopSignUpWithOtp();
 
+  // Referral signup-capture (2026-08-14): a shared referral link lands here as
+  // /sign-up?usersref=CODE (or adminref/merchantref) — see referral.service.ts's
+  // buildReferralLinks. Captured once per visit so it survives the OTP-resend
+  // retry, which reuses this same registration attempt.
+  const routerLocation = useLocation();
+  const refParams = useMemo(() => {
+    const params = new URLSearchParams(routerLocation.search);
+    const ref = {};
+    if (params.get("usersref")) ref.usersref = params.get("usersref");
+    if (params.get("adminref")) ref.adminref = params.get("adminref");
+    if (params.get("merchantref")) ref.merchantref = params.get("merchantref");
+    return Object.keys(ref).length > 0 ? ref : undefined;
+  }, [routerLocation.search]);
+
   // App-settings gate — same pattern as JwtSignInForm
   const {
     data: appSettings,
@@ -226,7 +240,7 @@ function UserModernReversedSignUpPage() {
   };
 
   function onSubmit() {
-    sigupClientUsers.mutate(shopregistry);
+    sigupClientUsers.mutate({ formData: shopregistry, refParams });
   }
 
   // Resend OTP on expiration of OTP
@@ -236,7 +250,7 @@ function UserModernReversedSignUpPage() {
       removeResendMerchantSignUpOtp();
       return;
     }
-    sigupClientUsers.mutate(clientSignUpData);
+    sigupClientUsers.mutate({ formData: clientSignUpData, refParams });
   };
 
   const [step, setStep] = useState(STEPS.CATEGORY);

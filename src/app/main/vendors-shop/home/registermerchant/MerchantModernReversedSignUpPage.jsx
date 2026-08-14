@@ -189,11 +189,11 @@ function MerchantModernReversedSignUpPage() {
         console.log("uploadSnaps11", snapshot);
         getDownloadURL(snapshot.ref).then((downloadURL) => {
           setValue("coverimage", downloadURL);
-          sigupMerchant.mutate(shopregistry);
+          sigupMerchant.mutate({ formData: shopregistry });
         });
       });
     } else {
-      sigupMerchant.mutate(shopregistry);
+      sigupMerchant.mutate({ formData: shopregistry });
     }
   }
 
@@ -205,7 +205,7 @@ function MerchantModernReversedSignUpPage() {
         removeResendMerchantSignUpOtp();
       }
     }
-    sigupMerchant.mutate(clientSignUpData);
+    sigupMerchant.mutate({ formData: clientSignUpData });
   };
 
   const [step, setStep] = useState(STEPS.CATEGORY);

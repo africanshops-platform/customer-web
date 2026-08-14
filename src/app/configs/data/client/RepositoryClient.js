@@ -41,7 +41,10 @@ export const serializeQuery = (query) => {
 
 export const preSignUp = (formData) => Api().post('/authuser/pre-signup', formData);
 
-export const preSignUpWithOtp = (formData) => Api().post('/auth-user/pre-signup-with-otp', formData); // (Msvs => Done)
+// refParams ({ usersref, merchantref, adminref }) are read by the gateway as query
+// params, not body fields — see userauthclient.controller.ts's registerUser().
+export const preSignUpWithOtp = (formData, refParams) =>
+	Api().post('/auth-user/pre-signup-with-otp', formData, refParams ? { params: refParams } : undefined); // (Msvs => Done)
 
 export const preUserRegistration = (formData) => Api().post('/authuser/register-preuser', formData);
 
