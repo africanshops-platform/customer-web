@@ -5,6 +5,15 @@ import { motion } from "framer-motion";
 import FuseSvgIcon from "@fuse/core/FuseSvgIcon";
 import { useReferralLinks } from "app/configs/data/server-calls/useReferralLinks/useReferralLinksQuery";
 
+function StatTile({ label, value, color }) {
+  return (
+    <div className="text-center p-4 rounded-xl" style={{ background: color, color: "#fff" }}>
+      <Typography className="text-2xl font-bold">{value ?? 0}</Typography>
+      <Typography className="text-xs" style={{ opacity: 0.9 }}>{label}</Typography>
+    </div>
+  );
+}
+
 function CopyField({ label, value }) {
   const [copied, setCopied] = useState(false);
 
@@ -83,11 +92,19 @@ function ReferralLinksTab() {
             <CircularProgress size={28} sx={{ color: "#f97316" }} />
           </div>
         ) : (
-          <div className="grid gap-3">
-            <CopyField label="Your referral code" value={data?.referralCode} />
-            <CopyField label="Merchant sign-up link" value={data?.merchantReferralLink} />
-            <CopyField label="User sign-up link" value={data?.userReferralLink} />
-          </div>
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              <StatTile label="Total Referrals" value={data?.stats?.totalReferrals} color="linear-gradient(135deg, #f97316 0%, #ea580c 100%)" />
+              <StatTile label="Merchant Referrals" value={data?.stats?.merchantReferrals} color="linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)" />
+              <StatTile label="User Referrals" value={data?.stats?.userReferrals} color="linear-gradient(135deg, #22c55e 0%, #16a34a 100%)" />
+              <StatTile label="Completed Referrals" value={data?.stats?.completedReferrals} color="linear-gradient(135deg, #eab308 0%, #ca8a04 100%)" />
+            </div>
+            <div className="grid gap-3">
+              <CopyField label="Your referral code" value={data?.referralCode} />
+              <CopyField label="Merchant sign-up link" value={data?.merchantReferralLink} />
+              <CopyField label="User sign-up link" value={data?.userReferralLink} />
+            </div>
+          </>
         )}
       </motion.div>
     </div>
