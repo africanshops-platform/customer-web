@@ -226,9 +226,11 @@ export function usePayAndPlaceOrder() {
 				} else {
 					toast.info('something unexpected happened');
 				}
-			}
-		},
-		{
+			},
+			// Bug fix: useMutation only reads its 2nd argument for options — a
+			// 3rd object (the old `{ onError: handleNestJSError }` below) is
+			// silently ignored, so a failed payment never surfaced any error at
+			// all. Merged into the single options object react-query expects.
 			onError: handleNestJSError
 		}
 	);

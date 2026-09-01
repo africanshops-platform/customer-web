@@ -245,6 +245,19 @@ export const verifyPaystackPaymentFromFintechService = (formData) => {
 	return AuthApi().post(`paystack-payment/verify`, formData);
 }; // (Done => Msvs)
 
+/** *Pre-flight check: are the services needed to complete this order type up? */
+export const getBookingsCheckoutReadiness = () => {
+	return AuthApi().get(`checkout-readiness/bookings`);
+};
+
+export const getMarketplaceCheckoutReadiness = () => {
+	return AuthApi().get(`checkout-readiness/marketplace`);
+};
+
+export const getFoodCheckoutReadiness = () => {
+	return AuthApi().get(`checkout-readiness/food`);
+};
+
 /** *****
  *                      BOOKINGS APP
  * #######################################################################################
