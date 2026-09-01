@@ -7,7 +7,9 @@ import {
   usePayAndPlaceFoodOrder,
   useCalculateFoodCartShipping,
 } from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
+import { useFoodCheckoutReadiness } from "app/configs/data/server-calls/auth/paystack-payments/usePaystackPaymentsRepo";
 import { useAppSelector } from "app/store/hooks";
+import { useQueryClient } from "react-query";
 import { selectUser } from "../../../../auth/user/store/userSlice";
 import {
   calculateCartTotalAmount,
@@ -51,10 +53,18 @@ function FoodCartSummaryAndPay({
     !!orderLgaDestination &&
     cartSession.lgaId !== orderLgaDestination;
 
+  const queryClient = useQueryClient();
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [deliveryError, setDeliveryError] = useState(null);
   const { mutate: calculateFoodCartShipping, isLoading: deliveryLoading } =
     useCalculateFoodCartShipping();
+
+  // A failed Paystack attempt now rotates this food cart session server-side
+  // (a fresh session id, so a retry doesn't collide with the already-used
+  // AFSHFMKT<sessionId> reference) — block this exact button until the
+  // parent's food cart query refetches with the new session.
+  const [paymentFailedPermanently, setPaymentFailedPermanently] = useState(false);
+  const readiness = useFoodCheckoutReadiness();
 
   // Build subtotal from cart items
   const checkItemsArray = (intemsInCart || []).map((el) => ({
@@ -136,7 +146,21 @@ function FoodCartSummaryAndPay({
         foodMart: cartSession?.foodmartId,
         reference: paystackResponse?.reference,
       };
-      verifyPaymentAndCreateOrder(orderData);
+      verifyPaymentAndCreateOrder(orderData, {
+        onError: (error) => {
+          const errorMessage =
+            error?.response?.data?.message || error?.message || "Payment verification failed.";
+          // Paystack itself confirmed this attempt failed — the food cart
+          // session is rotated server-side (new session id, fresh
+          // reference), so this exact reference can never be retried.
+          // Refetch the food cart so the parent picks up the new session id.
+          if (String(errorMessage).toLowerCase().includes("payment not successful")) {
+            setPaymentFailedPermanently(true);
+            queryClient.invalidateQueries(["__foodcart"]);
+            toast.error("Your cart was refreshed after the failed payment. Please review and try again.");
+          }
+        },
+      });
     } catch (err) {
       console.error("Food payment error:", err);
       toast.error("Payment failed. Please try again.");
@@ -160,7 +184,9 @@ function FoodCartSummaryAndPay({
     !orderMarketPickupDestination ||
     isOutsideVendorLga ||
     deliveryLoading ||
-    !!deliveryError;
+    !!deliveryError ||
+    paymentFailedPermanently ||
+    readiness.data?.healthy === false;
 
   return (
     <motion.div
@@ -312,11 +338,25 @@ function FoodCartSummaryAndPay({
                 reference={`AFSHFMKT${cartSession?.id || generateClientUID()}`}
                 email={user?.email}
                 amount={grandTotal * 100}
+                metadata={{
+                  userId: user?.id,
+                  foodCartSessionId: cartSession?.id,
+                }}
                 publicKey={publicKey}
                 onSuccess={(ref) => onSuccess(ref)}
                 onClose={() => onClose()}
                 disabled={isFormIncomplete || payFoodLoading}
               />
+              {paymentFailedPermanently && (
+                <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#dc2626" }}>
+                  Your cart was refreshed after the failed payment. Please review your cart and try again.
+                </p>
+              )}
+              {!paymentFailedPermanently && readiness.data?.healthy === false && (
+                <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#dc2626" }}>
+                  We can't confirm order services are ready to process payment right now. Please try again shortly.
+                </p>
+              )}
               {isFormIncomplete && (
                 <div className="mt-3 text-center">
                   <div
