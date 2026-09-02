@@ -17,7 +17,6 @@ import SignOutConfig from "../main/sign-out/SignOutConfig";
 /***Bookings & Reservations-based-config  starts*/
 import userReservationPagesConfig from "../main/zrootclient/buz-bookings/user-reservations/userReservationPagesConfig";
 /***#######################################Bookings & Reservations-based-config  ends########################*/
-import AfricanshopsFinanceDashboardAppConfig from "../main/africanshops-finance/AfricanshopsFinanceDashboardAppConfig";
 import financePagesConfig from "../main/africanshops-finance/finance-v2/financePagesConfig";
 import AfricanshopsMessengerAppConfig from "../main/africanshops-messenger/AfricanshopsMessengerAppConfig";
 
@@ -70,7 +69,6 @@ const routeConfigs = [
    * Africanshops Dashboard Configs Starts Here
    * #########################################################################################
    * */
-  AfricanshopsFinanceDashboardAppConfig,
   financePagesConfig,
   AfricanshopsMessengerAppConfig,
 
