@@ -24,7 +24,6 @@ function DemoContent(props) {
   // This assumes if we get less than itemsPerPage, we're on the last page
   const estimatedTotal = totalItems > 0 ? totalItems : listings?.length || 0;
 
-  console.log("DemoContent listings:", listings);
   // Show loading placeholder
   if (isLoading) {
     return <ContentLoadingPlaceholder />;
@@ -214,7 +213,7 @@ function DemoContent(props) {
 
         {/* Pagination Bar */}
 
-        {listings?.length > onItemsPerPageChange && (
+        {estimatedTotal > itemsPerPage && (
           <PaginationBar
             totalItems={estimatedTotal}
             currentPage={currentPage}
