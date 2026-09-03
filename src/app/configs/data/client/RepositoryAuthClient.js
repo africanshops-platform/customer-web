@@ -227,6 +227,22 @@ export const addMyDisputeNoteApi = (disputeId, note) => AuthApi().post(`/dispute
  * ############################################################
  */
 
+/** ***
+ * #################################################################
+ * CAREERS — apply/track as the currently logged-in customer (same session
+ * as the rest of this app, see careers plan notes). Public browsing lives
+ * in RepositoryClient.js's getOpenPositionsApi/getPositionByIdApi.
+ * #################################################################
+ */
+
+export const applyToPositionApi = (id, coverNote) => AuthApi().post(`/careers/positions/${id}/apply`, { coverNote });
+
+export const getMyApplicationsApi = () => AuthApi().get('/careers/applications/mine');
+
+/**
+ * ############################################################
+ */
+
 /** *****
  *                      FINTEC-PAYMENTS APP
  * #######################################################################################
