@@ -11,7 +11,7 @@ import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import { setSessionRedirectUrl } from '@fuse/core/FuseAuthorization/sessionRedirectUrl';
 import { selectUser } from 'src/app/auth/user/store/userSlice';
 import { useApplyToPosition, useMyApplications, usePosition } from 'src/app/aaqueryhooks/careersQueries';
-import SimpleMarkdown from './SimpleMarkdown';
+import SimpleMarkdown from 'src/app/shared-components/SimpleMarkdown';
 import { ORANGE_GRADIENT, STATUS_META, fadeUp } from './careersTheme';
 
 function ApplyPanel({ position }) {

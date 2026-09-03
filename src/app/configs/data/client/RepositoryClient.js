@@ -75,6 +75,14 @@ export const getOpenPositionsApi = (page = 1) =>
 
 export const getPositionByIdApi = (id) => Api().get(`/careers/positions/${id}`);
 
+/** **********************************************************************************************
+ * LEGAL DOCUMENTS — public, unauthenticated fetch-by-key. Deliberately not
+ * the legacy getApiPrivacies/getApiTerms below (/privacies/clientpricacy,
+ * /privacies/terms) — those predate the microservices split and don't
+ * resolve against the current gateway. Same route civic-web/admin-web use.
+ *********************************************************************************************** */
+export const getLegalDocumentByKeyApi = (key) => Api().get(`/corporate-cms/legal/${key}`);
+
 // GET AUTHENTICATE USER WITH TOKEN REQUES
 
 // SHopPlans Routes
