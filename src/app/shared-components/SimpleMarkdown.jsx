@@ -1,15 +1,27 @@
 import { Fragment } from 'react';
 
 /**
- * Minimal renderer for the job-description markdown a position stores
- * (`## heading`, `- bullet`, blank-line-separated paragraphs, `**bold**`).
- * Deliberately not react-markdown — this app has no markdown renderer
- * installed yet, and pulling one in triggers Vite's dependency
- * re-optimization step, which crashed the dev server's esbuild service
- * under this host's current memory pressure while building the same page
- * on admin-web. The job descriptions here are simple enough that a small
- * hand-rolled parser covers them without that risk.
+ * Minimal renderer for simple markdown content (`## heading`, `### h3`,
+ * `- bullet`, blank-line-separated paragraphs, `**bold**`) — used by the
+ * careers job-description and the legal-document pages. Deliberately not
+ * react-markdown — this app has no markdown renderer installed, and
+ * pulling one in triggers Vite's dependency re-optimization step, which
+ * crashed the dev server's esbuild service under this host's memory
+ * pressure while building a page on admin-web. Both use cases here are
+ * simple enough that a small hand-rolled parser covers them without that
+ * risk.
  */
+/** Same slugify a heading's id needs to match, both when SimpleMarkdown
+ * stamps it and when a page builds a table-of-contents anchor pointing at
+ * it — exported so both agree on the same id for the same heading text. */
+export function slugify(text) {
+	return String(text)
+		.toLowerCase()
+		.trim()
+		.replace(/[^\w\s-]/g, '')
+		.replace(/\s+/g, '-');
+}
+
 function renderInline(text, key) {
 	const parts = text.split(/(\*\*[^*]+\*\*)/g);
 	return (
@@ -66,12 +78,15 @@ function SimpleMarkdown({ content }) {
 
 		if (line.startsWith('## ')) {
 			flushList();
+			const text = line.slice(3);
 			blocks.push(
 				<h2
 					key={`h2-${index}`}
+					id={slugify(text)}
 					className="text-[20px] font-bold text-gray-900 mt-8 mb-3"
+					style={{ scrollMarginTop: 96 }}
 				>
-					{line.slice(3)}
+					{text}
 				</h2>
 			);
 		} else if (line.startsWith('### ')) {
@@ -83,6 +98,26 @@ function SimpleMarkdown({ content }) {
 				>
 					{line.slice(4)}
 				</h3>
+			);
+		} else if (line.startsWith('# ')) {
+			flushList();
+			blocks.push(
+				<h1
+					key={`h1-${index}`}
+					className="text-[24px] font-extrabold text-gray-900 mt-2 mb-4"
+				>
+					{line.slice(2)}
+				</h1>
+			);
+		} else if (line.startsWith('> ')) {
+			flushList();
+			blocks.push(
+				<blockquote
+					key={`bq-${index}`}
+					className="border-l-4 border-orange-300 bg-orange-50 text-orange-900 rounded-r-lg px-4 py-3 mb-4 text-[13.5px] leading-relaxed"
+				>
+					{line.slice(2)}
+				</blockquote>
 			);
 		} else if (line.startsWith('- ')) {
 			listItems.push(line.slice(2));

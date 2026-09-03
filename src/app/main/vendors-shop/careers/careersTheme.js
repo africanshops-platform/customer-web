@@ -1,13 +1,7 @@
-/** Same orange gradient this app already uses on /about, /contact and the
- * landing page — kept as constants so the three careers pages stay visually
- * consistent without repeating the literal gradient string everywhere. */
-export const ORANGE_GRADIENT = 'linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%)';
-
-export const fadeUp = (delay = 0) => ({
-	initial: { opacity: 0, y: 24 },
-	animate: { opacity: 1, y: 0 },
-	transition: { duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }
-});
+// Re-exported from the shared theme file so every existing careers import
+// of these two keeps working unchanged — STATUS_META below is the only
+// thing genuinely specific to careers.
+export { ORANGE_GRADIENT, fadeUp } from 'src/app/shared-components/africanShopsTheme';
 
 export const STATUS_META = {
 	SUBMITTED: { label: 'Submitted', className: 'text-sky-700 bg-sky-100' },
