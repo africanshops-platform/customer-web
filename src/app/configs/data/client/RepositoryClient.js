@@ -65,6 +65,16 @@ export const clientRegister = (formData) => Api().post('/authuser/register', for
  * END: USER AUTHENTICATION OPERATIONS
  *********************************************************************************************** */
 
+/** **********************************************************************************************
+ * CAREERS — public browsing (no auth). See RepositoryAuthClient.js for apply/my-applications.
+ *********************************************************************************************** */
+export const CAREERS_PAGE_SIZE = 12;
+
+export const getOpenPositionsApi = (page = 1) =>
+	Api().get(`/careers/positions?limit=${CAREERS_PAGE_SIZE}&offset=${(page - 1) * CAREERS_PAGE_SIZE}`);
+
+export const getPositionByIdApi = (id) => Api().get(`/careers/positions/${id}`);
+
 // GET AUTHENTICATE USER WITH TOKEN REQUES
 
 // SHopPlans Routes

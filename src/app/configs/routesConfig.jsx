@@ -41,6 +41,9 @@ import userRealEstatePagesConfig from "../main/zrootclient/buz-realestates/realE
 import ModernLandingPage from "../main/vendors-shop/home/home/ModernLandingPage";
 import AboutUs from "../main/vendors-shop/home/home/AboutUs";
 import ContactUs from "../main/vendors-shop/home/home/ContactUs";
+import CareersListPage from "../main/vendors-shop/careers/CareersListPage";
+import CareerPositionPage from "../main/vendors-shop/careers/CareerPositionPage";
+import MyApplicationsPage from "../main/vendors-shop/careers/MyApplicationsPage";
 import MarketplaceDealsWithSidebarsContentScrollComponent from "../main/zrootclient/buz-marketplace/shops/marketplace/MarketplaceDealsWithSidebarsContentScrollComponent";
 
 /***Shared KYC (platform-wide, not civic-only) */
@@ -210,6 +213,51 @@ const routes = [
       },
     },
     element: <ContactUs />,
+  },
+  {
+    path: "/careers",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <CareersListPage />,
+  },
+  {
+    path: "/careers/my-applications",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <MyApplicationsPage />,
+  },
+  {
+    path: "/careers/:id",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <CareerPositionPage />,
   },
 
   {
