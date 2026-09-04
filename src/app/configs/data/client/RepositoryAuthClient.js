@@ -461,6 +461,10 @@ export const revokeSessionApi = (sessionId) => AuthApi().delete(`/auth-user/sess
 /** Generate (or fetch, if already set) this user's own referral code + links — GET /auth-user/loggedin/referral-links */
 export const getUserReferralLinksApi = () => AuthApi().get('/auth-user/loggedin/referral-links');
 
+/** This user's own referral revenue-share accruals — shallow (date/type/amount only) — GET /auth-user/loggedin/referrals/accruals */
+export const getUserReferralAccrualsApi = (page = 1, limit = 20) =>
+	AuthApi().get(`/auth-user/loggedin/referrals/accruals?page=${page}&limit=${limit}`);
+
 /** Revoke every other session, keeping the current one — DELETE /auth-user/sessions/all */
 export const revokeAllSessionsApi = () => AuthApi().delete('/auth-user/sessions/all');
 
