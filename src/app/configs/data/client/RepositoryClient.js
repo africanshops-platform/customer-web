@@ -41,7 +41,15 @@ export const serializeQuery = (query) => {
 
 export const preSignUp = (formData) => Api().post('/authuser/pre-signup', formData);
 
-export const preSignUpWithOtp = (formData) => Api().post('/auth-user/pre-signup-with-otp', formData); // (Msvs => Done)
+// Referral capture (2026-09-04) — the gateway reads adminref/merchantref/usersref
+// as QUERY params on this exact POST (see userauthclient.controller.ts), not from
+// the request body, so a referral code embedded in formData.referral has to be
+// re-attached here as a query string rather than sent as part of the payload.
+export const preSignUpWithOtp = (formData) => {
+	const { referral, ...body } = formData ?? {};
+	const qs = referral ? `?${serializeQuery(referral)}` : '';
+	return Api().post(`/auth-user/pre-signup-with-otp${qs}`, body);
+}; // (Msvs => Done)
 
 export const preUserRegistration = (formData) => Api().post('/authuser/register-preuser', formData);
 
