@@ -5,7 +5,7 @@ import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import _ from "@lodash";
 import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
@@ -216,6 +216,25 @@ function UserModernReversedSignUpPage() {
   const businezLga = watch("businezLga");
   const market = watch("market");
 
+  // Referral capture (2026-09-04) — this page's own URL carries the referral
+  // code (e.g. /sign-up?usersref=CODE), but nothing here was ever reading it
+  // and forwarding it to the registration call — referral links landed on
+  // this page and were silently ignored. The gateway route reads these as
+  // query params on the API call itself (see preSignUpWithOtp), not from the
+  // request body, so this only needs to ride along as a `referral` field
+  // that RepositoryClient re-attaches as a query string.
+  const [searchParams] = useSearchParams();
+  const referral = useMemo(() => {
+    const adminref = searchParams.get("adminref");
+    const merchantref = searchParams.get("merchantref");
+    const usersref = searchParams.get("usersref");
+    const filters = {};
+    if (adminref) filters.adminref = adminref;
+    if (merchantref) filters.merchantref = merchantref;
+    if (usersref) filters.usersref = usersref;
+    return Object.keys(filters).length > 0 ? filters : undefined;
+  }, [searchParams]);
+
   const shopregistry = {
     ...getValues(),
     businessCountry: getValues()?.location?.id,
@@ -223,6 +242,7 @@ function UserModernReversedSignUpPage() {
     businezLga: getValues()?.businezLga?.id,
     tradehub: getValues()?.tradehub?.id,
     market: getValues()?.market?.id,
+    ...(referral ? { referral } : {}),
   };
 
   function onSubmit() {
