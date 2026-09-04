@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
 import Pagination from "@mui/material/Pagination";
@@ -33,9 +33,18 @@ function StatusChip({ status }) {
  * referral or order the commission actually came from.
  */
 function ReferralAccrualsTable() {
-  const [page, setPage] = useState(1);
+  // Platform-wide rule: pagination lives in the URL, not component state,
+  // so back-navigation into this settings tab restores the page you were on.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Math.max(1, parseInt(searchParams.get("referralPage"), 10) || 1);
   const limit = 10;
   const { data, isLoading } = useReferralAccruals(page, limit);
+
+  const setPage = (nextPage) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("referralPage", String(nextPage));
+    setSearchParams(next);
+  };
 
   const items = data?.items ?? [];
   const pageCount = Math.max(1, Math.ceil((data?.total ?? 0) / limit));
