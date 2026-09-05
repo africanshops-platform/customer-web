@@ -4,6 +4,8 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { motion } from "framer-motion";
 import FuseSvgIcon from "@fuse/core/FuseSvgIcon";
 import { useReferralLinks } from "app/configs/data/server-calls/useReferralLinks/useReferralLinksQuery";
+import { formatKobo } from "app/main/africanshops-finance/finance-v2/hooks/useFintechApi";
+import ReferralAccrualsTable from "./ReferralAccrualsTable";
 
 function StatTile({ label, value, color }) {
   return (
@@ -99,7 +101,16 @@ function ReferralLinksTab() {
               <StatTile label="User Referrals" value={data?.stats?.userReferrals} color="linear-gradient(135deg, #22c55e 0%, #16a34a 100%)" />
               <StatTile label="Completed Referrals" value={data?.stats?.completedReferrals} color="linear-gradient(135deg, #eab308 0%, #ca8a04 100%)" />
             </div>
-            <div className="grid gap-3">
+
+            {/* Referral revenue-share earnings (2026-09-04) — 2% of commission on a
+            referred user's orders, accrued per transaction, paid out monthly. */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+              <StatTile label="Total Earned" value={formatKobo(data?.stats?.totalRewardsEarnedKobo ?? 0)} color="linear-gradient(135deg, #16a34a 0%, #15803d 100%)" />
+              <StatTile label="Pending (Not Yet Paid Out)" value={formatKobo(data?.stats?.pendingRewardsKobo ?? 0)} color="linear-gradient(135deg, #ca8a04 0%, #a16207 100%)" />
+              <StatTile label="Paid Out So Far" value={formatKobo(data?.stats?.paidRewardsKobo ?? 0)} color="linear-gradient(135deg, #f97316 0%, #ea580c 100%)" />
+            </div>
+
+            <div className="grid gap-3 mb-6">
               <CopyField label="Your referral code" value={data?.referralCode} />
               <CopyField label="Merchant sign-up link" value={data?.merchantReferralLink} />
               <CopyField label="User sign-up link" value={data?.userReferralLink} />
@@ -107,6 +118,8 @@ function ReferralLinksTab() {
           </>
         )}
       </motion.div>
+
+      <ReferralAccrualsTable />
     </div>
   );
 }

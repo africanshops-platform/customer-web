@@ -1,9 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AuthApi } from 'app/configs/data/client/RepositoryAuthClient';
 
-// Backend uses either `payload` or `data` depending on the route
+// Backend uses either `payload` or `data` depending on the route.
+//
+// Bug fix (2026-09-02): checking `.payload` with `??` treated an explicit
+// `payload: null` the same as the key being absent — but for my-account,
+// `payload: null` is the normal, expected response for a user with no
+// fintech wallet yet. `??` fell through past it to `.data` (absent) and
+// then to the raw envelope `r.data` itself, so useMyAccount returned
+// `{success:false, payload:null}` instead of null. That object is truthy
+// and !== null, so FinanceShellPage's `account === null` onboarding gate
+// never fired and the dashboard rendered with no real account behind it.
+// Check key presence instead of value truthiness so an explicit null is
+// respected — same fix already shipped on the mobile app's wallet.api.ts.
 function unwrap(r) {
-  return r.data?.payload ?? r.data?.data ?? r.data;
+  const data = r.data;
+  if (data && typeof data === 'object' && 'payload' in data) return data.payload;
+  if (data && typeof data === 'object' && 'data' in data) return data.data;
+  return data;
 }
 
 function makeHook(fetcher) {

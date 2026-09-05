@@ -227,6 +227,22 @@ export const addMyDisputeNoteApi = (disputeId, note) => AuthApi().post(`/dispute
  * ############################################################
  */
 
+/** ***
+ * #################################################################
+ * CAREERS — apply/track as the currently logged-in customer (same session
+ * as the rest of this app, see careers plan notes). Public browsing lives
+ * in RepositoryClient.js's getOpenPositionsApi/getPositionByIdApi.
+ * #################################################################
+ */
+
+export const applyToPositionApi = (id, coverNote) => AuthApi().post(`/careers/positions/${id}/apply`, { coverNote });
+
+export const getMyApplicationsApi = () => AuthApi().get('/careers/applications/mine');
+
+/**
+ * ############################################################
+ */
+
 /** *****
  *                      FINTEC-PAYMENTS APP
  * #######################################################################################
@@ -244,6 +260,19 @@ export const addMyDisputeNoteApi = (disputeId, note) => AuthApi().post(`/dispute
 export const verifyPaystackPaymentFromFintechService = (formData) => {
 	return AuthApi().post(`paystack-payment/verify`, formData);
 }; // (Done => Msvs)
+
+/** *Pre-flight check: are the services needed to complete this order type up? */
+export const getBookingsCheckoutReadiness = () => {
+	return AuthApi().get(`checkout-readiness/bookings`);
+};
+
+export const getMarketplaceCheckoutReadiness = () => {
+	return AuthApi().get(`checkout-readiness/marketplace`);
+};
+
+export const getFoodCheckoutReadiness = () => {
+	return AuthApi().get(`checkout-readiness/food`);
+};
 
 /** *****
  *                      BOOKINGS APP
@@ -431,6 +460,10 @@ export const revokeSessionApi = (sessionId) => AuthApi().delete(`/auth-user/sess
 
 /** Generate (or fetch, if already set) this user's own referral code + links — GET /auth-user/loggedin/referral-links */
 export const getUserReferralLinksApi = () => AuthApi().get('/auth-user/loggedin/referral-links');
+
+/** This user's own referral revenue-share accruals — shallow (date/type/amount only) — GET /auth-user/loggedin/referrals/accruals */
+export const getUserReferralAccrualsApi = (page = 1, limit = 20) =>
+	AuthApi().get(`/auth-user/loggedin/referrals/accruals?page=${page}&limit=${limit}`);
 
 /** Revoke every other session, keeping the current one — DELETE /auth-user/sessions/all */
 export const revokeAllSessionsApi = () => AuthApi().delete('/auth-user/sessions/all');

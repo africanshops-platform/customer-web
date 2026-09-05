@@ -1,5 +1,6 @@
 import { styled } from "@mui/material/styles";
 import { useEffect, useState, useCallback, useMemo, memo } from "react";
+import { useSearchParams } from "react-router-dom";
 import FusePageSimpleWithMargin from "@fuse/core/FusePageSimple/FusePageSimpleWithMargin";
 import useThemeMediaQuery from "@fuse/hooks/useThemeMediaQuery";
 import useGetAllBookingProperties from "app/configs/data/server-calls/auth/userapp/a_bookings/useBookingPropertiesRepo";
@@ -32,12 +33,28 @@ function ActiveBookingsPage() {
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(!isMobile);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(!isMobile);
 
-  // Filter state management
-  const [filters, setFilters] = useState({});
+  // Pagination lives in the URL (?page=&limit=), not just component state —
+  // otherwise navigating into a single listing and back unmounts/remounts
+  // this page and loses whatever page you were on, always landing back on
+  // page 1. Reading the initial page/limit from the URL means the browser's
+  // own back navigation (which restores the exact previous URL) naturally
+  // restores the exact previous page too, with no extra wiring needed.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialPage = Math.max(1, parseInt(searchParams.get("page"), 10) || 1);
+  const initialItemsPerPage = parseInt(searchParams.get("limit"), 10) || 20;
+
+  // Filter state management. Initialized with limit/offset (not {}) so the
+  // very first fetch, before any filter interaction, also respects the
+  // default page/page-size above — otherwise it silently fell through to
+  // the gateway's own default of 10 regardless of itemsPerPage.
+  const [filters, setFilters] = useState({
+    limit: initialItemsPerPage,
+    offset: (initialPage - 1) * initialItemsPerPage,
+  });
 
   // Pagination state management
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(initialPage);
+  const [itemsPerPage, setItemsPerPage] = useState(initialItemsPerPage);
 
   useEffect(() => {
     setLeftSidebarOpen(!isMobile);
@@ -116,16 +133,34 @@ function ActiveBookingsPage() {
     }
   }, [currentPage, itemsPerPage]);
 
-  // Handle page change
-  const handlePageChange = useCallback((newPage) => {
-    setCurrentPage(newPage);
-  }, []);
+  // Handle page change — also mirrored into the URL so back-navigation
+  // (browser back, or into a single listing and back) restores this page.
+  const handlePageChange = useCallback(
+    (newPage) => {
+      setCurrentPage(newPage);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("page", String(newPage));
+        return next;
+      });
+    },
+    [setSearchParams],
+  );
 
   // Handle items per page change
-  const handleItemsPerPageChange = useCallback((newItemsPerPage) => {
-    setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1); // Reset to first page when changing items per page
-  }, []);
+  const handleItemsPerPageChange = useCallback(
+    (newItemsPerPage) => {
+      setItemsPerPage(newItemsPerPage);
+      setCurrentPage(1); // Reset to first page when changing items per page
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("limit", String(newItemsPerPage));
+        next.set("page", "1");
+        return next;
+      });
+    },
+    [setSearchParams],
+  );
 
   // Memoize sidebar toggle handlers to prevent re-renders
   const handleLeftSidebarToggle = useCallback(() => {

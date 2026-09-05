@@ -97,40 +97,12 @@ function ActiveSingleProductPage() {
       // shoppingSession:''
     };
 
-    // console.log("FORM_DATA_CART", formData);
-
-    //if cart is empty create a session and add to cart
-    //if cart is not empty check if lgaId is the same as the product lgaId
-    //if same add to cart else show error message
-
-    if (userCartData?.data?.cartSession?.cartProducts?.length === 0) {
-      if (userCartData?.data?.cartSession?.lgaId) {
-        addToart(formData);
-        // getCartWhenAuth()
-        return;
-      }
-    } else {
-      // const payloadData = getShoppingSession()
-
-      if (
-        userCartData?.data?.cartSession?.lgaId === product?.data?.product?.productLga ||
-        !userCartData?.data?.cartSession?.lgaId
-      ) {
-        addToart(formData);
-        // getCartWhenAuth()
-        return;
-      } else {
-        alert("You must shop in one L.G.A/County at a time");
-        return;
-      }
-    }
-  }, [
-    product?.data?.product?.id,
-    routeParams,
-    user,
-    userCartData?.data?.cartSession?.cartProducts,
-    userCartData?.data?.cartSession?.cartProducts?.length,
-  ]);
+    // The one-market-per-cart rule is enforced authoritatively by the backend
+    // (cart.service.ts addItemToUserCart) and its rejection message is already
+    // surfaced as a toast via useAddToCart's onError (handleApiError) — no
+    // need to duplicate that check here client-side.
+    addToart(formData);
+  }, [product?.data?.product?.id, routeParams, user]);
 
   // Memoize sidebar toggle handlers to prevent re-renders
   const handleLeftSidebarToggle = useCallback(() => {

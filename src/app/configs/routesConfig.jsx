@@ -17,7 +17,6 @@ import SignOutConfig from "../main/sign-out/SignOutConfig";
 /***Bookings & Reservations-based-config  starts*/
 import userReservationPagesConfig from "../main/zrootclient/buz-bookings/user-reservations/userReservationPagesConfig";
 /***#######################################Bookings & Reservations-based-config  ends########################*/
-import AfricanshopsFinanceDashboardAppConfig from "../main/africanshops-finance/AfricanshopsFinanceDashboardAppConfig";
 import financePagesConfig from "../main/africanshops-finance/finance-v2/financePagesConfig";
 import AfricanshopsMessengerAppConfig from "../main/africanshops-messenger/AfricanshopsMessengerAppConfig";
 
@@ -42,6 +41,11 @@ import userRealEstatePagesConfig from "../main/zrootclient/buz-realestates/realE
 import ModernLandingPage from "../main/vendors-shop/home/home/ModernLandingPage";
 import AboutUs from "../main/vendors-shop/home/home/AboutUs";
 import ContactUs from "../main/vendors-shop/home/home/ContactUs";
+import CareersListPage from "../main/vendors-shop/careers/CareersListPage";
+import CareerPositionPage from "../main/vendors-shop/careers/CareerPositionPage";
+import LegalDocumentPage from "../main/vendors-shop/legal/LegalDocumentPage";
+import { LEGAL_DOCUMENT_KEYS } from "../constants/legalDocumentKeys";
+import MyApplicationsPage from "../main/vendors-shop/careers/MyApplicationsPage";
 import MarketplaceDealsWithSidebarsContentScrollComponent from "../main/zrootclient/buz-marketplace/shops/marketplace/MarketplaceDealsWithSidebarsContentScrollComponent";
 
 /***Shared KYC (platform-wide, not civic-only) */
@@ -70,7 +74,6 @@ const routeConfigs = [
    * Africanshops Dashboard Configs Starts Here
    * #########################################################################################
    * */
-  AfricanshopsFinanceDashboardAppConfig,
   financePagesConfig,
   AfricanshopsMessengerAppConfig,
 
@@ -212,6 +215,81 @@ const routes = [
       },
     },
     element: <ContactUs />,
+  },
+  {
+    path: "/careers",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <CareersListPage />,
+  },
+  {
+    path: "/careers/my-applications",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <MyApplicationsPage />,
+  },
+  {
+    path: "/careers/:id",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <CareerPositionPage />,
+  },
+  {
+    path: "/privacy",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <LegalDocumentPage documentKey={LEGAL_DOCUMENT_KEYS.PRIVACY_POLICY} eyebrow="Privacy" />,
+  },
+  {
+    path: "/terms",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <LegalDocumentPage documentKey={LEGAL_DOCUMENT_KEYS.TERMS_AND_CONDITIONS} eyebrow="Legal" />,
   },
 
   {

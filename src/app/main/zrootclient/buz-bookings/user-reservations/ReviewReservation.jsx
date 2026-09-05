@@ -28,7 +28,10 @@ import { toast } from "react-toastify";
 import { PaystackButton } from "react-paystack";
 import { selectUser } from "src/app/auth/user/store/userSlice";
 import { useAppSelector } from "app/store/hooks";
-import { useVerifyPaystackPaymentMutation } from "app/configs/data/server-calls/auth/paystack-payments/usePaystackPaymentsRepo";
+import {
+  useVerifyPaystackPaymentMutation,
+  useBookingsCheckoutReadiness,
+} from "app/configs/data/server-calls/auth/paystack-payments/usePaystackPaymentsRepo";
 import ClienttErrorPage from "../../components/ClienttErrorPage";
 import PlacedReservation from "./PlacedReservation";
 import MyAddresses from "./MyAddresses";
@@ -67,6 +70,14 @@ function ReviewReservation() {
   // State for cancel confirmation dialog
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
+  // A failed Paystack attempt now gets its reservation auto-cancelled
+  // server-side (frees the poisoned BK<reservationId> reference instead of
+  // waiting out the 1-hour auto-expiry) — so this exact reservationId can
+  // never be paid again. Once that happens, block further "Pay" clicks
+  // instead of letting the user retry against a reference Paystack will
+  // reject as a duplicate.
+  const [paymentFailedPermanently, setPaymentFailedPermanently] = useState(false);
+
   const routeParams = useParams();
   const { reservationId } = routeParams;
 
@@ -83,6 +94,7 @@ function ReviewReservation() {
 
   const verifyPayment = useVerifyPaystackPaymentMutation();
   const cancelReservation = useCancelUserReservation();
+  const readiness = useBookingsCheckoutReadiness();
 
   const { VITE_PAYSTACK_PUBLIC_KEY } = import.meta.env;
   const totalPrice = singlereservation?.data?.reservation?.totalPrice ?? 0;
@@ -127,6 +139,15 @@ function ReviewReservation() {
           errorMessage.forEach((msg) => toast.error(msg));
         } else {
           toast.error(errorMessage);
+        }
+
+        // A Paystack-confirmed failure ("Payment not successful") cancels this
+        // reservation server-side and frees its reference — retrying against
+        // this same reservationId will always be rejected by Paystack as a
+        // duplicate reference from here on, so stop offering that option.
+        if (String(errorMessage).toLowerCase().includes("payment not successful")) {
+          setPaymentFailedPermanently(true);
+          toast.error("This reservation was cancelled after the failed payment. Please search again to book.");
         }
       },
     });
@@ -887,6 +908,10 @@ function ReviewReservation() {
                           email={email}
                           amount={totalPrice * 1.075 * 100}
                           vat={vatRate}
+                          metadata={{
+                            userId: user?.id,
+                            reservationId,
+                          }}
                           publicKey={VITE_PAYSTACK_PUBLIC_KEY}
                           onSuccess={(reference) => onSuccess(reference)}
                           onClose={() => onClose()}
@@ -896,9 +921,29 @@ function ReviewReservation() {
                             !name ||
                             !phone ||
                             !address ||
-                            verifyPayment?.isLoading
+                            verifyPayment?.isLoading ||
+                            paymentFailedPermanently ||
+                            readiness.data?.healthy === false
                           }
                         />
+                        {paymentFailedPermanently && (
+                          <Typography
+                            variant="body2"
+                            className="mt-3 text-center"
+                            sx={{ color: "#dc2626", fontWeight: 600 }}
+                          >
+                            This reservation was cancelled after the failed payment attempt. Please search again to book.
+                          </Typography>
+                        )}
+                        {!paymentFailedPermanently && readiness.data?.healthy === false && (
+                          <Typography
+                            variant="body2"
+                            className="mt-3 text-center"
+                            sx={{ color: "#dc2626", fontWeight: 600 }}
+                          >
+                            We can't confirm booking services are ready to process payment right now. Please try again shortly.
+                          </Typography>
+                        )}
                         {(!isValid || _.isEmpty(dirtyFields) || !name || !phone || !address) && (
                           <div className="mt-3 text-center">
                             <div

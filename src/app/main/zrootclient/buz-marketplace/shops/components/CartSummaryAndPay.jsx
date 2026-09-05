@@ -5,8 +5,10 @@ import {
   usePayAndPlaceOrder,
   useCalculateCartShipping,
 } from "app/configs/data/server-calls/auth/userapp/a_marketplace/useProductsRepo";
+import { useMarketplaceCheckoutReadiness } from "app/configs/data/server-calls/auth/paystack-payments/usePaystackPaymentsRepo";
 import { useAppSelector } from "app/store/hooks";
 import { PaystackButton } from "react-paystack";
+import { useQueryClient } from "react-query";
 import { toast } from "react-toastify";
 import { selectUser } from "src/app/auth/user/store/userSlice";
 import {
@@ -46,10 +48,19 @@ const CartSummaryAndPay = ({
   console.log("CartSummaryAndPay render with cartSessionPayload:", cartSessionPayload);
   const user = useAppSelector(selectUser);
 
+  const queryClient = useQueryClient();
+
   // State for calculated delivery fee
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [deliveryMode, setDeliveryMode] = useState("");
   const [deliveryError, setDeliveryError] = useState(null);
+
+  // A failed Paystack attempt now rotates this cart session server-side (a
+  // fresh session id, so a retry doesn't collide with the already-used
+  // AFSH<sessionId>REF reference) — block this exact button until the
+  // parent's cart query refetches with the new session.
+  const [paymentFailedPermanently, setPaymentFailedPermanently] = useState(false);
+  const readiness = useMarketplaceCheckoutReadiness();
   const {
     mutate: calculateCartShipping,
     isLoading: deliveryLoading,
@@ -147,7 +158,9 @@ const CartSummaryAndPay = ({
     !orderLgaDestination ||
     !orderMarketPickupDestination ||
     deliveryLoading ||
-    !!deliveryError;
+    !!deliveryError ||
+    paymentFailedPermanently ||
+    readiness.data?.healthy === false;
 
   // Update the processing payment state when mutation is loading
   useEffect(() => {
@@ -186,7 +199,21 @@ const CartSummaryAndPay = ({
         reference: paystackResponse?.reference,
       };
 
-      verifyPaymentAndCreateOrder(oderData);
+      verifyPaymentAndCreateOrder(oderData, {
+        onError: (error) => {
+          const errorMessage =
+            error?.response?.data?.message || error?.message || "Payment verification failed.";
+          // Paystack itself confirmed this attempt failed — the cart session
+          // is rotated server-side (new session id, fresh reference), so this
+          // exact reference can never be retried. Refetch the cart so the
+          // parent picks up the new session id, and block this stale button.
+          if (String(errorMessage).toLowerCase().includes("payment not successful")) {
+            setPaymentFailedPermanently(true);
+            queryClient.invalidateQueries(["__cart"]);
+            toast.error("Your cart was refreshed after the failed payment. Please review and try again.");
+          }
+        },
+      });
     } catch (error) {
       console.error("Payment error:", error);
       toast.error("Payment failed. Please try again.");
@@ -422,11 +449,25 @@ const CartSummaryAndPay = ({
                 reference={"AFSH" + cartSessionPayload?.id + "REF"}
                 email={user?.email}
                 amount={grandTotal * 100}
+                metadata={{
+                  userId: user?.id,
+                  cartSessionId: cartSessionPayload?.id,
+                }}
                 publicKey={publicKey}
                 onSuccess={(reference) => onSuccess(reference)}
                 onClose={() => onClose()}
                 disabled={isPayDisabled || loadingWhilePaying}
               />
+              {paymentFailedPermanently && (
+                <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#dc2626" }}>
+                  Your cart was refreshed after the failed payment. Please review your cart and try again.
+                </p>
+              )}
+              {!paymentFailedPermanently && readiness.data?.healthy === false && (
+                <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#dc2626" }}>
+                  We can't confirm order services are ready to process payment right now. Please try again shortly.
+                </p>
+              )}
               {isPayDisabled && !deliveryError && (
                 <div className="mt-3 text-center">
                   <div

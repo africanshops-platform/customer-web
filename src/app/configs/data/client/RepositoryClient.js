@@ -41,7 +41,15 @@ export const serializeQuery = (query) => {
 
 export const preSignUp = (formData) => Api().post('/authuser/pre-signup', formData);
 
-export const preSignUpWithOtp = (formData) => Api().post('/auth-user/pre-signup-with-otp', formData); // (Msvs => Done)
+// Referral capture (2026-09-04) — the gateway reads adminref/merchantref/usersref
+// as QUERY params on this exact POST (see userauthclient.controller.ts), not from
+// the request body, so a referral code embedded in formData.referral has to be
+// re-attached here as a query string rather than sent as part of the payload.
+export const preSignUpWithOtp = (formData) => {
+	const { referral, ...body } = formData ?? {};
+	const qs = referral ? `?${serializeQuery(referral)}` : '';
+	return Api().post(`/auth-user/pre-signup-with-otp${qs}`, body);
+}; // (Msvs => Done)
 
 export const preUserRegistration = (formData) => Api().post('/authuser/register-preuser', formData);
 
@@ -64,6 +72,24 @@ export const clientRegister = (formData) => Api().post('/authuser/register', for
 /** **********************************************************************************************
  * END: USER AUTHENTICATION OPERATIONS
  *********************************************************************************************** */
+
+/** **********************************************************************************************
+ * CAREERS — public browsing (no auth). See RepositoryAuthClient.js for apply/my-applications.
+ *********************************************************************************************** */
+export const CAREERS_PAGE_SIZE = 12;
+
+export const getOpenPositionsApi = (page = 1) =>
+	Api().get(`/careers/positions?limit=${CAREERS_PAGE_SIZE}&offset=${(page - 1) * CAREERS_PAGE_SIZE}`);
+
+export const getPositionByIdApi = (id) => Api().get(`/careers/positions/${id}`);
+
+/** **********************************************************************************************
+ * LEGAL DOCUMENTS — public, unauthenticated fetch-by-key. Deliberately not
+ * the legacy getApiPrivacies/getApiTerms below (/privacies/clientpricacy,
+ * /privacies/terms) — those predate the microservices split and don't
+ * resolve against the current gateway. Same route civic-web/admin-web use.
+ *********************************************************************************************** */
+export const getLegalDocumentByKeyApi = (key) => Api().get(`/corporate-cms/legal/${key}`);
 
 // GET AUTHENTICATE USER WITH TOKEN REQUES
 
