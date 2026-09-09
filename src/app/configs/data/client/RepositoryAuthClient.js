@@ -2,9 +2,9 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
 import { resetSessionForShopUsers } from 'app/configs/utils/authUtils';
+import jwtAuthConfig from 'src/app/auth/services/jwt/jwtAuthConfig';
 import { getAdminAccessToken } from '../utils/opsUtils';
 import { API_ENDPOINTS } from './serverEndpoints/endpoints';
-import jwtAuthConfig from 'src/app/auth/services/jwt/jwtAuthConfig';
 
 // ─── Token-refresh state (module-level so all AuthApi() instances share it) ──
 let isRefreshing = false;
@@ -373,6 +373,16 @@ export const getUserFoodInvoicesEnpoint = () => AuthApi().get(`${API_ENDPOINTS.G
 
 export const getUserFoodInvoicesAndItemsByIdEnpoint = (foodOrderId) => {
 	return AuthApi().get(`/rcs-food-orders/${foodOrderId}/view`);
+};
+
+/** Which currently-available tables does this paid order's spend qualify for a reservation at? */
+export const getEligibleTablesForOrderApi = (foodOrderId) => {
+	return AuthApi().get(`/rcs-food-orders/${foodOrderId}/eligible-tables`);
+};
+
+/** Reserve a table the order's spend qualified for. */
+export const createTableReservationApi = (dto) => {
+	return AuthApi().post(`/rcs-food-orders/table-reservations/create`, dto);
 };
 
 /** *******#######################################################################################
