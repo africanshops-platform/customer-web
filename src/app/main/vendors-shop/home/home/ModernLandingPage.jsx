@@ -1,7 +1,7 @@
 import Typography from "@mui/material/Typography";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button, Card, CardContent, Chip } from "@mui/material";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import CategoryAndTradehub from "src/app/main/zrootclient/buz-marketplace/shops/components/CategoryAndTradehub";
 import BookingsHub from "./bookingshub/BookingsHub";
@@ -33,6 +33,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import HomeIcon from "@mui/icons-material/Home";
 import BusinessIcon from "@mui/icons-material/Business";
 import MapIcon from "@mui/icons-material/Map";
+import BuildIcon from "@mui/icons-material/Build";
 // import DescriptionIcon from "@mui/icons-material/Description";
 
 /**
@@ -43,6 +44,7 @@ import MapIcon from "@mui/icons-material/Map";
 function ModernLandingPage() {
   const merchantUrl = import.meta.env.VITE_AFSHO_MERCHNATPORTAL_URL;
   const [activeService, setActiveService] = useState("marketplace");
+  const navigate = useNavigate();
 
   console.log('Merchant Portal', merchantUrl)
 
@@ -723,6 +725,12 @@ function ModernLandingPage() {
                 label: "Real Estate",
                 color: "purple",
               },
+              {
+                id: "engineering",
+                icon: <BuildIcon />,
+                label: "Engineering Services",
+                color: "teal",
+              },
             ].map((service) => (
               <motion.div key={service.id} variants={scaleIn}>
                 <Button
@@ -739,7 +747,9 @@ function ModernLandingPage() {
                             ? "#3b82f6"
                             : service.color === "green"
                               ? "#10b981"
-                              : "#a855f7"
+                              : service.color === "teal"
+                                ? "#0f766e"
+                                : "#a855f7"
                         : "transparent",
                     borderColor:
                       service.color === "orange"
@@ -748,7 +758,9 @@ function ModernLandingPage() {
                           ? "#3b82f6"
                           : service.color === "green"
                             ? "#10b981"
-                            : "#a855f7",
+                            : service.color === "teal"
+                              ? "#0f766e"
+                              : "#a855f7",
                     borderWidth: "2px",
                     color:
                       activeService === service.id
@@ -759,7 +771,9 @@ function ModernLandingPage() {
                             ? "#2563eb"
                             : service.color === "green"
                               ? "#059669"
-                              : "#9333ea",
+                              : service.color === "teal"
+                                ? "#0f766e"
+                                : "#9333ea",
                     fontWeight: "bold",
                     fontSize: "1.125rem",
                     padding: "16px 32px",
@@ -942,6 +956,71 @@ function ModernLandingPage() {
                       </Card>
                     ))}
                   </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeService === "engineering" && (
+              <motion.div
+                key="engineering"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5 }}
+                className="rounded-3xl p-12"
+                style={{ background: "linear-gradient(to bottom right, #f0fdfa, #ecfeff)" }}
+              >
+                <div className="text-center mb-12 flex flex-col items-center">
+                  <BuildIcon
+                    sx={{
+                      fontSize: "3rem",
+                      color: "#0f766e",
+                      marginBottom: "16px",
+                    }}
+                  />
+                  <Typography variant="h3" className="font-black text-gray-900 mb-4">
+                    Engineering Services
+                  </Typography>
+                  <Typography className="text-xl text-gray-700 max-w-2xl mx-auto mb-8">
+                    Find a repair shop near you for your car, generator, or heavy diesel equipment —
+                    register your machine and book a service when it's due.
+                  </Typography>
+                  <Button
+                    onClick={() => navigate("/engineering/find-shops")}
+                    variant="contained"
+                    size="large"
+                    startIcon={<GpsFixedIcon />}
+                    sx={{
+                      backgroundColor: "#0f766e",
+                      color: "white",
+                      fontWeight: "bold",
+                      fontSize: "1.125rem",
+                      padding: "16px 32px",
+                      borderRadius: "9999px",
+                      textTransform: "none",
+                      "&:hover": { backgroundColor: "#0d9488" },
+                    }}
+                  >
+                    Find Repair Shops Near Me
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {[
+                    { label: "Automobile", desc: "Cars & light vehicles" },
+                    { label: "Generators", desc: "Home & industrial power" },
+                    { label: "Diesel & Heavy Equipment", desc: "Commercial machinery" },
+                  ].map((cat, i) => (
+                    <Card
+                      key={i}
+                      className="rounded-2xl hover:shadow-xl transition-all transform hover:scale-105 cursor-pointer"
+                      onClick={() => navigate("/engineering/find-shops")}
+                    >
+                      <CardContent className="p-6 text-center">
+                        <Typography className="font-bold">{cat.label}</Typography>
+                        <Typography className="text-sm text-gray-500 mt-1">{cat.desc}</Typography>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               </motion.div>
             )}

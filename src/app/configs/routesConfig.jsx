@@ -38,6 +38,8 @@ import MerchantShopPafeWithContentScrollPage from "../main/zrootclient/buz-marke
 import RealestatePageWithSidebarsContentScrollComponent from "../main/zrootclient/buz-realestates/realestatePage/RealestatePageWithSidebarsContentScrollComponent";
 import RealestateSinglePageWithSidebarsContentScroll from "../main/zrootclient/buz-realestates/realestateSinglePage/RealestateSinglePageWithSidebarsContentScroll";
 import userRealEstatePagesConfig from "../main/zrootclient/buz-realestates/realEstatePagesConfig";
+import ShopFinderPage from "../main/zrootclient/buz-engineering/shop-finder/ShopFinderPage";
+import ShopDetailPage from "../main/zrootclient/buz-engineering/shop-finder/ShopDetailPage";
 import ModernLandingPage from "../main/vendors-shop/home/home/ModernLandingPage";
 import AboutUs from "../main/vendors-shop/home/home/AboutUs";
 import ContactUs from "../main/vendors-shop/home/home/ContactUs";
@@ -384,6 +386,47 @@ const routes = [
   /****
    * ##############################################################
    * REAL-ESTATE activities ends
+   * ##############################################################
+   */
+
+  /****
+   * ##############################################################
+   * ENGINEERING SERVICES activities starts (Phase E6b, 2026-09-23)
+   * ##############################################################
+   */
+  {
+    path: "/engineering/find-shops",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <ShopFinderPage />,
+  },
+  {
+    path: "/engineering/shops/:id",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <ShopDetailPage />,
+  },
+  /****
+   * ##############################################################
+   * ENGINEERING SERVICES activities ends
    * ##############################################################
    */
 
