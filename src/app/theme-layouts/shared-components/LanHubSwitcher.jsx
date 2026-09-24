@@ -87,6 +87,16 @@ function LanHubSwitcher() {
           </ListItemIcon>
           <ListItemText primary={`Restaurants Clubs & Spots`} />
         </MenuItem>
+
+        {/* Added Phase E6c (2026-09-24) — was only reachable via the landing
+            page's service tab strip; founder flagged it missing from here,
+            the same dropdown Hotels/Real Estate/Marketplace/Dining live in. */}
+        <MenuItem component={NavLinkAdapter} to="/engineering/find-shops">
+          <ListItemIcon className="min-w-40">
+            <FuseSvgIcon>heroicons-outline:cog</FuseSvgIcon>
+          </ListItemIcon>
+          <ListItemText primary={`Engineering Services`} />
+        </MenuItem>
       </Popover>
     </>
   );

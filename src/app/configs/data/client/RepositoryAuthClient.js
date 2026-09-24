@@ -669,3 +669,67 @@ export const setDefaultUserAddressApi = (addressId) => {
  * @returns
  * ############################################################
  */
+
+/**
+ * ############################################################
+ * @param {Engineering Services — Registered Machines + Service Bookings Routes starts (Phase E6c)} FormData
+ * @returns
+ * ############################################################
+ */
+
+/** *Register a machine (customer-owned, not the shop) */
+export const createRegisteredMachineApi = (formData) => {
+	return AuthApi().post(`/engineering/my-machines`, formData);
+};
+
+/** *Update a registered machine */
+export const updateRegisteredMachineApi = (machineId, formData) => {
+	return AuthApi().put(`/engineering/my-machines/${machineId}`, formData);
+};
+
+/** *Delete a registered machine */
+export const deleteRegisteredMachineApi = (machineId) => {
+	return AuthApi().delete(`/engineering/my-machines/${machineId}`);
+};
+
+/** *Get all of the current user's registered machines */
+export const getMyRegisteredMachinesApi = () => {
+	return AuthApi().get(`/engineering/my-machines`);
+};
+
+/** *Get a single registered machine by id */
+export const getRegisteredMachineByIdApi = (machineId) => {
+	return AuthApi().get(`/engineering/my-machines/${machineId}`);
+};
+
+/** *Book a service against one of the current user's registered machines */
+export const createServiceBookingApi = (formData) => {
+	return AuthApi().post(`/engineering/bookings`, formData);
+};
+
+/** *Get all of the current user's own service bookings (Phase E6d) */
+export const getMyServiceBookingsApi = () => {
+	return AuthApi().get(`/engineering/my-bookings`);
+};
+
+/** *Get a single service booking (customer-owned) */
+export const getServiceBookingByIdApi = (bookingId) => {
+	return AuthApi().get(`/engineering/bookings/${bookingId}`);
+};
+
+/** *Get the repair job for a booking (null until the shop has logged one) */
+export const getRepairJobForBookingApi = (bookingId) => {
+	return AuthApi().get(`/engineering/bookings/${bookingId}/repair-job`);
+};
+
+/** *Cancel one of the current user's own service bookings */
+export const cancelServiceBookingApi = (bookingId, cancellationReason) => {
+	return AuthApi().put(`/engineering/bookings/${bookingId}/cancel`, { cancellationReason });
+};
+
+/**
+ * ############################################################
+ * @param {Engineering Services — Registered Machines + Service Bookings Routes ends} FormData
+ * @returns
+ * ############################################################
+ */
