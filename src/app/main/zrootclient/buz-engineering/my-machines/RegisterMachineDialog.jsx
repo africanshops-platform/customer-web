@@ -156,7 +156,7 @@ function RegisterMachineDialog({ open, onClose, machine = null, onRegistered }) 
           variant="contained"
           onClick={handleSubmit}
           disabled={!canSubmit}
-          sx={{ backgroundColor: "#0f766e", "&:hover": { backgroundColor: "#0d5f58" } }}
+          sx={{ backgroundColor: "#ea580c", "&:hover": { backgroundColor: "#c2410c" } }}
         >
           {saving ? <CircularProgress size={20} sx={{ color: "white" }} /> : isEditing ? "Save changes" : "Register machine"}
         </Button>

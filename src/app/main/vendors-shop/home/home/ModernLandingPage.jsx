@@ -729,7 +729,7 @@ function ModernLandingPage() {
                 id: "engineering",
                 icon: <BuildIcon />,
                 label: "Engineering Services",
-                color: "teal",
+                color: "orange",
               },
             ].map((service) => (
               <motion.div key={service.id} variants={scaleIn}>
@@ -968,13 +968,13 @@ function ModernLandingPage() {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.5 }}
                 className="rounded-3xl p-12"
-                style={{ background: "linear-gradient(to bottom right, #f0fdfa, #ecfeff)" }}
+                style={{ background: "linear-gradient(to bottom right, #fff7ed, #ffedd5)" }}
               >
                 <div className="text-center mb-12 flex flex-col items-center">
                   <BuildIcon
                     sx={{
                       fontSize: "3rem",
-                      color: "#0f766e",
+                      color: "#ea580c",
                       marginBottom: "16px",
                     }}
                   />
@@ -991,14 +991,14 @@ function ModernLandingPage() {
                     size="large"
                     startIcon={<GpsFixedIcon />}
                     sx={{
-                      backgroundColor: "#0f766e",
+                      backgroundColor: "#ea580c",
                       color: "white",
                       fontWeight: "bold",
                       fontSize: "1.125rem",
                       padding: "16px 32px",
                       borderRadius: "9999px",
                       textTransform: "none",
-                      "&:hover": { backgroundColor: "#0d9488" },
+                      "&:hover": { backgroundColor: "#c2410c" },
                     }}
                   >
                     Find Repair Shops Near Me

@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import NavLinkAdapter from "@fuse/core/NavLinkAdapter";
 import { Typography, Chip } from "@mui/material";
+import BuildIcon from "@mui/icons-material/Build";
 import { formatDistance } from "../../utils/geo";
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -13,17 +14,18 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
-// Teal drop-pin — repair shop (distinct from real estate's orange / booking's
-// blue, so the engineering vertical reads as its own product area on sight).
+// Orange drop-pin — repair shop, matching the platform's traditional brand
+// orange (same family as Bookings' own map pin).
 const shopMarkerIcon = new L.Icon({
   iconUrl:
-    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCAzMiA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE2IDQ4QzE2IDQ4IDMyIDI5LjMzMzMgMzIgMTZDMzIgNy4xNjM0NCAyNC44MzY2IDAgMTYgMEM3LjE2MzQ0IDAgMCA3LjE2MzQ0IDAgMTZDMCAyOS4zMzMzIDE2IDQ4IDE2IDQ4WiIgZmlsbD0iIzBmNzY2ZSIvPgo8Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSI4IiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K",
+    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCAzMiA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE2IDQ4QzE2IDQ4IDMyIDI5LjMzMzMgMzIgMTZDMzIgNy4xNjM0NCAyNC44MzY2IDAgMTYgMEM3LjE2MzQ0IDAgMCA3LjE2MzQ0IDAgMTZDMCAyOS4zMzMzIDE2IDQ4IDE2IDQ4WiIgZmlsbD0iI0VBNTgwQyIvPgo8Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSI4IiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K",
   iconSize: [32, 48],
   iconAnchor: [16, 48],
   popupAnchor: [0, -48],
 });
 
-// Blue drop-pin — the customer's own location.
+// Blue drop-pin — the customer's own location (kept distinct from the
+// orange shop pins so the two are never confused on the map).
 const userMarkerIcon = new L.Icon({
   iconUrl:
     "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCAzMiA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE2IDQ4QzE2IDQ4IDMyIDI5LjMzMzMgMzIgMTZDMzIgNy4xNjM0NCAyNC44MzY2IDAgMTYgMEM3LjE2MzQ0IDAgMCA3LjE2MzQ0IDAgMTZDMCAyOS4zMzMzIDE2IDQ4IDE2IDQ4WiIgZmlsbD0iIzI1NjNFQiIvPgo8Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSI4IiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K",
@@ -50,9 +52,18 @@ function MapBounds({ positions }) {
 /**
  * EngineeringShopFinderMap
  * Plots every repair shop with real coordinates plus the customer's own
- * location (when known), auto-fitting bounds to all of them — composes the
- * same two proven patterns already in this app: ImprovedRealEstateMap's
- * multi-pin bounds-fit and DeliveryRouteMap's user-location marker.
+ * location (when known), auto-fitting bounds to all of them.
+ *
+ * Tile provider note (2026-09-24): this originally reused Bookings'/Real
+ * Estate's CARTO Positron tile URL (basemaps.cartocdn.com), but live-testing
+ * found CARTO now serves real "API KEY REQUIRED" watermark tiles and
+ * intermittent 503s for anonymous/keyless traffic — confirmed via the
+ * browser's own network tab, not guessed. This is a real, currently-live,
+ * platform-wide regression (every map on this app uses the same CARTO URL),
+ * not something specific to this page. Switched this map to Esri's "World
+ * Light Gray Base" tiles instead — same clean, light aesthetic, genuinely
+ * free with no API key or account required. Worth applying to every other
+ * map on this app as a follow-up; out of scope to fix platform-wide here.
  */
 function EngineeringShopFinderMap({ shops, userPosition, isPlaceholderLocation, selectedShopId, onSelectShop }) {
   const validShops = useMemo(
@@ -85,7 +96,7 @@ function EngineeringShopFinderMap({ shops, userPosition, isPlaceholderLocation, 
         <Chip
           label={`${validShops.length} repair shop${validShops.length === 1 ? "" : "s"}`}
           sx={{
-            backgroundColor: "rgba(15, 118, 110, 0.95)",
+            backgroundColor: "rgba(234, 88, 12, 0.95)",
             color: "white",
             fontWeight: "bold",
             fontSize: "0.875rem",
@@ -102,11 +113,15 @@ function EngineeringShopFinderMap({ shops, userPosition, isPlaceholderLocation, 
         className="w-full h-full"
         style={{ minHeight: "100%" }}
       >
+        {/* Esri World Light Gray Base — free, no API key. See file-header note. */}
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          subdomains="abcd"
-          maxZoom={20}
+          attribution='Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+          maxZoom={16}
+        />
+        <TileLayer
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+          maxZoom={16}
         />
 
         <MapBounds positions={allPositions} />
@@ -126,44 +141,67 @@ function EngineeringShopFinderMap({ shops, userPosition, isPlaceholderLocation, 
             icon={shopMarkerIcon}
             eventHandlers={{ click: () => onSelectShop?.(shop.id) }}
           >
-            <Popup maxWidth={320} className="engineering-shop-popup">
-              <div className="flex flex-col gap-2 p-1">
-                <Typography sx={{ fontWeight: 700, fontSize: "1.1rem", color: "#111827" }}>{shop.name}</Typography>
+            <Popup maxWidth={340} className="engineering-shop-popup">
+              <div className="flex flex-col gap-3 p-1">
+                {shop.coverImage ? (
+                  <div className="w-full h-40 overflow-hidden rounded-xl">
+                    <img
+                      src={shop.coverImage}
+                      alt={shop.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div
+                    className="w-full h-40 rounded-xl flex items-center justify-center"
+                    style={{ background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)" }}
+                  >
+                    <BuildIcon sx={{ fontSize: "2.5rem", color: "#ea580c" }} />
+                  </div>
+                )}
+
+                <Typography sx={{ fontWeight: 700, fontSize: "1.25rem", color: "#111827", lineHeight: 1.3 }}>
+                  {shop.name}
+                </Typography>
 
                 {shop.specialties?.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1.5">
                     {shop.specialties.map((s) => (
-                      <Chip key={s} label={s.replace(/_/g, " ")} size="small" sx={{ backgroundColor: "#f0fdfa", color: "#0f766e", fontWeight: 600, fontSize: "0.7rem" }} />
+                      <Chip key={s} label={s.replace(/_/g, " ")} size="small" sx={{ backgroundColor: "#fff7ed", color: "#ea580c", fontWeight: 600, fontSize: "0.7rem" }} />
                     ))}
                   </div>
                 )}
 
                 {[shop.ward, shop.lga, shop.state].filter(Boolean).length > 0 && (
-                  <Typography sx={{ fontSize: "0.85rem", color: "#6b7280" }}>
-                    {[shop.ward, shop.lga, shop.state].filter(Boolean).join(", ")}
+                  <Typography sx={{ fontSize: "0.95rem", color: "#6b7280" }}>
+                    📍 {[shop.ward, shop.lga, shop.state].filter(Boolean).join(", ")}
                   </Typography>
                 )}
 
                 {shop.distanceKm != null && (
-                  <Typography sx={{ fontSize: "0.85rem", fontWeight: 700, color: "#0f766e" }}>
-                    {formatDistance(shop.distanceKm)} away
-                  </Typography>
+                  <div className="flex items-baseline gap-1 p-2 rounded-lg" style={{ backgroundColor: "#fff7ed" }}>
+                    <Typography sx={{ fontSize: "1.1rem", fontWeight: 800, color: "#ea580c" }}>
+                      {formatDistance(shop.distanceKm)}
+                    </Typography>
+                    <Typography sx={{ fontSize: "0.85rem", color: "#6b7280" }}>away</Typography>
+                  </div>
                 )}
 
                 <Typography
                   component={NavLinkAdapter}
                   to={`/engineering/shops/${shop.id}`}
                   sx={{
-                    fontSize: "0.95rem",
+                    fontSize: "1rem",
                     fontWeight: 700,
-                    color: "#0f766e",
+                    color: "#ea580c",
                     textDecoration: "none",
                     marginTop: "4px",
-                    padding: "6px 14px",
-                    backgroundColor: "#f0fdfa",
+                    padding: "8px 16px",
+                    backgroundColor: "#fff7ed",
                     borderRadius: "8px",
                     textAlign: "center",
-                    "&:hover": { backgroundColor: "#0f766e", color: "white" },
+                    transition: "all 0.3s ease",
+                    "&:hover": { backgroundColor: "#ea580c", color: "white" },
                   }}
                 >
                   View shop →
@@ -173,6 +211,43 @@ function EngineeringShopFinderMap({ shops, userPosition, isPlaceholderLocation, 
           </Marker>
         ))}
       </MapContainer>
+
+      {/* Plain global <style> tag — this app has no styled-jsx transform,
+          so the `jsx`/`global` boolean props some other maps in this repo
+          copy onto this tag are invalid DOM attributes (confirmed via a
+          real React console warning); a bare <style> works identically
+          here since the CSS is just injected as plain text either way. */}
+      <style>{`
+        .engineering-shop-popup .leaflet-popup-content-wrapper {
+          border-radius: 16px;
+          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+          padding: 0;
+          overflow: hidden;
+        }
+        .engineering-shop-popup .leaflet-popup-content {
+          margin: 0;
+          min-width: 300px;
+          max-width: 340px;
+        }
+        .engineering-shop-popup .leaflet-popup-tip {
+          background: white;
+        }
+        .leaflet-container {
+          font-family: inherit;
+        }
+        .engineering-shop-popup .leaflet-popup-close-button {
+          font-size: 24px;
+          font-weight: bold;
+          color: #6b7280;
+          padding: 6px 10px;
+          transition: all 0.3s ease;
+        }
+        .engineering-shop-popup .leaflet-popup-close-button:hover {
+          color: #ea580c;
+          background-color: rgba(234, 88, 12, 0.1);
+          border-radius: 8px;
+        }
+      `}</style>
     </div>
   );
 }

@@ -156,7 +156,7 @@ function BookServiceDialog({ open, onClose, shopId, shopName }) {
             size="small"
             startIcon={<DirectionsCarFilledIcon />}
             onClick={() => setRegisterOpen(true)}
-            sx={{ alignSelf: "flex-start", color: "#0f766e" }}
+            sx={{ alignSelf: "flex-start", color: "#ea580c" }}
           >
             + Register a different machine
           </Button>
@@ -191,29 +191,43 @@ function BookServiceDialog({ open, onClose, shopId, shopName }) {
               fullWidth
               onChange={(_e, value) => value && setLocationMode(value)}
             >
-              <ToggleButton value="AT_SHOP" sx={{ textTransform: "none", gap: 1 }}>
+              <ToggleButton
+                value="AT_SHOP"
+                sx={{
+                  textTransform: "none",
+                  gap: 1,
+                  "&.Mui-selected": { backgroundColor: "#fff7ed", color: "#ea580c", "&:hover": { backgroundColor: "#ffedd5" } },
+                }}
+              >
                 <StorefrontIcon fontSize="small" /> I'll bring it to the shop
               </ToggleButton>
-              <ToggleButton value="ON_SITE" sx={{ textTransform: "none", gap: 1 }}>
+              <ToggleButton
+                value="ON_SITE"
+                sx={{
+                  textTransform: "none",
+                  gap: 1,
+                  "&.Mui-selected": { backgroundColor: "#fff7ed", color: "#ea580c", "&:hover": { backgroundColor: "#ffedd5" } },
+                }}
+              >
                 <MyLocationIcon fontSize="small" /> Shop comes to me
               </ToggleButton>
             </ToggleButtonGroup>
           </div>
 
           {locationMode === "ON_SITE" && (
-            <div className="flex flex-col gap-2 bg-teal-50 border border-teal-100 rounded-xl p-4">
+            <div className="flex flex-col gap-2 bg-orange-50 border border-orange-100 rounded-xl p-4">
               <Button
                 variant="outlined"
                 startIcon={locating ? <CircularProgress size={16} /> : <MyLocationIcon />}
                 onClick={captureLocation}
                 disabled={locating}
-                sx={{ alignSelf: "flex-start", borderColor: "#0f766e", color: "#0f766e" }}
+                sx={{ alignSelf: "flex-start", borderColor: "#ea580c", color: "#ea580c" }}
               >
                 {siteCoords ? "Update my location" : "Use my current location"}
               </Button>
 
               {siteCoords && (
-                <p className="text-sm text-teal-800 flex items-center gap-1">
+                <p className="text-sm text-orange-800 flex items-center gap-1">
                   <CheckCircleIcon sx={{ fontSize: "1rem" }} /> Location captured ({siteCoords.lat.toFixed(4)}, {siteCoords.lng.toFixed(4)})
                 </p>
               )}
@@ -246,7 +260,7 @@ function BookServiceDialog({ open, onClose, shopId, shopName }) {
             variant="contained"
             onClick={handleSubmit}
             disabled={!canSubmit || booking}
-            sx={{ backgroundColor: "#0f766e", "&:hover": { backgroundColor: "#0d5f58" } }}
+            sx={{ backgroundColor: "#ea580c", "&:hover": { backgroundColor: "#c2410c" } }}
           >
             {booking ? <CircularProgress size={20} sx={{ color: "white" }} /> : "Request booking"}
           </Button>
