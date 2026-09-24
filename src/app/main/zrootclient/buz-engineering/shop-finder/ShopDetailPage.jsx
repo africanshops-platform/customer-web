@@ -9,6 +9,9 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import GarageIcon from "@mui/icons-material/Garage";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
+import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
+import ElectricBoltIcon from "@mui/icons-material/ElectricBolt";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import FuseSvgIcon from "@fuse/core/FuseSvgIcon";
 import FusePageSimpleWithMargin from "@fuse/core/FusePageSimple/FusePageSimpleWithMargin";
 import useThemeMediaQuery from "@fuse/hooks/useThemeMediaQuery";
@@ -17,6 +20,12 @@ import EngineeringShopFinderMap from "../components/maps/EngineeringShopFinderMa
 import BookServiceDialog from "../booking/BookServiceDialog";
 import { useAppSelector } from "app/store/hooks";
 import { selectUser } from "src/app/auth/user/store/userSlice";
+
+const SPECIALTY_ICONS = {
+  AUTOMOBILE: DirectionsCarIcon,
+  GENERATOR: ElectricBoltIcon,
+  DIESEL_HEAVY_EQUIPMENT: LocalShippingIcon,
+};
 
 const Root = styled(FusePageSimpleWithMargin)(({ theme }) => ({
   "& .FusePageSimple-header": {
@@ -27,7 +36,7 @@ const Root = styled(FusePageSimpleWithMargin)(({ theme }) => ({
   },
 }));
 
-function ShopDetailHeader({ shop, onToggleMap }) {
+function ShopDetailHeader({ shop, onToggleFilters, onToggleMap }) {
   const navigate = useNavigate();
   const locationLine = [shop.ward, shop.lga, shop.state, shop.country].filter(Boolean).join(", ");
 
@@ -52,35 +61,31 @@ function ShopDetailHeader({ shop, onToggleMap }) {
 
       <div className="relative py-10 px-6 sm:px-10">
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <button
-              type="button"
-              onClick={() => navigate("/engineering/find-shops")}
-              className="flex items-center gap-1 text-orange-100 hover:text-white mb-4 text-sm font-semibold"
-            >
-              <ArrowBackIcon sx={{ fontSize: "1rem" }} /> Back to shop finder
-            </button>
-            <div className="flex items-center gap-3 mb-2">
-              <BuildIcon sx={{ fontSize: "1.75rem" }} />
-              <h1 className="text-2xl sm:text-3xl font-black">{shop.name}</h1>
-            </div>
-            {locationLine && (
-              <p className="text-orange-100 flex items-center gap-1.5 mt-1">
-                <LocationOnIcon sx={{ fontSize: "1.05rem" }} />
-                {locationLine}
-              </p>
+          <div className="flex items-start gap-3">
+            {onToggleFilters && (
+              <IconButton onClick={onToggleFilters} aria-label="toggle shop details" sx={{ color: "white", mt: -0.5, ml: -1.5 }}>
+                <FuseSvgIcon>heroicons-outline:menu</FuseSvgIcon>
+              </IconButton>
             )}
-            {shop.specialties?.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-4">
-                {shop.specialties.map((s) => (
-                  <Chip
-                    key={s}
-                    label={s.replace(/_/g, " ")}
-                    sx={{ backgroundColor: "rgba(255,255,255,0.18)", color: "white", fontWeight: 600, backdropFilter: "blur(6px)" }}
-                  />
-                ))}
+            <div>
+              <button
+                type="button"
+                onClick={() => navigate("/engineering/find-shops")}
+                className="flex items-center gap-1 text-orange-100 hover:text-white mb-4 text-sm font-semibold"
+              >
+                <ArrowBackIcon sx={{ fontSize: "1rem" }} /> Back to shop finder
+              </button>
+              <div className="flex items-center gap-3 mb-2">
+                <BuildIcon sx={{ fontSize: "1.75rem" }} />
+                <h1 className="text-2xl sm:text-3xl font-black">{shop.name}</h1>
               </div>
-            )}
+              {locationLine && (
+                <p className="text-orange-100 flex items-center gap-1.5 mt-1">
+                  <LocationOnIcon sx={{ fontSize: "1.05rem" }} />
+                  {locationLine}
+                </p>
+              )}
+            </div>
           </div>
 
           {onToggleMap && (
@@ -94,24 +99,100 @@ function ShopDetailHeader({ shop, onToggleMap }) {
   );
 }
 
+/**
+ * ShopDetailInfoSidebar — left column, same visual language as the other
+ * Engineering pages' left sidebar (orange-gradient-headed card): the
+ * shop's specialties, service bays, and location, pulled out of the
+ * content area so this page carries the same left/content/right shape as
+ * ShopFinderPage and MyMachinesPage rather than being a one-off.
+ */
+function ShopDetailInfoSidebar({ shop }) {
+  const locationLine = [shop.ward, shop.lga, shop.state, shop.country].filter(Boolean).join(", ");
+
+  return (
+    <div
+      className="flex flex-col h-screen p-6"
+      style={{ background: "linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%)" }}
+    >
+      <div
+        className="rounded-2xl shadow-lg overflow-hidden"
+        style={{ background: "linear-gradient(135deg, #ffffff 0%, #fff5f0 50%, #ffedd5 100%)" }}
+      >
+        <div
+          className="flex items-center gap-3 p-4"
+          style={{
+            background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+            boxShadow: "0 4px 15px rgba(249, 115, 22, 0.3)",
+          }}
+        >
+          <InfoOutlinedIcon sx={{ color: "white", fontSize: "1.75rem" }} />
+          <Typography sx={{ fontWeight: 700, color: "white", fontSize: "1.25rem" }}>
+            Shop Details
+          </Typography>
+        </div>
+
+        <div className="p-4 flex flex-col gap-4">
+          {shop.specialties?.length > 0 && (
+            <div>
+              <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em", px: 1, pb: 1 }}>
+                Specialties
+              </Typography>
+              <div className="flex flex-col gap-2">
+                {shop.specialties.map((s) => {
+                  const Icon = SPECIALTY_ICONS[s] || BuildIcon;
+                  return (
+                    <div
+                      key={s}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm bg-white border border-gray-200"
+                      style={{ color: "#374151" }}
+                    >
+                      <Icon sx={{ fontSize: "1.1rem", color: "#ea580c" }} />
+                      {s.replace(/_/g, " ")}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {shop.bays != null && (
+            <div className="px-3 py-3 rounded-xl bg-white border border-gray-200">
+              <div className="flex items-center gap-2 text-gray-500 text-xs font-bold uppercase tracking-wide">
+                <GarageIcon sx={{ fontSize: "1rem" }} /> Service bays
+              </div>
+              <p className="text-2xl font-black mt-1" style={{ color: "#ea580c" }}>{shop.bays}</p>
+            </div>
+          )}
+
+          {locationLine && (
+            <div className="px-3 py-3 rounded-xl bg-white border border-gray-200">
+              <div className="flex items-center gap-2 text-gray-500 text-xs font-bold uppercase tracking-wide">
+                <LocationOnIcon sx={{ fontSize: "1rem" }} /> Location
+              </div>
+              <p className="text-sm font-semibold text-gray-900 mt-1">{locationLine}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ShopDetailContent({ shop, onBookService }) {
   return (
-    <div className="w-full max-w-2xl px-6 sm:px-10 py-8 flex flex-col gap-5">
+    <div className="w-full max-w-2xl mx-auto px-6 sm:px-10 py-10 flex flex-col gap-6">
+      <div className="text-center">
+        <BuildIcon sx={{ fontSize: "2.5rem", color: "#ea580c" }} />
+        <h2 className="text-xl font-black text-gray-900 mt-2">Ready to get it serviced?</h2>
+        <p className="text-gray-500 mt-1">Pick a machine, choose a date, and this shop takes it from there.</p>
+      </div>
+
       {shop.description && (
         <div className="bg-white rounded-2xl shadow-sm p-5">
           <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
             <InfoOutlinedIcon sx={{ fontSize: "1.15rem", color: "#ea580c" }} /> About this shop
           </h3>
           <p className="text-gray-600">{shop.description}</p>
-        </div>
-      )}
-
-      {shop.bays != null && (
-        <div className="bg-white rounded-2xl shadow-sm p-5">
-          <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
-            <GarageIcon sx={{ fontSize: "1.15rem", color: "#ea580c" }} /> Service bays
-          </h3>
-          <p className="text-2xl font-black" style={{ color: "#ea580c" }}>{shop.bays}</p>
         </div>
       )}
 
@@ -193,21 +274,26 @@ function ShopDetailMapSidebar({ shop }) {
  * shop happens via BookServiceDialog (Phase E6c) — browsing stays public,
  * the booking action itself is auth-gated (same "public browse, gated
  * interact" pattern used across the rest of this app). Redesigned
- * 2026-09-24 onto the same FusePageSimpleWithMargin shell as
- * ShopFinderPage/Bookings, so this page's layout is genuinely consistent
- * with the rest of the app, not a one-off grid.
+ * 2026-09-24 onto the same FusePageSimpleWithMargin 3-column shell as
+ * every other page in this vertical (left / content / right), so the
+ * layout is genuinely consistent across the whole Engineering vertical,
+ * not a one-off: left sidebar carries the shop's specialties/bays/
+ * location, center content is the About text + primary Book CTA, right
+ * sidebar is the full-screen-height map.
  */
 function ShopDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const currentUser = useAppSelector(selectUser);
   const isMobile = useThemeMediaQuery((theme) => theme.breakpoints.down("lg"));
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(!isMobile);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(!isMobile);
   const [bookingOpen, setBookingOpen] = useState(false);
   const { data: shopResp, isLoading, isError } = useGetEngineeringShop(id);
   const shop = shopResp?.data;
 
   useEffect(() => {
+    setLeftSidebarOpen(!isMobile);
     setRightSidebarOpen(!isMobile);
   }, [isMobile]);
 
@@ -246,8 +332,17 @@ function ShopDetailPage() {
   return (
     <>
       <Root
-        header={<ShopDetailHeader shop={shop} onToggleMap={isMobile ? () => setRightSidebarOpen((v) => !v) : undefined} />}
+        header={
+          <ShopDetailHeader
+            shop={shop}
+            onToggleFilters={isMobile ? () => setLeftSidebarOpen((v) => !v) : undefined}
+            onToggleMap={isMobile ? () => setRightSidebarOpen((v) => !v) : undefined}
+          />
+        }
         content={<ShopDetailContent shop={shop} onBookService={handleBookService} />}
+        leftSidebarOpen={leftSidebarOpen}
+        leftSidebarOnClose={() => setLeftSidebarOpen(false)}
+        leftSidebarContent={<ShopDetailInfoSidebar shop={shop} />}
         rightSidebarOpen={rightSidebarOpen}
         rightSidebarOnClose={() => setRightSidebarOpen(false)}
         rightSidebarContent={<ShopDetailMapSidebar shop={shop} />}
