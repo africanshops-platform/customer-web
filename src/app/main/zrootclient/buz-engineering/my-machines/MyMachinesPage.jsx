@@ -310,7 +310,12 @@ function MyMachinesPage() {
     setRightSidebarOpen(!isMobile);
   }, [isMobile]);
 
-  const { data: machinesResp, isLoading, isError } = useGetMyRegisteredMachines();
+  // Gated on being actually logged in, not just on the redirect-to-/sign-in
+  // effect above: that effect only runs after the first render, so without
+  // this the hook would still fire (and 401, then reload-loop — see
+  // useMyMachinesRepo.js) for a guest who lands here directly, in the gap
+  // before the redirect takes effect.
+  const { data: machinesResp, isLoading, isError } = useGetMyRegisteredMachines(Boolean(currentUser?.name));
   const allMachines = machinesResp?.data ?? [];
   const { data: typesResp } = useGetMachineTypes();
   const machineTypes = typesResp?.data ?? [];

@@ -15,9 +15,24 @@ import reportEngineeringApiError from './reportEngineeringApiError';
  * at, same ownership shape the backend already enforces server-side.
  */
 
-/** *Get all of the current user's registered machines */
-export function useGetMyRegisteredMachines() {
+/**
+ * Get all of the current user's registered machines.
+ *
+ * `enabled` defaults to true for callers that are already known to be
+ * authenticated (e.g. MyMachinesPage, which redirects to /sign-in on mount
+ * otherwise). Callers that can render for a logged-out guest — like
+ * BookServiceDialog, which stays mounted-but-hidden on the public shop
+ * detail page — MUST pass `enabled: false` until the user is actually
+ * authenticated, or this fires a real 401 that the global AuthApi
+ * interceptor turns into a real `window.location.reload()`
+ * (resetSessionForShopUsers), which then reloads straight back into the
+ * same unauthenticated state and fires again — a genuine infinite reload
+ * loop for any guest visitor, confirmed live 2026-09-24 on
+ * /engineering/shops/:id.
+ */
+export function useGetMyRegisteredMachines(enabled = true) {
 	return useQuery(['__myMachines'], () => getMyRegisteredMachinesApi(), {
+		enabled,
 		staleTime: 30000,
 		onError: (error) => reportEngineeringApiError(error, 'Failed to fetch your machines')
 	});

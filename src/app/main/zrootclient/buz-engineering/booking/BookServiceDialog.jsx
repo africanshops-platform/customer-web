@@ -51,7 +51,15 @@ function BookServiceDialog({ open, onClose, shopId, shopName }) {
   const [locationError, setLocationError] = useState("");
   const [registerOpen, setRegisterOpen] = useState(false);
 
-  const { data: machinesResp, isLoading: machinesLoading } = useGetMyRegisteredMachines();
+  // Gated on `open`, not fetched unconditionally: this dialog stays
+  // mounted-but-hidden on the public (guest-visible) shop detail page, and
+  // ShopDetailPage only ever sets `open=true` after already confirming the
+  // visitor is logged in (redirects to /sign-in otherwise) — so `open`
+  // true is itself proof of auth. Fetching unconditionally on mount fired
+  // a real 401 for guests, which the app's global 401 interceptor turns
+  // into an actual window.location.reload() — an infinite reload loop on
+  // every guest visit to a shop's detail page. See useMyMachinesRepo.js.
+  const { data: machinesResp, isLoading: machinesLoading } = useGetMyRegisteredMachines(open);
   const machines = machinesResp?.data ?? [];
 
   const { mutate: createBooking, isLoading: booking } = useCreateServiceBooking();
