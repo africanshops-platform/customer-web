@@ -41,6 +41,8 @@ import userRealEstatePagesConfig from "../main/zrootclient/buz-realestates/realE
 import ShopFinderPage from "../main/zrootclient/buz-engineering/shop-finder/ShopFinderPage";
 import ShopDetailPage from "../main/zrootclient/buz-engineering/shop-finder/ShopDetailPage";
 import MyMachinesPage from "../main/zrootclient/buz-engineering/my-machines/MyMachinesPage";
+import MyBookingsPage from "../main/zrootclient/buz-engineering/bookings/MyBookingsPage";
+import BookingDetailPage from "../main/zrootclient/buz-engineering/bookings/BookingDetailPage";
 import ModernLandingPage from "../main/vendors-shop/home/home/ModernLandingPage";
 import AboutUs from "../main/vendors-shop/home/home/AboutUs";
 import ContactUs from "../main/vendors-shop/home/home/ContactUs";
@@ -441,6 +443,38 @@ const routes = [
       },
     },
     element: <MyMachinesPage />,
+  },
+  // Added Phase E6d (2026-09-24) — "My Bookings" list + detail, reached
+  // from the account menu.
+  {
+    path: "/engineering/my-bookings",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <MyBookingsPage />,
+  },
+  {
+    path: "/engineering/my-bookings/:id",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <BookingDetailPage />,
   },
   /****
    * ##############################################################

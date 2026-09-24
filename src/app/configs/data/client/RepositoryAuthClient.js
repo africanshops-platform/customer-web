@@ -707,6 +707,26 @@ export const createServiceBookingApi = (formData) => {
 	return AuthApi().post(`/engineering/bookings`, formData);
 };
 
+/** *Get all of the current user's own service bookings (Phase E6d) */
+export const getMyServiceBookingsApi = () => {
+	return AuthApi().get(`/engineering/my-bookings`);
+};
+
+/** *Get a single service booking (customer-owned) */
+export const getServiceBookingByIdApi = (bookingId) => {
+	return AuthApi().get(`/engineering/bookings/${bookingId}`);
+};
+
+/** *Get the repair job for a booking (null until the shop has logged one) */
+export const getRepairJobForBookingApi = (bookingId) => {
+	return AuthApi().get(`/engineering/bookings/${bookingId}/repair-job`);
+};
+
+/** *Cancel one of the current user's own service bookings */
+export const cancelServiceBookingApi = (bookingId, cancellationReason) => {
+	return AuthApi().put(`/engineering/bookings/${bookingId}/cancel`, { cancellationReason });
+};
+
 /**
  * ############################################################
  * @param {Engineering Services — Registered Machines + Service Bookings Routes ends} FormData
