@@ -125,10 +125,10 @@ function ImprovedBookingsMap({ items }) {
       >
         {/* Custom Tile Layer - Using CartoDB Positron for better aesthetics */}
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution='Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
           subdomains="abcd"
-          maxZoom={20}
+          maxZoom={16}
         />
 
         {/* Alternative tile layers (uncomment to try different styles) */}

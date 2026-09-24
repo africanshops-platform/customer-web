@@ -72,10 +72,10 @@ function PropertyLocationMap({ coordinates, propertyName, propertyAddress }) {
       >
         {/* Custom Tile Layer - Using CartoDB Positron */}
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution='Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
           subdomains="abcd"
-          maxZoom={20}
+          maxZoom={16}
         />
 
         {/* Property Marker */}
