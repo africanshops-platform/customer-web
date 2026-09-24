@@ -212,11 +212,17 @@ function MarketplaceMap({ cartData }) {
         className="w-full h-full"
         style={{ minHeight: "100%" }}
       >
-        {/* Custom Tile Layer - Using CartoDB Positron for better aesthetics */}
+        {/* Custom Tile Layer - Esri light-gray canvas (base + reference), no API key required */}
         <TileLayer
           attribution='Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
-          subdomains="abcd"
+          maxZoom={16}
+        />
+        {/* Esri splits the light canvas into a base fill layer and a separate
+            roads/borders/labels overlay -- CARTO's light_all bundled both into
+            one tile. Added for parity/clarity (founder feedback 2026-09-24). */}
+        <TileLayer
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
           maxZoom={16}
         />
 
