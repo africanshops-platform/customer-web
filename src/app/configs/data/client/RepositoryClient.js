@@ -320,13 +320,20 @@ export const getEstatePropertyApi = (estatePropId) =>
 /** =====================================================================================================
  * ENGINEERING SERVICES ROUTES LISTED BELOW STARTS — public shop directory,
  * no auth needed to browse (registering a machine / booking is authenticated,
- * see RepositoryAuthClient.js once that phase lands).
+ * see RepositoryAuthClient.js).
  ===================================================================================================== */
 export const getEngineeringShopsApi = (specialty) => {
 	const url = specialty ? `/engineering/lookups/shops?specialty=${specialty}` : `/engineering/lookups/shops`;
 	return Api().get(url);
 };
 export const getEngineeringShopByIdApi = (shopId) => Api().get(`/engineering/lookups/shops/${shopId}`);
+/** *Machine-type taxonomy lookup (public, Phase E6c) — powers the register-a-machine autocomplete. */
+export const getMachineTypesApi = (category) => {
+	const url = category
+		? `/engineering/lookups/machine-types?category=${category}`
+		: `/engineering/lookups/machine-types`;
+	return Api().get(url);
+};
 /** =====================================================================================================
  * ENGINEERING SERVICES ROUTES LISTED ENDS HERE
  ===================================================================================================== */

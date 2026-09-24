@@ -40,6 +40,7 @@ import RealestateSinglePageWithSidebarsContentScroll from "../main/zrootclient/b
 import userRealEstatePagesConfig from "../main/zrootclient/buz-realestates/realEstatePagesConfig";
 import ShopFinderPage from "../main/zrootclient/buz-engineering/shop-finder/ShopFinderPage";
 import ShopDetailPage from "../main/zrootclient/buz-engineering/shop-finder/ShopDetailPage";
+import MyMachinesPage from "../main/zrootclient/buz-engineering/my-machines/MyMachinesPage";
 import ModernLandingPage from "../main/vendors-shop/home/home/ModernLandingPage";
 import AboutUs from "../main/vendors-shop/home/home/AboutUs";
 import ContactUs from "../main/vendors-shop/home/home/ContactUs";
@@ -423,6 +424,23 @@ const routes = [
       },
     },
     element: <ShopDetailPage />,
+  },
+  // Added Phase E6c (2026-09-24) — "My Machines" hub, reached from the
+  // account menu or from a shop-detail booking's inline register shortcut.
+  {
+    path: "/engineering/my-machines",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <MyMachinesPage />,
   },
   /****
    * ##############################################################

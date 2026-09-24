@@ -1,21 +1,38 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Chip, CircularProgress } from "@mui/material";
+import { Chip, CircularProgress, Button } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import BuildIcon from "@mui/icons-material/Build";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import useGetEngineeringShop from "app/configs/data/server-calls/engineering/useEngineeringShopRepo";
 import EngineeringShopFinderMap from "../components/maps/EngineeringShopFinderMap";
+import BookServiceDialog from "../booking/BookServiceDialog";
+import { useAppSelector } from "app/store/hooks";
+import { selectUser } from "src/app/auth/user/store/userSlice";
 
 /**
  * ShopDetailPage — real shop info reached from the map/list finder
  * (Phase E6b). Registering a machine and booking a service against this
- * shop lands here once Phase E6c ships.
+ * shop happens via BookServiceDialog (Phase E6c) — browsing stays public,
+ * the booking action itself is auth-gated (same "public browse, gated
+ * interact" pattern used across the rest of this app).
  */
 function ShopDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const currentUser = useAppSelector(selectUser);
+  const [bookingOpen, setBookingOpen] = useState(false);
   const { data: shopResp, isLoading, isError } = useGetEngineeringShop(id);
   const shop = shopResp?.data;
+
+  const handleBookService = () => {
+    if (!currentUser?.name) {
+      navigate("/sign-in");
+      return;
+    }
+    setBookingOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -101,11 +118,20 @@ function ShopDetailPage() {
             </div>
           )}
 
-          <div className="bg-teal-50 border border-teal-100 rounded-2xl p-5">
-            <p className="text-teal-800 text-sm">
-              Registering a machine and booking a service with this shop is coming soon to this page.
-            </p>
-          </div>
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<CalendarMonthIcon />}
+            onClick={handleBookService}
+            sx={{
+              backgroundColor: "#0f766e",
+              fontWeight: 700,
+              py: 1.5,
+              "&:hover": { backgroundColor: "#0d5f58" },
+            }}
+          >
+            Book a Service
+          </Button>
         </div>
 
         <div className="h-72 md:h-full min-h-[280px]">
@@ -118,6 +144,13 @@ function ShopDetailPage() {
           )}
         </div>
       </div>
+
+      <BookServiceDialog
+        open={bookingOpen}
+        onClose={() => setBookingOpen(false)}
+        shopId={shop.id}
+        shopName={shop.name}
+      />
     </div>
   );
 }
