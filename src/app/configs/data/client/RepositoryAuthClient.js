@@ -424,6 +424,22 @@ export const removeCommodityFromCartApi = (formData) => {
 };
 
 /**
+ * Wishlist (2026-09-27, customer-10). userId is never sent -- resolved
+ * server-side from the auth token on every route.
+ */
+export const getMyWishlistApi = () => AuthApi().get(`${API_ENDPOINTS.GET_MY_WISHLIST}`);
+export const addToWishlistApi = (productId) => AuthApi().post(`/wishlist/${productId}`);
+export const removeFromWishlistApi = (productId) => AuthApi().delete(`/wishlist/${productId}`);
+export const getWishlistItemStatusApi = (productId) => AuthApi().get(`/wishlist/${productId}/status`);
+
+/**
+ * Create a product review (2026-09-27, customer-9) -- purchase-gated
+ * server-side; a 403 here means the caller hasn't bought this product.
+ */
+export const createProductReviewApi = (reviewData) =>
+	AuthApi().post(`${API_ENDPOINTS.CREATE_PRODUCT_REVIEW}`, reviewData);
+
+/**
  * MANAGE ORDER SECTION
  */
 

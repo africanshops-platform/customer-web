@@ -184,6 +184,9 @@ export const getProductById = (id) => Api().get(`/products/${id}/view`);
 export const getProductByCategory = (category) => Api().get(`/clientusersproducts/category/${category}`);
 export const getUserCartProductsById = (payload) => Api().get(`/clientusersproducts/cart?${payload}`);
 
+/** Product reviews -- public read, no auth needed (2026-09-27, customer-9) */
+export const getProductReviews = (productId) => Api().get(`/reviews/${productId}`);
+
 //= =========================Get Markets Routes=====================================
 export const getApiMarkets = () => Api().get(`/markets`);
 
