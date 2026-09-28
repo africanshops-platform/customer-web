@@ -55,6 +55,8 @@ import MarketplaceDealsWithSidebarsContentScrollComponent from "../main/zrootcli
 
 /***Shared KYC (platform-wide, not civic-only) */
 import KycManagePage from "../main/zrootclient/civic-shared/kyc/KycManagePage";
+import KycFaceCaptureBridgePage from "../main/zrootclient/civic-shared/kyc/bridge/KycFaceCaptureBridgePage";
+import KycWebAuthnBridgePage from "../main/zrootclient/civic-shared/kyc/bridge/KycWebAuthnBridgePage";
 
 const routeConfigs = [
   /***
@@ -185,6 +187,46 @@ const routes = [
       },
     },
     element: <KycManagePage />,
+  },
+
+  // Mobile-WebView bridge pages (2026-09-27, customer-7) — never opened
+  // directly by a person; loaded inside react-native-webview by
+  // customer-mobile so face-api.js/WebAuthn can run in a real browser
+  // context. Fully bare (no app chrome) and deliberately NOT wrapped in
+  // this app's own auth guard — the WebView has no access to customer-web's
+  // own login session and authenticates purely via a token the mobile host
+  // injects directly into the page (see KycFaceCaptureBridgePage.jsx for
+  // the bridge contract; ported byte-for-byte from civic-web's identical
+  // pages, which civic-mobile already uses the same way).
+  {
+    path: "/kyc-bridge/face-capture",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: false },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <KycFaceCaptureBridgePage />,
+  },
+  {
+    path: "/kyc-bridge/webauthn-register",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: false },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <KycWebAuthnBridgePage />,
   },
 
   {

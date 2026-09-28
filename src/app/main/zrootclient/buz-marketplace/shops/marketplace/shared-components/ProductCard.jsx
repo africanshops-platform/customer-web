@@ -7,13 +7,40 @@ import { Typography, IconButton, Button } from "@mui/material";
 //   NavigateNext,
 // } from "@mui/icons-material";
 import NavLinkAdapter from "@fuse/core/NavLinkAdapter";
+import { toast } from "react-toastify";
 import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
+import { useAppSelector } from "app/store/hooks";
+import { selectUser } from "src/app/auth/user/store/userSlice";
+import {
+  useAddToWishlist,
+  useRemoveFromWishlist,
+  useWishlistItemStatus,
+} from "app/configs/data/server-calls/auth/userapp/a_marketplace/useProductsRepo";
 
 /**
  * ProductCard Component
  * Displays hotel/apartment listing with image slider
  */
 function ProductCard({ id, slug, image, name, price, address, listprice, unitweight }) {
+  const user = useAppSelector(selectUser);
+  const isAuthenticated = Boolean(user?.email);
+  const { data: wishlistStatus } = useWishlistItemStatus(isAuthenticated ? id : undefined);
+  const isWishlisted = Boolean(wishlistStatus?.data?.isWishlisted);
+  const addToWishlist = useAddToWishlist();
+  const removeFromWishlist = useRemoveFromWishlist();
+
+  function handleToggleWishlist() {
+    if (!isAuthenticated) {
+      toast.info("Please sign in to add items to your wishlist.");
+      return;
+    }
+    if (isWishlisted) {
+      removeFromWishlist.mutate(id);
+    } else {
+      addToWishlist.mutate(id);
+    }
+  }
+
   return (
     <>
       <div
@@ -69,7 +96,16 @@ function ProductCard({ id, slug, image, name, price, address, listprice, unitwei
             ADD TO CART
           </Button>
 
-          <i className="far fa-heart text-xl"></i>
+          <IconButton
+            size="small"
+            onClick={handleToggleWishlist}
+            aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+          >
+            <i
+              className={`${isWishlisted ? "fas" : "far"} fa-heart text-xl`}
+              style={{ color: isWishlisted ? "#ea580c" : undefined }}
+            />
+          </IconButton>
         </div>
       </div>
     </>
