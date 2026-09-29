@@ -1,17 +1,22 @@
 import {
 	addToUserCommodityCartApi,
+	addToWishlistApi,
 	calculateCartShippingApi,
 	cancelUserItemInInvoiceApi,
+	createProductReviewApi,
+	getMyWishlistApi,
 	getPlacedOrders,
 	getUserInvoices,
 	getUserShoppingCart,
 	getUserShoppingCartForAuthAndGuest,
+	getWishlistItemStatusApi,
 	payAndPlaceOrderApi,
 	removeCommodityFromCartApi,
+	removeFromWishlistApi,
 	requestRefundOnUserItemInInvoiceApi,
 	updateCommodityCartQtyApi
 } from 'app/configs/data/client/RepositoryAuthClient';
-import { getAllProducts, getProductByCategory, getProductById } from 'app/configs/data/client/RepositoryClient';
+import { getAllProducts, getProductByCategory, getProductById, getProductReviews } from 'app/configs/data/client/RepositoryClient';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router';
 import { toast } from 'react-toastify';
@@ -51,9 +56,79 @@ export function useGetSingleProduct(productSlug) {
 	});
 } // (Msvs => Done)
 
+/** Product reviews -- public, visible to everyone regardless of auth state (2026-09-27, customer-9) */
+export function useGetProductReviews(productId) {
+	return useQuery(['__product_reviews', productId], () => getProductReviews(productId), {
+		enabled: Boolean(productId)
+	});
+}
+
 /** *
  * #################################################################
  * GUEST PRODUCT HANDLING ENDS HERE
+ * #################################################################
+ */
+
+/** *
+ * #################################################################
+ * WISHLIST MANAGEMENT STARTS HERE (2026-09-27, customer-10)
+ * #################################################################
+ */
+export function useGetMyWishlist() {
+	return useQuery(['__wishlist'], () => getMyWishlistApi());
+}
+
+export function useWishlistItemStatus(productId) {
+	return useQuery(['__wishlist_item_status', productId], () => getWishlistItemStatusApi(productId), {
+		enabled: Boolean(productId)
+	});
+}
+
+export function useAddToWishlist() {
+	const queryClient = useQueryClient();
+	return useMutation((productId) => addToWishlistApi(productId), {
+		onSuccess: (_data, productId) => {
+			queryClient.invalidateQueries(['__wishlist']);
+			queryClient.invalidateQueries(['__wishlist_item_status', productId]);
+		},
+		onError: handleNestJSError
+	});
+}
+
+export function useRemoveFromWishlist() {
+	const queryClient = useQueryClient();
+	return useMutation((productId) => removeFromWishlistApi(productId), {
+		onSuccess: (_data, productId) => {
+			queryClient.invalidateQueries(['__wishlist']);
+			queryClient.invalidateQueries(['__wishlist_item_status', productId]);
+		},
+		onError: handleNestJSError
+	});
+}
+/** *
+ * #################################################################
+ * WISHLIST MANAGEMENT ENDS HERE
+ * #################################################################
+ */
+
+/** *
+ * #################################################################
+ * PRODUCT REVIEWS (WRITE) START HERE (2026-09-27, customer-9)
+ * #################################################################
+ */
+export function useCreateProductReview() {
+	const queryClient = useQueryClient();
+	return useMutation((reviewData) => createProductReviewApi(reviewData), {
+		onSuccess: (_data, reviewData) => {
+			toast.success('Thanks for your review!');
+			queryClient.invalidateQueries(['__product_reviews', reviewData?.productId]);
+		},
+		onError: handleNestJSError
+	});
+}
+/** *
+ * #################################################################
+ * PRODUCT REVIEWS (WRITE) END HERE
  * #################################################################
  */
 

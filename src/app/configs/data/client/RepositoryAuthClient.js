@@ -2,9 +2,9 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
 import { resetSessionForShopUsers } from 'app/configs/utils/authUtils';
+import jwtAuthConfig from 'src/app/auth/services/jwt/jwtAuthConfig';
 import { getAdminAccessToken } from '../utils/opsUtils';
 import { API_ENDPOINTS } from './serverEndpoints/endpoints';
-import jwtAuthConfig from 'src/app/auth/services/jwt/jwtAuthConfig';
 
 // ─── Token-refresh state (module-level so all AuthApi() instances share it) ──
 let isRefreshing = false;
@@ -375,6 +375,16 @@ export const getUserFoodInvoicesAndItemsByIdEnpoint = (foodOrderId) => {
 	return AuthApi().get(`/rcs-food-orders/${foodOrderId}/view`);
 };
 
+/** Which currently-available tables does this paid order's spend qualify for a reservation at? */
+export const getEligibleTablesForOrderApi = (foodOrderId) => {
+	return AuthApi().get(`/rcs-food-orders/${foodOrderId}/eligible-tables`);
+};
+
+/** Reserve a table the order's spend qualified for. */
+export const createTableReservationApi = (dto) => {
+	return AuthApi().post(`/rcs-food-orders/table-reservations/create`, dto);
+};
+
 /** *******#######################################################################################
  * AUTHENTICATED ACTIVITIES FOR USERS UTULIZING FOOD-MART_APP ends here
  * #######################################################################################
@@ -412,6 +422,22 @@ export const removeCommodityFromCartApi = (formData) => {
 	// console.log("food cart", formData);
 	return AuthApi().put(`${API_ENDPOINTS.REMOVE_CART_ITEM}`, formData);
 };
+
+/**
+ * Wishlist (2026-09-27, customer-10). userId is never sent -- resolved
+ * server-side from the auth token on every route.
+ */
+export const getMyWishlistApi = () => AuthApi().get(`${API_ENDPOINTS.GET_MY_WISHLIST}`);
+export const addToWishlistApi = (productId) => AuthApi().post(`/wishlist/${productId}`);
+export const removeFromWishlistApi = (productId) => AuthApi().delete(`/wishlist/${productId}`);
+export const getWishlistItemStatusApi = (productId) => AuthApi().get(`/wishlist/${productId}/status`);
+
+/**
+ * Create a product review (2026-09-27, customer-9) -- purchase-gated
+ * server-side; a 403 here means the caller hasn't bought this product.
+ */
+export const createProductReviewApi = (reviewData) =>
+	AuthApi().post(`${API_ENDPOINTS.CREATE_PRODUCT_REVIEW}`, reviewData);
 
 /**
  * MANAGE ORDER SECTION
@@ -656,6 +682,70 @@ export const setDefaultUserAddressApi = (addressId) => {
 /**
  * ############################################################
  * @param {User Addresses CRUD Routes ends} FormData
+ * @returns
+ * ############################################################
+ */
+
+/**
+ * ############################################################
+ * @param {Engineering Services — Registered Machines + Service Bookings Routes starts (Phase E6c)} FormData
+ * @returns
+ * ############################################################
+ */
+
+/** *Register a machine (customer-owned, not the shop) */
+export const createRegisteredMachineApi = (formData) => {
+	return AuthApi().post(`/engineering/my-machines`, formData);
+};
+
+/** *Update a registered machine */
+export const updateRegisteredMachineApi = (machineId, formData) => {
+	return AuthApi().put(`/engineering/my-machines/${machineId}`, formData);
+};
+
+/** *Delete a registered machine */
+export const deleteRegisteredMachineApi = (machineId) => {
+	return AuthApi().delete(`/engineering/my-machines/${machineId}`);
+};
+
+/** *Get all of the current user's registered machines */
+export const getMyRegisteredMachinesApi = () => {
+	return AuthApi().get(`/engineering/my-machines`);
+};
+
+/** *Get a single registered machine by id */
+export const getRegisteredMachineByIdApi = (machineId) => {
+	return AuthApi().get(`/engineering/my-machines/${machineId}`);
+};
+
+/** *Book a service against one of the current user's registered machines */
+export const createServiceBookingApi = (formData) => {
+	return AuthApi().post(`/engineering/bookings`, formData);
+};
+
+/** *Get all of the current user's own service bookings (Phase E6d) */
+export const getMyServiceBookingsApi = () => {
+	return AuthApi().get(`/engineering/my-bookings`);
+};
+
+/** *Get a single service booking (customer-owned) */
+export const getServiceBookingByIdApi = (bookingId) => {
+	return AuthApi().get(`/engineering/bookings/${bookingId}`);
+};
+
+/** *Get the repair job for a booking (null until the shop has logged one) */
+export const getRepairJobForBookingApi = (bookingId) => {
+	return AuthApi().get(`/engineering/bookings/${bookingId}/repair-job`);
+};
+
+/** *Cancel one of the current user's own service bookings */
+export const cancelServiceBookingApi = (bookingId, cancellationReason) => {
+	return AuthApi().put(`/engineering/bookings/${bookingId}/cancel`, { cancellationReason });
+};
+
+/**
+ * ############################################################
+ * @param {Engineering Services — Registered Machines + Service Bookings Routes ends} FormData
  * @returns
  * ############################################################
  */

@@ -146,6 +146,32 @@ function UserMenu({ user }) {
               <ListItemText primary="My Trips" />
             </MenuItem>
 
+            {/* Added Phase E6c (2026-09-24) — Engineering Services machines hub */}
+            <MenuItem
+              component={Link}
+              to="/engineering/my-machines"
+              onClick={userMenuClose}
+              role="button"
+            >
+              <ListItemIcon className="min-w-40">
+                <FuseSvgIcon>heroicons-outline:cog</FuseSvgIcon>
+              </ListItemIcon>
+              <ListItemText primary="My Machines" />
+            </MenuItem>
+
+            {/* Added Phase E6d (2026-09-24) — Engineering Services bookings list/detail */}
+            <MenuItem
+              component={Link}
+              to="/engineering/my-bookings"
+              onClick={userMenuClose}
+              role="button"
+            >
+              <ListItemIcon className="min-w-40">
+                <FuseSvgIcon>heroicons-outline:calendar</FuseSvgIcon>
+              </ListItemIcon>
+              <ListItemText primary="My Service Bookings" />
+            </MenuItem>
+
             <MenuItem
               component={Link}
               to="/marketplace/user/orders"

@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Avatar,
   Button,
-  Divider,
-  IconButton,
+  CircularProgress,
   Rating,
   TextField,
   Typography,
@@ -13,84 +12,66 @@ import {
   LinearProgress,
 } from "@mui/material";
 import {
-  Reply,
-  Send,
-  ThumbUp,
   Description,
   RateReview,
-  EmojiEmotions,
-  Image,
   VerifiedUser,
   Star,
 } from "@mui/icons-material";
 import { useAppSelector } from "app/store/hooks";
 import { selectUser } from "src/app/auth/user/store/userSlice";
 import { motion } from "framer-motion";
+import {
+  useCreateProductReview,
+  useGetProductReviews,
+} from "app/configs/data/server-calls/auth/userapp/a_marketplace/useProductsRepo";
+
+function ratingBarColor(stars) {
+  if (stars >= 4) return "#10b981";
+  if (stars === 3) return "#f59e0b";
+  return "#ef4444";
+}
 
 /**
  * ProductDetailsWithReviews Component
- * Completely redesigned with engaging, professional UI
- * Displays product details and reviews in modern tabbed interface
+ * Displays product details and real, purchase-gated reviews in a tabbed interface.
  */
 const ProductDetailsWithReviews = ({ productData }) => {
   const user = useAppSelector(selectUser);
+  const isAuthenticated = Boolean(user?.email);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [active, setActive] = useState(1);
   const [comment, setComment] = useState("");
   const [rating, setRating] = useState(0);
 
-  // Mock reviews data - Replace with actual data from props or API
-  const [reviews, setReviews] = useState([
-    {
-      id: 1,
-      author: "Authentiano Emmasan",
-      authorImage: "https://placehold.co/40x40",
-      timeAgo: "3d",
-      content: "Great product! Highly recommended for the quality and price.",
-      rating: 5,
-      likes: 0,
-      isAuthor: false,
-      replies: [
-        {
-          id: 1,
-          author: "Vendor Response",
-          authorImage: "https://placehold.co/40x40",
-          timeAgo: "2d",
-          content: "Thank you for your positive feedback! We appreciate your business.",
-          isAuthor: true,
+  const productId = productData?.id || productData?._id;
+  const { data: reviewsResponse, isLoading: reviewsLoading } = useGetProductReviews(productId);
+  const createReview = useCreateProductReview();
+
+  const reviews = reviewsResponse?.data?.reviews ?? [];
+  const reviewCount = reviewsResponse?.data?.count ?? 0;
+  const averageRating = reviewsResponse?.data?.averageRating ?? 0;
+
+  const ratingStats = useMemo(() => {
+    return [5, 4, 3, 2, 1].map((stars) => {
+      const count = reviews.filter((r) => r.rating === stars).length;
+      const percentage = reviewCount > 0 ? Math.round((count / reviewCount) * 100) : 0;
+      return { stars, count, percentage };
+    });
+  }, [reviews, reviewCount]);
+
+  function handleSubmitComment() {
+    if (!comment.trim() || rating === 0 || !productId) return;
+    createReview.mutate(
+      { productId, rating, content: comment.trim() },
+      {
+        onSuccess: () => {
+          setComment("");
+          setRating(0);
         },
-      ],
-    },
-  ]);
-
-  // Calculate rating statistics
-  const ratingStats = [
-    { stars: 5, count: 45, percentage: 75 },
-    { stars: 4, count: 10, percentage: 17 },
-    { stars: 3, count: 3, percentage: 5 },
-    { stars: 2, count: 1, percentage: 2 },
-    { stars: 1, count: 1, percentage: 1 },
-  ];
-
-  const handleSubmitComment = () => {
-    if (comment.trim() || rating > 0) {
-      const newReview = {
-        id: reviews.length + 1,
-        author: user?.displayName || "Current User",
-        authorImage: user?.photoURL || "https://placehold.co/40x40",
-        timeAgo: "Just now",
-        content: comment,
-        rating: rating,
-        likes: 0,
-        replies: [],
-        isAuthor: false,
-      };
-      setReviews([newReview, ...reviews]);
-      setComment("");
-      setRating(0);
-    }
-  };
+      },
+    );
+  }
 
   return (
     <div className="p-0">
@@ -152,7 +133,7 @@ const ProductDetailsWithReviews = ({ productData }) => {
                 variant={isMobile ? "subtitle1" : "h6"}
                 className={`font-bold ${active === 2 ? "text-white" : "text-gray-900"}`}
               >
-                Reviews ({reviews.length})
+                Reviews ({reviewCount})
               </Typography>
             </div>
             {active === 2 && (
@@ -290,7 +271,7 @@ const ProductDetailsWithReviews = ({ productData }) => {
         </motion.div>
       ) : null}
 
-      {/* Reviews Tab */}
+      {/* Reviews Tab -- visible to everyone, purchase-gated write (2026-09-27, customer-9) */}
       {active === 2 ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -298,436 +279,262 @@ const ProductDetailsWithReviews = ({ productData }) => {
           transition={{ duration: 0.4 }}
           className="bg-white"
         >
-          {/* Rating Overview Section */}
-          <div className="p-8 bg-gradient-to-br from-orange-50 via-white to-orange-50 border-b-2 border-gray-200">
-            <div className="flex flex-col md:flex-row gap-8 items-center">
-              {/* Overall Rating */}
-              <div className="flex flex-col items-center md:items-start gap-3">
-                <Typography variant="h6" className="text-gray-700 font-semibold">
-                  Overall Rating
-                </Typography>
-                <div className="flex items-baseline gap-2">
-                  <Typography
-                    variant="h2"
-                    className="font-black text-orange-600"
-                    sx={{ fontSize: isMobile ? "3rem" : "4rem" }}
-                  >
-                    4.5
-                  </Typography>
-                  <Typography variant="h6" className="text-gray-500">
-                    out of 5
-                  </Typography>
-                </div>
-                <Rating
-                  value={4.5}
-                  precision={0.5}
-                  readOnly
-                  size="large"
-                  sx={{
-                    "& .MuiRating-iconFilled": {
-                      color: "#f59e0b",
-                    },
-                    fontSize: isMobile ? "1.75rem" : "2rem",
-                  }}
-                />
-                <Typography variant="body2" className="text-gray-600">
-                  Based on {reviews.length} reviews
-                </Typography>
-              </div>
-
-              {/* Rating Breakdown */}
-              <div className="flex-1 w-full max-w-md">
-                <Typography variant="h6" className="text-gray-700 font-semibold mb-4">
-                  Rating Breakdown
-                </Typography>
-                <div className="space-y-2">
-                  {ratingStats.map((stat) => (
-                    <div key={stat.stars} className="flex items-center gap-3">
-                      <div className="flex items-center gap-1 w-16">
-                        <Typography variant="body2" className="font-semibold text-gray-700">
-                          {stat.stars}
-                        </Typography>
-                        <Star sx={{ fontSize: "1rem", color: "#f59e0b" }} />
-                      </div>
-                      <div className="flex-1">
-                        <LinearProgress
-                          variant="determinate"
-                          value={stat.percentage}
-                          sx={{
-                            height: 8,
-                            borderRadius: 4,
-                            backgroundColor: "#f3f4f6",
-                            "& .MuiLinearProgress-bar": {
-                              backgroundColor:
-                                stat.stars >= 4
-                                  ? "#10b981"
-                                  : stat.stars === 3
-                                    ? "#f59e0b"
-                                    : "#ef4444",
-                              borderRadius: 4,
-                            },
-                          }}
-                        />
-                      </div>
-                      <Typography variant="body2" className="text-gray-600 w-12 text-right">
-                        {stat.count}
+          {reviewsLoading ? (
+            <div className="flex justify-center p-12">
+              <CircularProgress sx={{ color: "#ea580c" }} />
+            </div>
+          ) : (
+            <>
+              {/* Rating Overview Section */}
+              <div className="p-8 bg-gradient-to-br from-orange-50 via-white to-orange-50 border-b-2 border-gray-200">
+                <div className="flex flex-col md:flex-row gap-8 items-center">
+                  {/* Overall Rating */}
+                  <div className="flex flex-col items-center md:items-start gap-3">
+                    <Typography variant="h6" className="text-gray-700 font-semibold">
+                      Overall Rating
+                    </Typography>
+                    <div className="flex items-baseline gap-2">
+                      <Typography
+                        variant="h2"
+                        className="font-black text-orange-600"
+                        sx={{ fontSize: isMobile ? "3rem" : "4rem" }}
+                      >
+                        {averageRating.toFixed(1)}
+                      </Typography>
+                      <Typography variant="h6" className="text-gray-500">
+                        out of 5
                       </Typography>
                     </div>
-                  ))}
+                    <Rating
+                      value={averageRating}
+                      precision={0.5}
+                      readOnly
+                      size="large"
+                      sx={{
+                        "& .MuiRating-iconFilled": { color: "#f59e0b" },
+                        fontSize: isMobile ? "1.75rem" : "2rem",
+                      }}
+                    />
+                    <Typography variant="body2" className="text-gray-600">
+                      Based on {reviewCount} review{reviewCount === 1 ? "" : "s"}
+                    </Typography>
+                  </div>
+
+                  {/* Rating Breakdown */}
+                  <div className="flex-1 w-full max-w-md">
+                    <Typography variant="h6" className="text-gray-700 font-semibold mb-4">
+                      Rating Breakdown
+                    </Typography>
+                    <div className="space-y-2">
+                      {ratingStats.map((stat) => (
+                        <div key={stat.stars} className="flex items-center gap-3">
+                          <div className="flex items-center gap-1 w-16">
+                            <Typography variant="body2" className="font-semibold text-gray-700">
+                              {stat.stars}
+                            </Typography>
+                            <Star sx={{ fontSize: "1rem", color: "#f59e0b" }} />
+                          </div>
+                          <div className="flex-1">
+                            <LinearProgress
+                              variant="determinate"
+                              value={stat.percentage}
+                              sx={{
+                                height: 8,
+                                borderRadius: 4,
+                                backgroundColor: "#f3f4f6",
+                                "& .MuiLinearProgress-bar": {
+                                  backgroundColor: ratingBarColor(stat.stars),
+                                  borderRadius: 4,
+                                },
+                              }}
+                            />
+                          </div>
+                          <Typography variant="body2" className="text-gray-600 w-12 text-right">
+                            {stat.count}
+                          </Typography>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {user?.email && (
-            <>
-              {/* Add Comment Section */}
-              <div
-                className={`${isMobile ? "p-6" : "p-8"} bg-gradient-to-br from-gray-50 to-white border-b-2 border-gray-200`}
-              >
-                <div className="flex items-center gap-2 mb-6">
+              {isAuthenticated ? (
+                <div
+                  className={`${isMobile ? "p-6" : "p-8"} bg-gradient-to-br from-gray-50 to-white border-b-2 border-gray-200`}
+                >
+                  <div className="flex items-center gap-2 mb-6">
+                    <RateReview sx={{ color: "#ea580c", fontSize: "1.75rem" }} />
+                    <Typography variant={isMobile ? "h6" : "h5"} className="font-bold text-gray-900">
+                      Write a Review
+                    </Typography>
+                  </div>
+                  <Typography variant="body2" className="text-gray-500 mb-4">
+                    Only customers who have purchased this product can leave a review.
+                  </Typography>
+
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-white rounded-2xl p-6 shadow-md border-2 border-gray-200"
+                  >
+                    <div className="mb-6">
+                      <Typography variant="body1" className="text-gray-700 font-semibold mb-3">
+                        Rate this product
+                      </Typography>
+                      <div className="flex items-center gap-4">
+                        <Rating
+                          value={rating}
+                          onChange={(_, newValue) => setRating(newValue)}
+                          size="large"
+                          sx={{
+                            "& .MuiRating-iconFilled": { color: "#f59e0b" },
+                            "& .MuiRating-iconHover": { color: "#f59e0b" },
+                            fontSize: isMobile ? "2rem" : "2.5rem",
+                          }}
+                        />
+                        {rating > 0 && (
+                          <Chip
+                            label={`${rating} star${rating > 1 ? "s" : ""}`}
+                            sx={{ backgroundColor: "#ffedd5", color: "#c2410c", fontWeight: 700 }}
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                      <Avatar
+                        sx={{
+                          width: isMobile ? 40 : 48,
+                          height: isMobile ? 40 : 48,
+                          fontSize: isMobile ? "1.25rem" : "1.5rem",
+                          backgroundColor: "#ea580c",
+                        }}
+                      >
+                        {(user?.displayName || user?.email)?.[0]?.toUpperCase() || "U"}
+                      </Avatar>
+                      <div className="flex-1">
+                        <TextField
+                          fullWidth
+                          multiline
+                          rows={isMobile ? 3 : 4}
+                          placeholder="Share your thoughts about this product... What did you like? What could be improved?"
+                          value={comment}
+                          onChange={(e) => setComment(e.target.value)}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "#fafaf9",
+                              fontSize: isMobile ? "0.95rem" : "1.05rem",
+                              borderRadius: "12px",
+                              "&:hover fieldset": { borderColor: "#ea580c" },
+                              "&.Mui-focused fieldset": { borderColor: "#ea580c", borderWidth: "2px" },
+                            },
+                          }}
+                        />
+                        <div className="flex items-center justify-end mt-4">
+                          <Button
+                            variant="contained"
+                            size="large"
+                            onClick={handleSubmitComment}
+                            disabled={!comment.trim() || rating === 0 || createReview.isLoading}
+                            sx={{
+                              background: "linear-gradient(to right, #ea580c, #dc2626)",
+                              "&:hover": { background: "linear-gradient(to right, #c2410c, #b91c1c)" },
+                              textTransform: "none",
+                              fontSize: isMobile ? "0.95rem" : "1.05rem",
+                              fontWeight: 700,
+                              padding: isMobile ? "10px 24px" : "12px 32px",
+                              borderRadius: "12px",
+                              boxShadow: "0 4px 15px rgba(234, 88, 12, 0.3)",
+                            }}
+                          >
+                            {createReview.isLoading ? "Posting..." : "Post Review"}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              ) : (
+                <div className={`${isMobile ? "p-4" : "p-8"} border-b`}>
+                  <Typography
+                    variant={isMobile ? "body2" : "body1"}
+                    className="text-orange-600 font-semibold px-2"
+                  >
+                    Please sign in to leave a review.
+                  </Typography>
+                </div>
+              )}
+
+              {/* Reviews List */}
+              <div className={`${isMobile ? "p-6" : "p-8"}`}>
+                <div className="flex items-center gap-2 mb-8">
                   <RateReview sx={{ color: "#ea580c", fontSize: "1.75rem" }} />
                   <Typography variant={isMobile ? "h6" : "h5"} className="font-bold text-gray-900">
-                    Write a Review
+                    Customer Reviews ({reviewCount})
                   </Typography>
                 </div>
 
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="bg-white rounded-2xl p-6 shadow-md border-2 border-gray-200"
-                >
-                  {/* Rating Input */}
-                  <div className="mb-6">
-                    <Typography variant="body1" className="text-gray-700 font-semibold mb-3">
-                      Rate this product
-                    </Typography>
-                    <div className="flex items-center gap-4">
-                      <Rating
-                        value={rating}
-                        onChange={(_, newValue) => setRating(newValue)}
-                        size="large"
-                        sx={{
-                          "& .MuiRating-iconFilled": {
-                            color: "#f59e0b",
-                          },
-                          "& .MuiRating-iconHover": {
-                            color: "#f59e0b",
-                          },
-                          fontSize: isMobile ? "2rem" : "2.5rem",
-                        }}
-                      />
-                      {rating > 0 && (
-                        <Chip
-                          label={`${rating} star${rating > 1 ? "s" : ""}`}
-                          sx={{
-                            backgroundColor: "#ffedd5",
-                            color: "#c2410c",
-                            fontWeight: 700,
-                          }}
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Comment Input */}
-                  <div className="flex gap-4">
-                    <Avatar
-                      sx={{
-                        width: isMobile ? 40 : 48,
-                        height: isMobile ? 40 : 48,
-                        fontSize: isMobile ? "1.25rem" : "1.5rem",
-                        backgroundColor: "#ea580c",
-                      }}
-                    >
-                      {user?.displayName?.[0] || "U"}
-                    </Avatar>
-                    <div className="flex-1">
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={isMobile ? 3 : 4}
-                        placeholder="Share your thoughts about this product... What did you like? What could be improved?"
-                        value={comment}
-                        onChange={(e) => setComment(e.target.value)}
-                        variant="outlined"
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            backgroundColor: "#fafaf9",
-                            fontSize: isMobile ? "0.95rem" : "1.05rem",
-                            borderRadius: "12px",
-                            "&:hover fieldset": {
-                              borderColor: "#ea580c",
-                            },
-                            "&.Mui-focused fieldset": {
-                              borderColor: "#ea580c",
-                              borderWidth: "2px",
-                            },
-                          },
-                        }}
-                      />
-                      <div className="flex items-center justify-between mt-4">
-                        {!isMobile && (
-                          <div className="flex gap-2">
-                            <IconButton
-                              size="medium"
-                              sx={{
-                                backgroundColor: "#f3f4f6",
-                                "&:hover": {
-                                  backgroundColor: "#e5e7eb",
-                                },
-                              }}
-                            >
-                              <EmojiEmotions sx={{ color: "#f59e0b" }} />
-                            </IconButton>
-                            <IconButton
-                              size="medium"
-                              sx={{
-                                backgroundColor: "#f3f4f6",
-                                "&:hover": {
-                                  backgroundColor: "#e5e7eb",
-                                },
-                              }}
-                            >
-                              <Image sx={{ color: "#3b82f6" }} />
-                            </IconButton>
-                          </div>
-                        )}
-                        <Button
-                          variant="contained"
-                          size="large"
-                          endIcon={<Send />}
-                          onClick={handleSubmitComment}
-                          disabled={!comment.trim() && rating === 0}
-                          sx={{
-                            background: "linear-gradient(to right, #ea580c, #dc2626)",
-                            "&:hover": {
-                              background: "linear-gradient(to right, #c2410c, #b91c1c)",
-                            },
-                            textTransform: "none",
-                            fontSize: isMobile ? "0.95rem" : "1.05rem",
-                            fontWeight: 700,
-                            marginLeft: isMobile ? "auto" : 0,
-                            padding: isMobile ? "10px 24px" : "12px 32px",
-                            borderRadius: "12px",
-                            boxShadow: "0 4px 15px rgba(234, 88, 12, 0.3)",
-                          }}
-                        >
-                          Post Review
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-
-              {/* Reviews/Comments List */}
-              <div className={`${isMobile ? "p-6" : "p-8"}`}>
-                <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center gap-2">
-                    <RateReview sx={{ color: "#ea580c", fontSize: "1.75rem" }} />
-                    <Typography
-                      variant={isMobile ? "h6" : "h5"}
-                      className="font-bold text-gray-900"
-                    >
-                      Customer Reviews ({reviews.length})
-                    </Typography>
-                  </div>
-                  <select className="px-4 py-2 border-2 border-gray-200 rounded-xl text-gray-700 font-medium focus:outline-none focus:border-orange-600 cursor-pointer bg-white">
-                    <option>Most relevant</option>
-                    <option>Newest first</option>
-                    <option>Highest rated</option>
-                  </select>
-                </div>
-
-                <div className="space-y-6">
-                  {reviews.map((review, index) => (
-                    <motion.div
-                      key={review.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="bg-white border-2 border-gray-200 rounded-2xl p-6 hover:border-orange-300 hover:shadow-lg transition-all duration-300"
-                    >
-                      <div className="flex gap-4">
-                        <Avatar
-                          src={review.authorImage}
-                          alt={review.author}
-                          sx={{
-                            width: isMobile ? 48 : 56,
-                            height: isMobile ? 48 : 56,
-                            border: "3px solid #ffedd5",
-                          }}
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <Typography
-                              variant={isMobile ? "subtitle1" : "h6"}
-                              className="font-bold text-gray-900"
-                            >
-                              {review.author}
-                            </Typography>
-                            <Typography variant="body2" className="text-gray-500">
-                              • {review.timeAgo}
-                            </Typography>
-                            {review.isAuthor && (
+                {reviewCount === 0 ? (
+                  <Typography variant="body1" className="text-gray-500 text-center py-6">
+                    No reviews yet for this product!
+                  </Typography>
+                ) : (
+                  <div className="space-y-6">
+                    {reviews.map((review, index) => (
+                      <motion.div
+                        key={review.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="bg-white border-2 border-gray-200 rounded-2xl p-6 hover:border-orange-300 hover:shadow-lg transition-all duration-300"
+                      >
+                        <div className="flex gap-4">
+                          <Avatar
+                            sx={{
+                              width: isMobile ? 48 : 56,
+                              height: isMobile ? 48 : 56,
+                              border: "3px solid #ffedd5",
+                              backgroundColor: "#ea580c",
+                            }}
+                          >
+                            {(review.authorName || "V")[0].toUpperCase()}
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <Typography
+                                variant={isMobile ? "subtitle1" : "h6"}
+                                className="font-bold text-gray-900"
+                              >
+                                {review.authorName || "Verified Buyer"}
+                              </Typography>
                               <Chip
                                 icon={<VerifiedUser fontSize="small" />}
-                                label="Vendor"
+                                label="Verified Purchase"
                                 size="small"
-                                sx={{
-                                  backgroundColor: "#ffedd5",
-                                  color: "#c2410c",
-                                  fontWeight: 700,
-                                }}
+                                sx={{ backgroundColor: "#dcfce7", color: "#15803d", fontWeight: 700 }}
                               />
-                            )}
-                          </div>
-                          {review.rating && (
+                            </div>
                             <Rating
                               value={review.rating}
                               readOnly
                               size={isMobile ? "small" : "medium"}
-                              sx={{
-                                "& .MuiRating-iconFilled": {
-                                  color: "#f59e0b",
-                                },
-                                marginBottom: "12px",
-                              }}
+                              sx={{ "& .MuiRating-iconFilled": { color: "#f59e0b" }, marginBottom: "12px" }}
                             />
-                          )}
-                          <Typography
-                            variant={isMobile ? "body2" : "body1"}
-                            className="text-gray-700 leading-relaxed mb-4"
-                            sx={{ fontSize: isMobile ? "0.95rem" : "1.05rem" }}
-                          >
-                            {review.content}
-                          </Typography>
-                          <div className="flex items-center gap-4">
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-orange-100 rounded-lg text-gray-700 hover:text-orange-600 font-medium transition-colors duration-200"
+                            <Typography
+                              variant={isMobile ? "body2" : "body1"}
+                              className="text-gray-700 leading-relaxed"
+                              sx={{ fontSize: isMobile ? "0.95rem" : "1.05rem" }}
                             >
-                              <ThumbUp fontSize="small" />
-                              <span>{review.likes > 0 ? review.likes : "Like"}</span>
-                            </motion.button>
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-orange-100 rounded-lg text-gray-700 hover:text-orange-600 font-medium transition-colors duration-200"
-                            >
-                              <Reply fontSize="small" />
-                              <span>Reply</span>
-                            </motion.button>
+                              {review.content}
+                            </Typography>
                           </div>
                         </div>
-                      </div>
-
-                      {/* Nested Replies */}
-                      {review.replies && review.replies.length > 0 && (
-                        <div
-                          className={`${isMobile ? "ml-10 space-y-2 mt-3" : "ml-14 space-y-4 mt-4"}`}
-                        >
-                          {review.replies.map((reply) => (
-                            <div key={reply.id} className={`flex ${isMobile ? "gap-2" : "gap-3"}`}>
-                              <Avatar
-                                src={reply.authorImage}
-                                alt={reply.author}
-                                sx={{
-                                  width: isMobile ? 32 : 36,
-                                  height: isMobile ? 32 : 36,
-                                }}
-                              />
-                              <div className="flex-1">
-                                <div
-                                  className={`flex items-center ${isMobile ? "gap-2" : "gap-3"} mb-1`}
-                                >
-                                  <Typography
-                                    variant={isMobile ? "body2" : "body1"}
-                                    className="font-semibold"
-                                  >
-                                    {reply.author}
-                                  </Typography>
-                                  <Typography
-                                    variant={isMobile ? "caption" : "body2"}
-                                    className="text-gray-500"
-                                  >
-                                    • {reply.timeAgo}
-                                  </Typography>
-                                  {reply.isAuthor && (
-                                    <span
-                                      className={`${isMobile ? "text-xs" : "text-sm"} bg-orange-100 text-orange-600 px-2 py-0.5 rounded`}
-                                    >
-                                      Vendor
-                                    </span>
-                                  )}
-                                </div>
-                                <Typography
-                                  variant={isMobile ? "body2" : "body1"}
-                                  className="text-gray-700 leading-relaxed"
-                                >
-                                  {reply.content}
-                                </Typography>
-                                <div
-                                  className={`flex items-center ${isMobile ? "gap-3" : "gap-4"} mt-2`}
-                                >
-                                  <button
-                                    className={`text-gray-600 hover:text-orange-600 ${isMobile ? "text-xs" : "text-sm"}`}
-                                  >
-                                    Like
-                                  </button>
-                                  <button
-                                    className={`text-gray-600 hover:text-orange-600 ${isMobile ? "text-xs" : "text-sm"}`}
-                                  >
-                                    Reply
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <Divider />
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="w-full flex justify-center p-4">
-                {reviews.length === 0 && (
-                  <Typography variant="body1" className="text-gray-500">
-                    No reviews yet for this product!
-                  </Typography>
+                      </motion.div>
+                    ))}
+                  </div>
                 )}
-              </div>
-            </>
-          )}
-
-          {!user?.email && (
-            <>
-              <div className={`${isMobile ? "p-4" : "p-8"} border-b`}>
-                <div className="mb-3 px-2">
-                  <Typography
-                    variant={isMobile ? "h6" : "h5"}
-                    className="font-bold text-gray-900 mb-2"
-                  >
-                    Customer Reviews
-                  </Typography>
-                </div>
-                <Typography
-                  variant={isMobile ? "body2" : "body1"}
-                  className="text-gray-600 mb-3 px-2"
-                >
-                  See what other customers are saying about this product.
-                </Typography>
-
-                <Typography
-                  variant={isMobile ? "body2" : "body1"}
-                  className="text-orange-600 font-semibold px-2"
-                >
-                  Please sign in to leave a review.
-                </Typography>
               </div>
             </>
           )}

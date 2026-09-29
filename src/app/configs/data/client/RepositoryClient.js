@@ -184,6 +184,9 @@ export const getProductById = (id) => Api().get(`/products/${id}/view`);
 export const getProductByCategory = (category) => Api().get(`/clientusersproducts/category/${category}`);
 export const getUserCartProductsById = (payload) => Api().get(`/clientusersproducts/cart?${payload}`);
 
+/** Product reviews -- public read, no auth needed (2026-09-27, customer-9) */
+export const getProductReviews = (productId) => Api().get(`/reviews/${productId}`);
+
 //= =========================Get Markets Routes=====================================
 export const getApiMarkets = () => Api().get(`/markets`);
 
@@ -316,6 +319,27 @@ export const getEstatePropertyApi = (estatePropId) =>
 /** ====================================================================================================
  * ESTATES-PROPERTIES ROUTES LISTED ENDS HERE
  ====================================================================================================== */
+
+/** =====================================================================================================
+ * ENGINEERING SERVICES ROUTES LISTED BELOW STARTS — public shop directory,
+ * no auth needed to browse (registering a machine / booking is authenticated,
+ * see RepositoryAuthClient.js).
+ ===================================================================================================== */
+export const getEngineeringShopsApi = (specialty) => {
+	const url = specialty ? `/engineering/lookups/shops?specialty=${specialty}` : `/engineering/lookups/shops`;
+	return Api().get(url);
+};
+export const getEngineeringShopByIdApi = (shopId) => Api().get(`/engineering/lookups/shops/${shopId}`);
+/** *Machine-type taxonomy lookup (public, Phase E6c) — powers the register-a-machine autocomplete. */
+export const getMachineTypesApi = (category) => {
+	const url = category
+		? `/engineering/lookups/machine-types?category=${category}`
+		: `/engineering/lookups/machine-types`;
+	return Api().get(url);
+};
+/** =====================================================================================================
+ * ENGINEERING SERVICES ROUTES LISTED ENDS HERE
+ ===================================================================================================== */
 
 /** =====================================================================================================
  * MERCHANT ROUTES LISTED BELOW STARTS

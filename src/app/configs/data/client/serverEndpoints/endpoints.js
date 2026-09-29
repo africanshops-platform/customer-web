@@ -83,6 +83,10 @@ export const API_ENDPOINTS = {
 	 * ----------------------------------------------------------------------------------------------
 	 */
 
+	/** Wishlist + Product Reviews (2026-09-27, customer-10/customer-9) */
+	GET_MY_WISHLIST: '/wishlist',
+	CREATE_PRODUCT_REVIEW: '/reviews',
+
 	/** ****
 	 * ############INSPECTION SCHEDULES APP SERVER_URLs Start Here##############
 	 */
