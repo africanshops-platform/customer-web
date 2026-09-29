@@ -23,6 +23,11 @@ import {
   useWithdrawOffer,
 } from "app/configs/data/server-calls/auth/userapp/a_estates/useOffersRepo";
 
+function updateSubmitLabel(isSubmitting, respondingToCounter) {
+  if (isSubmitting) return "Submitting...";
+  return respondingToCounter ? "Submit Response" : "Update Offer";
+}
+
 /**
  * Demo Content - Estate Offers List with Pagination
  */
@@ -38,6 +43,7 @@ function DemoContent(props) {
   const [offerToWithdraw, setOfferToWithdraw] = useState(null);
   const [acceptedOfferDetails, setAcceptedOfferDetails] = useState(null);
   const [newOfferAmount, setNewOfferAmount] = useState("");
+  const [respondingToCounter, setRespondingToCounter] = useState(false);
 
   console.log("Real_Estate Offers", offers);
 
@@ -48,6 +54,14 @@ function DemoContent(props) {
   const handleUpgradeOffer = (offer) => {
     setSelectedOffer(offer);
     setNewOfferAmount(offer?.offerAmount || "");
+    setRespondingToCounter(false);
+    setUpgradeDialogOpen(true);
+  };
+
+  const handleRespondToCounter = (offer) => {
+    setSelectedOffer(offer);
+    setNewOfferAmount(offer?.counterOfferAmount ?? offer?.offerAmount ?? "");
+    setRespondingToCounter(true);
     setUpgradeDialogOpen(true);
   };
 
@@ -66,6 +80,7 @@ function DemoContent(props) {
             setUpgradeDialogOpen(false);
             setSelectedOffer(null);
             setNewOfferAmount("");
+            setRespondingToCounter(false);
           },
         },
       );
@@ -124,7 +139,7 @@ function DemoContent(props) {
         animate={{ opacity: 1, transition: { delay: 0.1 } }}
         className="flex flex-col flex-1 items-center justify-center h-full"
       >
-        <ClienttErrorPage message={"Error occurred while retrieving estate offers"} />
+        <ClienttErrorPage message="Error occurred while retrieving estate offers" />
       </motion.div>
     );
   }
@@ -137,7 +152,7 @@ function DemoContent(props) {
         className="flex flex-col flex-1 items-center justify-center h-full"
       >
         <div className="text-center">
-          <i className="fas fa-tag text-gray-300 text-6xl mb-4"></i>
+          <i className="fas fa-tag text-gray-300 text-6xl mb-4" />
           <Typography color="text.secondary" variant="h5">
             No offers found!
           </Typography>
@@ -213,7 +228,7 @@ function DemoContent(props) {
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <i className="fas fa-building text-green-500 text-lg"></i>
+                        <i className="fas fa-building text-green-500 text-lg" />
                         <Typography variant="h6" className="font-bold text-gray-800">
                           Property Offer
                         </Typography>
@@ -290,7 +305,7 @@ function DemoContent(props) {
                         Buyer Name
                       </Typography>
                       <div className="flex items-center gap-2">
-                        <i className="fas fa-user text-green-500"></i>
+                        <i className="fas fa-user text-green-500" />
                         <Typography variant="body2">{offer?.buyerName || "N/A"}</Typography>
                       </div>
                     </div>
@@ -304,7 +319,7 @@ function DemoContent(props) {
                         Contact Phone
                       </Typography>
                       <div className="flex items-center gap-2">
-                        <i className="fas fa-phone text-green-500"></i>
+                        <i className="fas fa-phone text-green-500" />
                         <Typography variant="body2">{offer?.buyerPhone || "N/A"}</Typography>
                       </div>
                     </div>
@@ -318,7 +333,7 @@ function DemoContent(props) {
                         Contact Email
                       </Typography>
                       <div className="flex items-center gap-2">
-                        <i className="fas fa-envelope text-green-500"></i>
+                        <i className="fas fa-envelope text-green-500" />
                         <Typography variant="body2" className="truncate">
                           {offer?.buyerEmail || "N/A"}
                         </Typography>
@@ -334,7 +349,7 @@ function DemoContent(props) {
                         Submitted On
                       </Typography>
                       <div className="flex items-center gap-2">
-                        <i className="fas fa-calendar-plus text-green-500"></i>
+                        <i className="fas fa-calendar-plus text-green-500" />
                         <Typography variant="body2">
                           {offer?.createdAt ? formatDate(offer.createdAt) : "N/A"}
                         </Typography>
@@ -350,7 +365,7 @@ function DemoContent(props) {
                         Last Updated
                       </Typography>
                       <div className="flex items-center gap-2">
-                        <i className="fas fa-clock text-green-500"></i>
+                        <i className="fas fa-clock text-green-500" />
                         <Typography variant="body2">
                           {offer?.updatedAt ? formatDate(offer.updatedAt) : "N/A"}
                         </Typography>
@@ -366,7 +381,7 @@ function DemoContent(props) {
                         Offer ID
                       </Typography>
                       <div className="flex items-center gap-2">
-                        <i className="fas fa-hashtag text-green-500"></i>
+                        <i className="fas fa-hashtag text-green-500" />
                         <Typography variant="body2" className="font-mono">
                           {offer?.id?.slice(0, 8) || "N/A"}
                         </Typography>
@@ -381,7 +396,7 @@ function DemoContent(props) {
                         variant="caption"
                         className="text-blue-800 font-semibold block mb-1"
                       >
-                        <i className="fas fa-comment text-blue-600 mr-1"></i>
+                        <i className="fas fa-comment text-blue-600 mr-1" />
                         Your Message
                       </Typography>
                       <Typography variant="body2" className="text-gray-700">
@@ -390,15 +405,62 @@ function DemoContent(props) {
                     </div>
                   )}
 
+                  {/* Countered Offer Banner */}
+                  {offer?.status?.toLowerCase() === "countered" && (
+                    <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <Typography
+                        variant="caption"
+                        className="text-amber-800 font-semibold block mb-1"
+                      >
+                        <i className="fas fa-exchange-alt text-amber-600 mr-1" />
+                        {offer?.counterOfferAmount
+                          ? `Seller countered at ${formatCurrency(offer.counterOfferAmount)}`
+                          : "Seller sent a counter offer"}
+                      </Typography>
+                      {offer?.counterOfferMessage && (
+                        <Typography variant="body2" className="text-gray-700">
+                          "{offer.counterOfferMessage}"
+                        </Typography>
+                      )}
+                    </div>
+                  )}
+
                   {/* Action Buttons */}
                   <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t">
+                    {offer?.status?.toLowerCase() === "countered" && (
+                      <>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          startIcon={<i className="fas fa-reply" />}
+                          onClick={() => handleRespondToCounter(offer)}
+                          disabled={updateOfferMutation.isLoading}
+                          sx={{
+                            backgroundColor: "#ea580c",
+                            "&:hover": { backgroundColor: "#c2410c" },
+                          }}
+                        >
+                          Respond to Counter
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          startIcon={<i className="fas fa-times-circle" />}
+                          onClick={() => handleWithdrawOffer(offer)}
+                          disabled={withdrawOfferMutation.isLoading}
+                        >
+                          Withdraw Offer
+                        </Button>
+                      </>
+                    )}
                     {offer?.status?.toLowerCase() === "pending" && (
                       <>
                         <Button
                           variant="contained"
                           color="success"
                           size="small"
-                          startIcon={<i className="fas fa-arrow-up"></i>}
+                          startIcon={<i className="fas fa-arrow-up" />}
                           onClick={() => handleUpgradeOffer(offer)}
                           disabled={updateOfferMutation.isLoading}
                         >
@@ -408,7 +470,7 @@ function DemoContent(props) {
                           variant="outlined"
                           color="error"
                           size="small"
-                          startIcon={<i className="fas fa-times-circle"></i>}
+                          startIcon={<i className="fas fa-times-circle" />}
                           onClick={() => handleWithdrawOffer(offer)}
                           disabled={withdrawOfferMutation.isLoading}
                         >
@@ -419,7 +481,7 @@ function DemoContent(props) {
                     {offer?.status?.toLowerCase() === "accepted" && (
                       <div className="flex flex-wrap gap-2 w-full">
                         <Chip
-                          icon={<i className="fas fa-check-circle"></i>}
+                          icon={<i className="fas fa-check-circle" />}
                           label="Offer Accepted"
                           color="success"
                           className="font-semibold"
@@ -427,7 +489,7 @@ function DemoContent(props) {
                         <Button
                           variant="contained"
                           size="small"
-                          startIcon={<i className="fas fa-arrow-right"></i>}
+                          startIcon={<i className="fas fa-arrow-right" />}
                           onClick={() => handleViewAcceptedOffer(offer)}
                           sx={{
                             background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
@@ -442,7 +504,7 @@ function DemoContent(props) {
                     )}
                     {offer?.status?.toLowerCase() === "rejected" && (
                       <Chip
-                        icon={<i className="fas fa-exclamation-circle"></i>}
+                        icon={<i className="fas fa-exclamation-circle" />}
                         label="Offer Rejected"
                         color="error"
                       />
@@ -480,17 +542,34 @@ function DemoContent(props) {
       >
         <DialogTitle className="bg-green-500 text-white">
           <div className="flex items-center gap-2">
-            <i className="fas fa-arrow-up"></i>
-            Upgrade Your Offer
+            <i className={`fas ${respondingToCounter ? "fa-reply" : "fa-arrow-up"}`} />
+            {respondingToCounter ? "Respond to Counter Offer" : "Upgrade Your Offer"}
           </div>
         </DialogTitle>
         <DialogContent className="mt-4">
           <div className="space-y-4 py-4">
+            {/* Counter Offer Context */}
+            {respondingToCounter && selectedOffer?.counterOfferAmount && (
+              <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                <Typography variant="caption" className="text-amber-800 mb-1 block">
+                  <i className="fas fa-exchange-alt text-amber-600 mr-1" />
+                  Seller countered at
+                </Typography>
+                <Typography variant="h6" className="font-bold text-amber-900">
+                  {formatCurrency(selectedOffer.counterOfferAmount)}
+                </Typography>
+                {selectedOffer?.counterOfferMessage && (
+                  <Typography variant="caption" className="text-amber-700 mt-1 block">
+                    "{selectedOffer.counterOfferMessage}"
+                  </Typography>
+                )}
+              </div>
+            )}
             {/* Property Price Display */}
             {selectedOffer?.propertyPrice && (
               <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
                 <Typography variant="caption" className="text-blue-800 mb-1 block">
-                  <i className="fas fa-home text-blue-600 mr-1"></i>
+                  <i className="fas fa-home text-blue-600 mr-1" />
                   Property Listed Price
                 </Typography>
                 <Typography variant="h5" className="font-bold text-blue-900">
@@ -520,15 +599,19 @@ function DemoContent(props) {
 
             {/* New Offer Input */}
             <TextField
-              label="New Offer Amount (₦)"
+              label="Your Offer Amount (₦)"
               type="number"
               fullWidth
               value={newOfferAmount}
               onChange={(e) => setNewOfferAmount(e.target.value)}
-              placeholder="Enter your new offer amount"
+              placeholder="Enter your offer amount"
               variant="outlined"
               required
-              helperText="Enter a higher amount to upgrade your offer"
+              helperText={
+                respondingToCounter
+                  ? "Accept the countered amount, or enter a different amount to send back"
+                  : "Enter a higher amount to upgrade your offer"
+              }
             />
 
             {/* New Offer Preview */}
@@ -552,7 +635,10 @@ function DemoContent(props) {
         </DialogContent>
         <DialogActions className="p-4">
           <Button
-            onClick={() => setUpgradeDialogOpen(false)}
+            onClick={() => {
+              setUpgradeDialogOpen(false);
+              setRespondingToCounter(false);
+            }}
             sx={{ textTransform: "none", fontSize: "0.95rem" }}
           >
             Cancel
@@ -562,7 +648,8 @@ function DemoContent(props) {
             variant="contained"
             disabled={
               !newOfferAmount ||
-              parseFloat(newOfferAmount) <= selectedOffer?.offerAmount ||
+              parseFloat(newOfferAmount) <= 0 ||
+              (!respondingToCounter && parseFloat(newOfferAmount) <= selectedOffer?.offerAmount) ||
               updateOfferMutation.isLoading
             }
             sx={{
@@ -572,7 +659,7 @@ function DemoContent(props) {
               fontSize: "0.95rem",
             }}
           >
-            {updateOfferMutation.isLoading ? "Updating..." : "Update Offer"}
+            {updateSubmitLabel(updateOfferMutation.isLoading, respondingToCounter)}
           </Button>
         </DialogActions>
       </Dialog>
@@ -599,7 +686,7 @@ function DemoContent(props) {
         >
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
-              <i className="fas fa-check-circle text-white text-2xl"></i>
+              <i className="fas fa-check-circle text-white text-2xl" />
             </div>
             <div>
               <Typography variant="h5" className="font-bold text-white mb-1">
@@ -617,7 +704,7 @@ function DemoContent(props) {
             {/* Success Message */}
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-l-4 border-green-500 p-5 rounded-r-xl">
               <div className="flex items-start gap-3">
-                <i className="fas fa-party-horn text-green-600 text-xl mt-1"></i>
+                <i className="fas fa-party-horn text-green-600 text-xl mt-1" />
                 <div>
                   <Typography variant="body1" className="text-gray-800 font-bold mb-2">
                     Your offer has been accepted by the seller!
@@ -639,7 +726,7 @@ function DemoContent(props) {
                       variant="caption"
                       className="text-green-800 font-bold block mb-4 uppercase tracking-wider"
                     >
-                      <i className="fas fa-building text-green-600 mr-2"></i>
+                      <i className="fas fa-building text-green-600 mr-2" />
                       Property & Offer Information
                     </Typography>
 
@@ -647,7 +734,7 @@ function DemoContent(props) {
                       {/* Property ID */}
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-2">
-                          <i className="fas fa-hashtag text-orange-600"></i>
+                          <i className="fas fa-hashtag text-orange-600" />
                           <Typography variant="body2" className="text-gray-700 font-medium">
                             Property ID
                           </Typography>
@@ -660,7 +747,7 @@ function DemoContent(props) {
                       {/* Your Offer */}
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-2">
-                          <i className="fas fa-tag text-orange-600"></i>
+                          <i className="fas fa-tag text-orange-600" />
                           <Typography variant="body2" className="text-gray-700 font-medium">
                             Your Accepted Offer
                           </Typography>
@@ -673,7 +760,7 @@ function DemoContent(props) {
                       {/* Buyer Name */}
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-2">
-                          <i className="fas fa-user text-orange-600"></i>
+                          <i className="fas fa-user text-orange-600" />
                           <Typography variant="body2" className="text-gray-700 font-medium">
                             Buyer Name
                           </Typography>
@@ -686,7 +773,7 @@ function DemoContent(props) {
                       {/* Contact */}
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-2">
-                          <i className="fas fa-phone text-orange-600"></i>
+                          <i className="fas fa-phone text-orange-600" />
                           <Typography variant="body2" className="text-gray-700 font-medium">
                             Contact Phone
                           </Typography>
@@ -706,7 +793,7 @@ function DemoContent(props) {
                       variant="caption"
                       className="text-orange-800 font-bold block mb-4 uppercase tracking-wider"
                     >
-                      <i className="fas fa-calculator text-orange-600 mr-2"></i>
+                      <i className="fas fa-calculator text-orange-600 mr-2" />
                       Complete Cost Breakdown
                     </Typography>
 
@@ -787,10 +874,10 @@ function DemoContent(props) {
                 {/* Payment Notice */}
                 <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300 p-5 rounded-xl">
                   <div className="flex items-start gap-3">
-                    <i className="fas fa-shield-alt text-yellow-600 text-2xl mt-1"></i>
+                    <i className="fas fa-shield-alt text-yellow-600 text-2xl mt-1" />
                     <div>
                       <Typography variant="body2" className="text-yellow-900 font-bold mb-2">
-                        <i className="fas fa-lock text-yellow-600 mr-1"></i>
+                        <i className="fas fa-lock text-yellow-600 mr-1" />
                         Secure Payment Notice
                       </Typography>
                       <Typography variant="body2" className="text-yellow-800 mb-2">
@@ -806,7 +893,7 @@ function DemoContent(props) {
                         variant="caption"
                         className="text-yellow-700 block mt-3 font-semibold"
                       >
-                        <i className="fas fa-info-circle mr-1"></i>
+                        <i className="fas fa-info-circle mr-1" />
                         Never make payments directly to individual sellers
                       </Typography>
                     </div>
@@ -816,7 +903,7 @@ function DemoContent(props) {
                 {/* Next Steps */}
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-300 p-4 rounded-lg">
                   <Typography variant="caption" className="text-green-900 font-bold block mb-3">
-                    <i className="fas fa-list-check text-green-600 mr-2"></i>
+                    <i className="fas fa-list-check text-green-600 mr-2" />
                     NEXT STEPS
                   </Typography>
                   <div className="space-y-2">
@@ -896,7 +983,7 @@ function DemoContent(props) {
           <Button
             onClick={proceedToAcquisition}
             variant="contained"
-            startIcon={<i className="fas fa-arrow-right"></i>}
+            startIcon={<i className="fas fa-arrow-right" />}
             sx={{
               background: "linear-gradient(135deg, #ea580c 0%, #dc2626 100%)",
               color: "white",
@@ -938,7 +1025,7 @@ function DemoContent(props) {
         >
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-              <i className="fas fa-exclamation-triangle text-white text-xl"></i>
+              <i className="fas fa-exclamation-triangle text-white text-xl" />
             </div>
             <div>
               <Typography variant="h6" className="font-bold text-white">
@@ -956,7 +1043,7 @@ function DemoContent(props) {
             {/* Warning Message */}
             <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
               <div className="flex items-start gap-3">
-                <i className="fas fa-info-circle text-red-600 mt-1"></i>
+                <i className="fas fa-info-circle text-red-600 mt-1" />
                 <div>
                   <Typography variant="body2" className="text-gray-800 font-semibold mb-1">
                     Are you sure you want to withdraw this offer?
@@ -980,7 +1067,7 @@ function DemoContent(props) {
                   {/* Offer Amount */}
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                      <i className="fas fa-tag text-orange-600"></i>
+                      <i className="fas fa-tag text-orange-600" />
                       <Typography variant="body2" className="text-gray-700">
                         Your Offer Amount
                       </Typography>
@@ -993,7 +1080,7 @@ function DemoContent(props) {
                   {/* Property ID */}
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                      <i className="fas fa-building text-orange-600"></i>
+                      <i className="fas fa-building text-orange-600" />
                       <Typography variant="body2" className="text-gray-700">
                         Property ID
                       </Typography>
@@ -1006,7 +1093,7 @@ function DemoContent(props) {
                   {/* Submitted Date */}
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                      <i className="fas fa-calendar text-orange-600"></i>
+                      <i className="fas fa-calendar text-orange-600" />
                       <Typography variant="body2" className="text-gray-700">
                         Submitted On
                       </Typography>
@@ -1019,7 +1106,7 @@ function DemoContent(props) {
                   {/* Status */}
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                      <i className="fas fa-info-circle text-orange-600"></i>
+                      <i className="fas fa-info-circle text-orange-600" />
                       <Typography variant="body2" className="text-gray-700">
                         Current Status
                       </Typography>
@@ -1036,7 +1123,7 @@ function DemoContent(props) {
 
             {/* Impact Notice */}
             <div className="flex items-start gap-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-              <i className="fas fa-lightbulb text-yellow-600 mt-0.5"></i>
+              <i className="fas fa-lightbulb text-yellow-600 mt-0.5" />
               <Typography variant="caption" className="text-yellow-800">
                 <strong>Note:</strong> Withdrawing this offer will remove it from the seller's
                 consideration. You can submit a new offer later if you change your mind.
@@ -1075,7 +1162,7 @@ function DemoContent(props) {
             variant="contained"
             disabled={withdrawOfferMutation.isLoading}
             startIcon={
-              withdrawOfferMutation.isLoading ? null : <i className="fas fa-times-circle"></i>
+              withdrawOfferMutation.isLoading ? null : <i className="fas fa-times-circle" />
             }
             sx={{
               background: "linear-gradient(135deg, #dc2626 0%, #ef4444 100%)",
@@ -1096,7 +1183,7 @@ function DemoContent(props) {
           >
             {withdrawOfferMutation.isLoading ? (
               <span className="flex items-center gap-2">
-                <i className="fas fa-spinner fa-spin"></i>
+                <i className="fas fa-spinner fa-spin" />
                 Withdrawing...
               </span>
             ) : (

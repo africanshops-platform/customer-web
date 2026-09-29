@@ -97,7 +97,7 @@ function SignInPage() {
               Sign in
             </Typography>
             <Typography className="text-base text-gray-600 leading-relaxed">
-              Access your merchant dashboard and grow your business
+              Access your account to shop, book, and order across Africa
             </Typography>
           </div>
 
@@ -174,7 +174,7 @@ function SignInPage() {
             }}
           >
             You're signing in to{" "}
-            <strong style={{ color: "#ea580c" }}>AfricanShops Merchant Portal</strong>. By
+            <strong style={{ color: "#ea580c" }}>AfricanShops</strong>. By
             continuing, you agree to our terms of service and privacy policy.
           </Alert>
 
@@ -419,16 +419,16 @@ function SignInPage() {
               </span>
             </div>
             <div className="text-5xl font-bold text-gray-800 leading-tight">
-              to Your Business Hub
+              to Your AfricanShops Account
             </div>
           </div>
 
           {/* Description */}
           <div className="text-center mb-40">
             <div className="text-lg leading-relaxed text-gray-600 max-w-xl mx-auto">
-              Access your powerful merchant dashboard with enterprise-grade security. Manage
-              inventory, track sales, analyze performance metrics, and grow your business with our
-              comprehensive suite of tools designed for African entrepreneurs.
+              Sign in with enterprise-grade security to shop authentic products, book stays,
+              order food, and explore real estate — all in one place, built for how Africa
+              trades.
             </div>
           </div>
 
@@ -442,7 +442,7 @@ function SignInPage() {
               { icon: "M13 10V3L4 14h7v7l9-11h-7z", text: "Lightning Fast" },
               {
                 icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
-                text: "Real-Time Analytics",
+                text: "Real-Time Order Tracking",
               },
               {
                 icon: "M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z",
@@ -494,7 +494,7 @@ function SignInPage() {
 
             <div className="flex flex-col">
               <div className="text-2xl font-bold" style={{ color: "#ea580c" }}>
-                1,000+ Active Merchants
+                5,000+ Happy Customers
               </div>
               <div className="text-sm text-gray-600 font-medium">
                 Join Africa's fastest-growing e-commerce platform

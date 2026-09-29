@@ -1,9 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AuthApi } from 'app/configs/data/client/RepositoryAuthClient';
 
-// Backend uses either `payload` or `data` depending on the route
+// Backend uses either `payload` or `data` depending on the route.
+//
+// Bug fix (2026-09-02): checking `.payload` with `??` treated an explicit
+// `payload: null` the same as the key being absent — but for my-account,
+// `payload: null` is the normal, expected response for a user with no
+// fintech wallet yet. `??` fell through past it to `.data` (absent) and
+// then to the raw envelope `r.data` itself, so useMyAccount returned
+// `{success:false, payload:null}` instead of null. That object is truthy
+// and !== null, so FinanceShellPage's `account === null` onboarding gate
+// never fired and the dashboard rendered with no real account behind it.
+// Check key presence instead of value truthiness so an explicit null is
+// respected — same fix already shipped on the mobile app's wallet.api.ts.
 function unwrap(r) {
-  return r.data?.payload ?? r.data?.data ?? r.data;
+  const data = r.data;
+  if (data && typeof data === 'object' && 'payload' in data) return data.payload;
+  if (data && typeof data === 'object' && 'data' in data) return data.data;
+  return data;
 }
 
 function makeHook(fetcher) {
@@ -97,6 +111,17 @@ export const useKycStatus = makeHook(() =>
   AuthApi().get('/auth-user/kyc/status').then(r => unwrap(r))
 );
 
+// Identity KYC 3-document flow (2026-08-11) — a SEPARATE system from the
+// civic/biometric useKycStatus above (that one is /auth-user/kyc/*, face-api.js
+// + WebAuthn). This is National ID/BVN-NIN/Utility Bill, gating fintech money
+// movement, backed by zxfx-fintech-service's identityKycSubmissions. Named
+// useFintechKycStatus specifically to avoid confusion with useKycStatus.
+export const useFintechKycStatus = makeHook((accountNumber) =>
+  accountNumber
+    ? AuthApi().get(`/fintech-accounts/user/account/${accountNumber}/kyc/status`).then(r => unwrap(r))
+    : Promise.resolve(null)
+);
+
 export const useBeneficiaries = makeHook((accountNumber) =>
   accountNumber
     ? AuthApi().get(`/fintech-accounts/user/beneficiary/list/${accountNumber}`).then(r => unwrap(r) ?? [])
@@ -148,6 +173,80 @@ export function useTransfer() {
       return unwrap(res);
     } catch (err) {
       const msg = err?.response?.data?.message ?? 'Transfer failed';
+      setError(msg);
+      throw new Error(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { mutate, isLoading, error };
+}
+
+export function useSubmitNationalId() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const mutate = useCallback(async ({ accountNumber, nationalIdNumber, nationalIdImageUrl }) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await AuthApi().post(`/fintech-accounts/user/account/${accountNumber}/kyc/national-id`, {
+        nationalIdNumber,
+        nationalIdImageUrl,
+      });
+      return unwrap(res);
+    } catch (err) {
+      const msg = err?.response?.data?.message ?? 'Could not submit National ID';
+      setError(msg);
+      throw new Error(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { mutate, isLoading, error };
+}
+
+export function useSubmitIdentity() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const mutate = useCallback(async ({ accountNumber, identityType, identityNumber }) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await AuthApi().post(`/fintech-accounts/user/account/${accountNumber}/kyc/identity`, {
+        identityType,
+        identityNumber,
+      });
+      return unwrap(res);
+    } catch (err) {
+      const msg = err?.response?.data?.message ?? 'Could not verify BVN/NIN';
+      setError(msg);
+      throw new Error(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { mutate, isLoading, error };
+}
+
+export function useSubmitUtilityBill() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const mutate = useCallback(async ({ accountNumber, utilityBillImageUrl }) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await AuthApi().post(`/fintech-accounts/user/account/${accountNumber}/kyc/utility-bill`, {
+        utilityBillImageUrl,
+      });
+      return unwrap(res);
+    } catch (err) {
+      const msg = err?.response?.data?.message ?? 'Could not submit utility bill';
       setError(msg);
       throw new Error(msg);
     } finally {

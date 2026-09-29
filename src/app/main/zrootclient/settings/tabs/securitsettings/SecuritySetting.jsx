@@ -15,6 +15,7 @@ import {
   useGetAuthUserDetails,
 } from "app/configs/data/server-calls/useUsers/useUsersQuery";
 import { useEffect } from "react";
+import SessionsSection from "./SessionsSection";
 
 const defaultValues = {
   twoStepVerification: false,
@@ -96,6 +97,7 @@ function SecuritySetting() {
   }
 
   return (
+    <>
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -394,6 +396,8 @@ function SecuritySetting() {
         </div>
       </form>
     </motion.div>
+    <SessionsSection />
+    </>
   );
 }
 

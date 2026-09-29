@@ -172,6 +172,12 @@ const FooterAfricanshops = () => {
             >
               Privacy Policy
             </Link>
+            <Link
+              to="/careers"
+              className="text-gray-400 hover:text-orange-500 text-sm transition-colors duration-300"
+            >
+              Careers
+            </Link>
           </div>
 
           {/* Payment Methods */}

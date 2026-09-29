@@ -60,7 +60,9 @@ function Layout1(props) {
             {children}
           </div>
 
-          {getUrlString && <div>{getUrlString === "home" && <FooterAfricanshops />}</div>}
+          {getUrlString && (
+            <div>{(getUrlString === "home" || getUrlString === "careers") && <FooterAfricanshops />}</div>
+          )}
 
           {getRootUrlString && <div>{getRootUrlString === "/" && <FooterAfricanshops />}</div>}
         </main>

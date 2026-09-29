@@ -58,6 +58,11 @@ const CountrySelect = ({ value, onChange }) => {
             primary25: "#ffe4e6",
           },
         })}
+        // Same fix as app/apselects/countryselect — this picker is often used
+        // inside an overflow-hidden card, which clips react-select's inline
+        // (non-portaled) menu down to a sliver unless it's portaled to <body>.
+        menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
+        styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
       />
     </div>
   );

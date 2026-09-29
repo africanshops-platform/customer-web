@@ -20,6 +20,14 @@ const SettingsAppNavigation = {
 			type: 'item',
 			url: '/africanshops/settings/security',
 			subtitle: 'Manage your password and 2-step verification preferences'
+		},
+		{
+			id: 'apps.settings.referralLinks',
+			icon: 'heroicons-outline:share',
+			title: 'Referral Links',
+			type: 'item',
+			url: '/africanshops/settings/referral-links',
+			subtitle: 'Share your links and track who signs up through them'
 		}
 		// {
 		// 	id: 'apps.settings.planBilling',

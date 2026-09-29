@@ -11,17 +11,18 @@ import authRoleExamplesConfigs from "../main/auth/authRoleExamplesConfigs";
 import SignAcceptInviteConfig from "../main/sign-accept-invite/SignAcceptInviteConfig";
 import forgotPasswordConfig from "../main/sign-forgot-password/forgotPasswordPagesConfig";
 import resetPasswordConfig from "../main/sign-reset-password/resetPasswordPagesConfig";
+import SignOutConfig from "../main/sign-out/SignOutConfig";
 /***##########################Authentication-based-config ends#########################*/
 
 /***Bookings & Reservations-based-config  starts*/
 import userReservationPagesConfig from "../main/zrootclient/buz-bookings/user-reservations/userReservationPagesConfig";
 /***#######################################Bookings & Reservations-based-config  ends########################*/
-import AfricanshopsFinanceDashboardAppConfig from "../main/africanshops-finance/AfricanshopsFinanceDashboardAppConfig";
 import financePagesConfig from "../main/africanshops-finance/finance-v2/financePagesConfig";
 import AfricanshopsMessengerAppConfig from "../main/africanshops-messenger/AfricanshopsMessengerAppConfig";
 
 import blogAppConfig from "../main/newsblog/blogAppConfig";
 import userMarketPlacePagesConfig from "../main/zrootclient/buz-marketplace/userMarketPlacePagesConfig";
+import userDisputesPagesConfig from "../main/zrootclient/buz-disputes/userDisputesPagesConfig";
 import userFoodMartPagesConfig from "../main/zrootclient/buz-foodmart/userFoodMartPagesConfig";
 import UserSettingsAppConfig from "../main/zrootclient/settings/UserSettingsAppConfig";
 import userProfileAppConfig from "../main/zrootclient/profile/userProfileAppConfig";
@@ -37,69 +38,42 @@ import MerchantShopPafeWithContentScrollPage from "../main/zrootclient/buz-marke
 import RealestatePageWithSidebarsContentScrollComponent from "../main/zrootclient/buz-realestates/realestatePage/RealestatePageWithSidebarsContentScrollComponent";
 import RealestateSinglePageWithSidebarsContentScroll from "../main/zrootclient/buz-realestates/realestateSinglePage/RealestateSinglePageWithSidebarsContentScroll";
 import userRealEstatePagesConfig from "../main/zrootclient/buz-realestates/realEstatePagesConfig";
+import ShopFinderPage from "../main/zrootclient/buz-engineering/shop-finder/ShopFinderPage";
+import ShopDetailPage from "../main/zrootclient/buz-engineering/shop-finder/ShopDetailPage";
+import MyMachinesPage from "../main/zrootclient/buz-engineering/my-machines/MyMachinesPage";
+import MyBookingsPage from "../main/zrootclient/buz-engineering/bookings/MyBookingsPage";
+import BookingDetailPage from "../main/zrootclient/buz-engineering/bookings/BookingDetailPage";
 import ModernLandingPage from "../main/vendors-shop/home/home/ModernLandingPage";
 import AboutUs from "../main/vendors-shop/home/home/AboutUs";
 import ContactUs from "../main/vendors-shop/home/home/ContactUs";
+import CareersListPage from "../main/vendors-shop/careers/CareersListPage";
+import CareerPositionPage from "../main/vendors-shop/careers/CareerPositionPage";
+import LegalDocumentPage from "../main/vendors-shop/legal/LegalDocumentPage";
+import { LEGAL_DOCUMENT_KEYS } from "../constants/legalDocumentKeys";
+import MyApplicationsPage from "../main/vendors-shop/careers/MyApplicationsPage";
 import MarketplaceDealsWithSidebarsContentScrollComponent from "../main/zrootclient/buz-marketplace/shops/marketplace/MarketplaceDealsWithSidebarsContentScrollComponent";
 
-/***Civic Platform Module Configs */
+/***Shared KYC (platform-wide, not civic-only) */
 import KycManagePage from "../main/zrootclient/civic-shared/kyc/KycManagePage";
-import civicTaxPagesConfig from "../main/zrootclient/buz-civictax/civicTaxPagesConfig";
-import civicTaxPublicPagesConfig from "../main/zrootclient/buz-civictax/civicTaxPublicPagesConfig";
-import securityPagesConfig from "../main/zrootclient/buz-security/securityPagesConfig";
-import securityPublicPagesConfig from "../main/zrootclient/buz-security/securityPublicPagesConfig";
-import governancePagesConfig from "../main/zrootclient/buz-governance/governancePagesConfig";
-import governancePublicPagesConfig from "../main/zrootclient/buz-governance/governancePublicPagesConfig";
-import socialPagesConfig from "../main/zrootclient/buz-social/socialPagesConfig";
-import socialPublicPagesConfig from "../main/zrootclient/buz-social/socialPublicPagesConfig";
-import healthcarePagesConfig from "../main/zrootclient/buz-healthcare/healthcarePagesConfig";
-import healthcarePublicPagesConfig from "../main/zrootclient/buz-healthcare/healthcarePublicPagesConfig";
-import youthsportsPagesConfig from "../main/zrootclient/buz-youthsports/youthsportsPagesConfig";
-import youthsportsPublicPagesConfig from "../main/zrootclient/buz-youthsports/youthsportsPublicPagesConfig";
-
-// Subdomain routing is DISABLED for Vercel staging deployment
-// const onMerchantSubdomain = isSubdomainRoute();
+import KycFaceCaptureBridgePage from "../main/zrootclient/civic-shared/kyc/bridge/KycFaceCaptureBridgePage";
+import KycWebAuthnBridgePage from "../main/zrootclient/civic-shared/kyc/bridge/KycWebAuthnBridgePage";
 
 const routeConfigs = [
-  /***
-   * ##########################################################################
-   * MERCHANT SUBDOMAIN ROUTES (Conditional - only active on subdomains)
-   * ############################################################################
-   * */
-
   /***
    * ##########################################################################
    * Authentication concern routes starts here
    * ############################################################################
    * */
-  // SignOutConfig,
   SignInConfig,
   SignUpConfig,
   SignAcceptInviteConfig,
   forgotPasswordConfig,
   resetPasswordConfig,
-  // DocumentationConfig,
+  SignOutConfig,
   /***
    * ##########################################################################
    * Authentication concern routes ends here
    * ############################################################################
-   * */
-
-  /***
-   * ##########################################################################
-   * User management and properties starts here
-   * ############################################################################
-   * */
-  // UsersAppConfig,
-  // StaffAppConfig,
-
-  /******Hotels, apartment and suites management */
-  // ManagedBookingsListingsAppConfig,
-
-  /***
-   * ##############################################################################
-   * User management and properties starts
-   * #######################################################################################
    * */
 
   /****
@@ -107,34 +81,28 @@ const routeConfigs = [
    * Africanshops Dashboard Configs Starts Here
    * #########################################################################################
    * */
-  // SupportHelpCenterAppConfig,
-  AfricanshopsFinanceDashboardAppConfig,
   financePagesConfig,
   AfricanshopsMessengerAppConfig,
 
-  // SettingsAppConfig,
   UserSettingsAppConfig,
   userProfileAppConfig,
 
-  
   /****
    * ############################################################################################
    * Africanshops Dashboard Configs Ends Here
    * ############################################################################################
-   * ----------------------------------------------------------------------------------------------------
    * */
+
   /****
    * #########################################################################################
    * Africanshops BOOKINGS-ROUTES Configs starts Here
    * #########################################################################################
    * */
   userReservationPagesConfig,
-
   /****
    * #########################################################################################
    * Africanshops BOOKINGS-ROUTES Configs ends Here
    * #########################################################################################
-   * -------------------------------------------------------------------------------------------------------
    * */
 
   /****
@@ -143,12 +111,22 @@ const routeConfigs = [
    * #########################################################################################
    * */
   userMarketPlacePagesConfig,
-
   /****
    * #########################################################################################
    * Africanshops MARKET-PLACE-ROUTES Configs ends Here
    * #########################################################################################
-   * -------------------------------------------------------------------------------------------------------
+   * */
+
+  /****
+   * #########################################################################################
+   * Africanshops DISPUTES Configs starts Here
+   * #########################################################################################
+   * */
+  userDisputesPagesConfig,
+  /****
+   * #########################################################################################
+   * Africanshops DISPUTES Configs ends Here
+   * #########################################################################################
    * */
 
   /****
@@ -157,12 +135,10 @@ const routeConfigs = [
    * #########################################################################################
    * */
   userFoodMartPagesConfig,
-
   /****
    * #########################################################################################
-   * Africanshops BOOKINGS-ROUTES Configs ends Here
+   * Africanshops RESTAURANTS_CLUBS_&_SPOTS_ROUTES Configs ends Here
    * #########################################################################################
-   * -------------------------------------------------------------------------------------------------------
    * */
 
   /****
@@ -178,82 +154,24 @@ const routeConfigs = [
    * */
 
   /****
-   * #########################################################################################
-   * Africanshops CIVIC-PLATFORM Authenticated Routes start Here
-   * #########################################################################################
-   * */
-  civicTaxPagesConfig,
-  securityPagesConfig,
-  governancePagesConfig,
-  socialPagesConfig,
-  healthcarePagesConfig,
-  youthsportsPagesConfig,
-  /****
-   * #########################################################################################
-   * Africanshops CIVIC-PLATFORM Authenticated Routes end Here
-   * #########################################################################################
-   * */
-
-  /****
    *#################################################################################################
    * Start of Un-Authenticated pages are listed below here
    * #######################################################################
    */
   blogAppConfig,
-
-  /****
-   * #########################################################################################
-   * MERCHANT SUBDOMAIN ROUTES (Guest/Unauthenticated)
-   * NOTE: Removed from routeConfigs - handled separately in routes array below
-   * #########################################################################################
-   * */
-  // MerchantSubdomainConfig,
-
   /****
    *################################################################################################
    * End of Un-Authenticated pages are listed below here
    * ###############################################################################################
    */
 
-  /**Routes Below to be disabled */
-  // ...PagesConfigs,
-  // ...UserInterfaceConfigs,
-  // ...DashboardsConfigs,
-  // ...AppsConfigs,
   ...authRoleExamplesConfigs,
 ];
 /**
  * The routes of the application.
  */
 const routes = [
-  // MERCHANT SUBDOMAIN ROUTES (must come first to match before main domain)
-  // DISABLED FOR VERCEL STAGING DEPLOYMENT
-  // Uncomment the block below to re-enable subdomain routing
-  // ...(onMerchantSubdomain
-  //   ? FuseUtils.generateRoutesFromConfigs(
-  //       [MerchantSubdomainConfig],
-  //       null // No auth required for merchant subdomain
-  //     )
-  //   : []),
-
   ...FuseUtils.generateRoutesFromConfigs(routeConfigs, settingsConfig.defaultAuth),
-
-  /****
-   * ##############################################################
-   * CIVIC PLATFORM — Public (unauthenticated) routes
-   * ##############################################################
-   */
-  ...civicTaxPublicPagesConfig,
-  ...securityPublicPagesConfig,
-  ...governancePublicPagesConfig,
-  ...socialPublicPagesConfig,
-  ...healthcarePublicPagesConfig,
-  ...youthsportsPublicPagesConfig,
-  /****
-   * ##############################################################
-   * CIVIC PLATFORM — Public routes end
-   * ##############################################################
-   */
 
   {
     path: "/account/kyc",
@@ -271,35 +189,60 @@ const routes = [
     element: <KycManagePage />,
   },
 
-  // Main domain homepage (ALWAYS ACTIVE - subdomain routing disabled)
-  // ...(!onMerchantSubdomain
-  //   ? [
+  // Mobile-WebView bridge pages (2026-09-27, customer-7) — never opened
+  // directly by a person; loaded inside react-native-webview by
+  // customer-mobile so face-api.js/WebAuthn can run in a real browser
+  // context. Fully bare (no app chrome) and deliberately NOT wrapped in
+  // this app's own auth guard — the WebView has no access to customer-web's
+  // own login session and authenticates purely via a token the mobile host
+  // injects directly into the page (see KycFaceCaptureBridgePage.jsx for
+  // the bridge contract; ported byte-for-byte from civic-web's identical
+  // pages, which civic-mobile already uses the same way).
+  {
+    path: "/kyc-bridge/face-capture",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: false },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <KycFaceCaptureBridgePage />,
+  },
+  {
+    path: "/kyc-bridge/webauthn-register",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: false },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <KycWebAuthnBridgePage />,
+  },
+
   {
     path: "/",
     element: <ModernLandingPage />,
   },
-  //     ]
-  //   : []),
   {
     path: "/about",
     settings: {
       layout: {
         config: {
-          navbar: {
-            display: false,
-          },
-          toolbar: {
-            display: true,
-          },
-          footer: {
-            display: false,
-          },
-          leftSidePanel: {
-            display: false,
-          },
-          rightSidePanel: {
-            display: false,
-          },
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
         },
       },
     },
@@ -310,27 +253,92 @@ const routes = [
     settings: {
       layout: {
         config: {
-          navbar: {
-            display: false,
-          },
-          toolbar: {
-            display: true,
-          },
-          footer: {
-            display: false,
-          },
-          leftSidePanel: {
-            display: false,
-          },
-          rightSidePanel: {
-            display: false,
-          },
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
         },
       },
     },
     element: <ContactUs />,
   },
-  
+  {
+    path: "/careers",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <CareersListPage />,
+  },
+  {
+    path: "/careers/my-applications",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <MyApplicationsPage />,
+  },
+  {
+    path: "/careers/:id",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <CareerPositionPage />,
+  },
+  {
+    path: "/privacy",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <LegalDocumentPage documentKey={LEGAL_DOCUMENT_KEYS.PRIVACY_POLICY} eyebrow="Privacy" />,
+  },
+  {
+    path: "/terms",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <LegalDocumentPage documentKey={LEGAL_DOCUMENT_KEYS.TERMS_AND_CONDITIONS} eyebrow="Legal" />,
+  },
+
   {
     path: "loading",
     element: <FuseLoading />,
@@ -344,76 +352,47 @@ const routes = [
     element: <Navigate to="404" />,
   },
 
-  /***Check Pages starts */
-
-  /***Check Pages ends */
-
-  /**############################################################### */
   /****
    * ##############################################################
    * BOOKINGS activities starts
    * ##############################################################
    */
-
   {
     path: "/bookings/listings",
     settings: {
       layout: {
         config: {
-          navbar: {
-            display: false,
-          },
-          toolbar: {
-            display: true,
-          },
-          footer: {
-            display: false,
-          },
-          leftSidePanel: {
-            display: false,
-          },
-          rightSidePanel: {
-            display: false,
-          },
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
         },
       },
     },
     element: <BookingsPageWithSidebarsContentScrollComponent />,
-  }, // (Msvs => Done)
-
+  },
   {
     path: "/bookings/listings/:bookingId/view",
     settings: {
       layout: {
         config: {
-          navbar: {
-            display: false,
-          },
-          toolbar: {
-            display: true,
-          },
-          footer: {
-            display: false,
-          },
-          leftSidePanel: {
-            display: false,
-          },
-          rightSidePanel: {
-            display: false,
-          },
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
         },
       },
     },
     element: <BookingsSinglePageWithSidebarsContentScroll />,
-  }, // (Msvs => Done)
-
+  },
   /****
    * ##############################################################
    * BOOKINGS activities ends
    * ##############################################################
    */
-  /**############################################################### */
-  /**############################################################### */
+
   /****
    * ##############################################################
    * REAL-ESTATE activities starts
@@ -424,236 +403,213 @@ const routes = [
     settings: {
       layout: {
         config: {
-          navbar: {
-            display: false,
-          },
-          toolbar: {
-            display: true,
-          },
-          footer: {
-            display: false,
-          },
-          leftSidePanel: {
-            display: false,
-          },
-          rightSidePanel: {
-            display: false,
-          },
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
         },
       },
     },
-    // element: <RealEstatesPage />,
     element: <RealestatePageWithSidebarsContentScrollComponent />,
   },
-
   {
     path: "/realestate/listings/:slug/view",
     settings: {
       layout: {
         config: {
-          navbar: {
-            display: false,
-          },
-          toolbar: {
-            display: true,
-          },
-          footer: {
-            display: false,
-          },
-          leftSidePanel: {
-            display: false,
-          },
-          rightSidePanel: {
-            display: false,
-          },
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
         },
       },
     },
-    // element: <RealEstateSinglePage />,
     element: <RealestateSinglePageWithSidebarsContentScroll />,
   },
+  /****
+   * ##############################################################
+   * REAL-ESTATE activities ends
+   * ##############################################################
+   */
 
   /****
    * ##############################################################
-   * REALE-STATE activities ends
+   * ENGINEERING SERVICES activities starts (Phase E6b, 2026-09-23)
    * ##############################################################
    */
-  /**############################################################### */
+  {
+    path: "/engineering/find-shops",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <ShopFinderPage />,
+  },
+  {
+    path: "/engineering/shops/:id",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <ShopDetailPage />,
+  },
+  // Added Phase E6c (2026-09-24) — "My Machines" hub, reached from the
+  // account menu or from a shop-detail booking's inline register shortcut.
+  {
+    path: "/engineering/my-machines",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <MyMachinesPage />,
+  },
+  // Added Phase E6d (2026-09-24) — "My Bookings" list + detail, reached
+  // from the account menu.
+  {
+    path: "/engineering/my-bookings",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <MyBookingsPage />,
+  },
+  {
+    path: "/engineering/my-bookings/:id",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <BookingDetailPage />,
+  },
+  /****
+   * ##############################################################
+   * ENGINEERING SERVICES activities ends
+   * ##############################################################
+   */
 
   /****
    * ##############################################################
-   * Marketplace activiies starts
+   * Marketplace activities starts
    * ##############################################################
    */
-  // {
-  //   path: "/marketplace/shop",
-  //   settings: {
-  //     layout: {
-  //       config: {
-  //         navbar: {
-  //           display: false,
-  //         },
-  //         toolbar: {
-  //           display: true,
-  //         },
-  //         footer: {
-  //           display: false,
-  //         },
-  //         leftSidePanel: {
-  //           display: false,
-  //         },
-  //         rightSidePanel: {
-  //           display: false,
-  //         },
-  //       },
-  //     },
-  //   },
-  //   element: <MarketplaceShops />,
-  // },
-
   {
     path: "/marketplace/shop",
     settings: {
       layout: {
         config: {
-          navbar: {
-            display: false,
-          },
-          toolbar: {
-            display: true,
-          },
-          footer: {
-            display: false,
-          },
-          leftSidePanel: {
-            display: false,
-          },
-          rightSidePanel: {
-            display: false,
-          },
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
         },
       },
     },
     element: <MarketplaceWithSidebarsContentScrollComponent />,
-  }, // (Msvs => Done)
-
+  },
   {
     path: "/marketplace/product/:productSlug/view",
     settings: {
       layout: {
         config: {
-          navbar: {
-            display: false,
-          },
-          toolbar: {
-            display: true,
-          },
-          footer: {
-            display: false,
-          },
-          leftSidePanel: {
-            display: false,
-          },
-          rightSidePanel: {
-            display: false,
-          },
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
         },
       },
     },
-    // element: <SingleProduct />,
     element: <SingleProductWithContentScrollPage />,
-  }, // (Msvs => Done)
-
+  },
   {
     path: "/marketplace/products/:id/by-category",
     settings: {
       layout: {
         config: {
-          navbar: {
-            display: false,
-          },
-          toolbar: {
-            display: true,
-          },
-          footer: {
-            display: false,
-          },
-          leftSidePanel: {
-            display: false,
-          },
-          rightSidePanel: {
-            display: false,
-          },
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
         },
       },
     },
-    // element: <MarketplaceProductsByCat />,
-
     element: <MarketplaceProductsByCatWithContentScrollPage />,
   },
-
   {
     path: "/deals",
     settings: {
       layout: {
         config: {
-          navbar: {
-            display: false,
-          },
-          toolbar: {
-            display: true,
-          },
-          footer: {
-            display: false,
-          },
-          leftSidePanel: {
-            display: false,
-          },
-          rightSidePanel: {
-            display: false,
-          },
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
         },
       },
     },
     element: <MarketplaceDealsWithSidebarsContentScrollComponent />,
   },
-
   {
     path: "/marketplace/merchant/:shopId/portal",
     settings: {
       layout: {
         config: {
-          navbar: {
-            display: false,
-          },
-          toolbar: {
-            display: true,
-          },
-          footer: {
-            display: false,
-          },
-          leftSidePanel: {
-            display: false,
-          },
-          rightSidePanel: {
-            display: false,
-          },
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
         },
       },
     },
-    // element: <MerchantShopPage />,
     element: <MerchantShopPafeWithContentScrollPage />,
   },
-
-  //
   /****
    * ##############################################################
-   * Marketplace activiies ends
+   * Marketplace activities ends
    * ##############################################################
    */
 
-  //
-  /**############################################################### */
   /****
    * ##############################################################
    * FOOD_MARTS activities starts
@@ -664,87 +620,50 @@ const routes = [
     settings: {
       layout: {
         config: {
-          navbar: {
-            display: false,
-          },
-          toolbar: {
-            display: true,
-          },
-          footer: {
-            display: false,
-          },
-          leftSidePanel: {
-            display: false,
-          },
-          rightSidePanel: {
-            display: false,
-          },
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
         },
       },
     },
-    // element: <FoodMartsPage />,
-    element: <FoodMartWithSidebarsContentScrollPage />, // (Msvs => Done)
+    element: <FoodMartWithSidebarsContentScrollPage />,
   },
-
   {
     path: "/foodmarts/:martId/visit-mart/:id",
     settings: {
       layout: {
         config: {
-          navbar: {
-            display: false,
-          },
-          toolbar: {
-            display: true,
-          },
-          footer: {
-            display: false,
-          },
-          leftSidePanel: {
-            display: false,
-          },
-          rightSidePanel: {
-            display: false,
-          },
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
         },
       },
     },
-    // element: <VisitFoodMartPage />,
     element: <VisitFoodMartWithContentScrollPage />,
-  }, // (Mcsvs => Done)
-
+  },
   {
     path: "/foodmarts/:rcsId/menu/:menuSlug/view",
     settings: {
       layout: {
         config: {
-          navbar: {
-            display: false,
-          },
-          toolbar: {
-            display: true,
-          },
-          footer: {
-            display: false,
-          },
-          leftSidePanel: {
-            display: false,
-          },
-          rightSidePanel: {
-            display: false,
-          },
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
         },
       },
     },
-    // element: <FoodMartSingleMenu />,
     element: <FoodMartSingleMenuWithContentScrollPage />,
-  }, // (Mcsvs => Done)
-
+  },
   /****
    * ##############################################################
    * FOOD_MARTS activities ends
    * ##############################################################
    */
-  /**############################################################### */
 ];
 export default routes;

@@ -20,7 +20,6 @@ import { useNavigate, useParams } from "react-router";
 import { useAppSelector } from "app/store/hooks";
 import { selectUser } from "src/app/auth/user/store/userSlice";
 // import { getFoodVendorSession, storeFoodVendorSession } from "src/app/main/vendors-shop/PosUtils";
-import { toast } from "react-toastify";
 import useGetUserAppSetting from "app/configs/data/server-calls/auth/userapp/a_userapp_settings/useAppSettingDomain";
 import ServiceStatusLandingPage from "../../aapp-settings-from-admin/ServiceStatusLandingPage";
 import DemoHeader from "./shared-components/DemoHeader";
@@ -84,42 +83,12 @@ function ActiveFoodMartSingleMenuPage() {
       // shopMarketId: menu?.data?.menu?.market,
       // shoppingSession:''
     };
-    if (foodCart?.data?.userFoodCartSession?.cartProducts?.length === 0) {
-      if (foodCart?.data?.userFoodCartSession?.lgaId) {
-        addToFoodMenuToCart(formData);
-        // getCartWhenAuth()
-        return;
-      }
-    } else {
-      if (
-        foodCart?.data?.userFoodCartSession?.districtId === menu?.data?.menu?.foodMartMenuDistrict ||
-        !foodCart?.data?.userFoodCartSession?.districtId
-      ) {
-        addToFoodMenuToCart(formData);
-        // getCartWhenAuth()
-        return;
-      } else {
-        toast.info(
-          "🍽️ One restaurant at a time! Please complete or clear your current cart before ordering from a different Restaurant, Club, or Spot.",
-          {
-            position: "top-center",
-            autoClose: 6000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-          }
-        );
-        return;
-      }
-    }
-  }, [
-    menu?.data?.menu?.id,
-    routeParams,
-    user,
-    foodCart?.data?.userFoodCartSession?.cartProducts,
-    foodCart?.data?.userFoodCartSession?.cartProducts?.length,
-  ]);
+    // The one-foodmart-per-cart rule is enforced authoritatively by the backend
+    // (foodcart.service.ts addItemToUserFoodCart, checked against foodmartId) and its
+    // rejection message is already surfaced as a toast via useAddToFoodCart's onError
+    // (handleApiError) — no need to duplicate (and mis-scope, by district) that check here.
+    addToFoodMenuToCart(formData);
+  }, [menu?.data?.menu?.id, routeParams, user]);
   console.log("FOOD CART SESSION", foodCart?.data?.userFoodCartSession);
   console.log("MENU", menu?.data?.menu);
 

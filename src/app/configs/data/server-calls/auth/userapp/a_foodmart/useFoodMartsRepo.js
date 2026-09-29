@@ -1,6 +1,8 @@
 import {
 	addToUserFoodCartApi,
 	calculateFoodCartShippingApi,
+	createTableReservationApi,
+	getEligibleTablesForOrderApi,
 	getUserFoodCartApi,
 	getUserFoodInvoicesAndItemsByIdEnpoint,
 	getUserFoodInvoicesEnpoint,
@@ -247,6 +249,37 @@ export function useGetAuthUserFoodOrdersAndItems(foodOrderId) {
 		}
 	);
 } // (Mcsvs => Done)
+
+/** *
+ * #################################################################
+ * TABLE RESERVATIONS (spend-gated by a paid food order)
+ * #################################################################
+ */
+
+/** Which currently-available tables does this paid order's spend qualify for? */
+export function useEligibleTablesForOrder(foodOrderId) {
+	return useQuery(
+		['__food_order_eligible_tables', foodOrderId],
+		() => getEligibleTablesForOrderApi(foodOrderId),
+		{ enabled: Boolean(foodOrderId) }
+	);
+}
+
+/** Reserve one of those tables. */
+export function useCreateTableReservation() {
+	const queryClient = useQueryClient();
+	return useMutation(createTableReservationApi, {
+		onSuccess: (data, variables) => {
+			if (data?.data?.success) {
+				toast.success('Table reserved! We\'ll see you then.');
+				queryClient.invalidateQueries(['__food_order_eligible_tables', variables?.triggeringOrderId]);
+			}
+		},
+		onError: (error) => {
+			handleApiError(error, { fallbackMessage: 'Failed to reserve this table. Please try again.' });
+		}
+	});
+}
 
 /** *
  * #################################################################

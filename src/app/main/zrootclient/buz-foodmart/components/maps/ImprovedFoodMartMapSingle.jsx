@@ -79,10 +79,16 @@ function ImprovedFoodMartMapSingle({ item }) {
         style={{ minHeight: "100%" }}
       >
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          subdomains="abcd"
-          maxZoom={20}
+          attribution='Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+          maxZoom={16}
+        />
+        {/* Esri splits the light canvas into a base fill layer and a separate
+            roads/borders/labels overlay -- CARTO's light_all bundled both into
+            one tile. Added for parity/clarity (founder feedback 2026-09-24). */}
+        <TileLayer
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+          maxZoom={16}
         />
 
         {hasLocation && <FlyToLocation position={position} />}

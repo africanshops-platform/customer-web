@@ -28,6 +28,12 @@ const LgaSelect = ({ value, onChange, blgas }) => {
             primary25: "#ffe4e6",
           },
         })}
+        // Fix for options rendering clipped inside overflow-hidden containers —
+        // react-select's menu is inline/absolute by default, so portal it to
+        // <body> instead of letting a scrollable/clipped ancestor cut it down
+        // to a sliver.
+        menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
+        styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
       />
     </div>
   );

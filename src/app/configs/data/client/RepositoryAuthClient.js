@@ -2,9 +2,9 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
 import { resetSessionForShopUsers } from 'app/configs/utils/authUtils';
+import jwtAuthConfig from 'src/app/auth/services/jwt/jwtAuthConfig';
 import { getAdminAccessToken } from '../utils/opsUtils';
 import { API_ENDPOINTS } from './serverEndpoints/endpoints';
-import jwtAuthConfig from 'src/app/auth/services/jwt/jwtAuthConfig';
 
 // ─── Token-refresh state (module-level so all AuthApi() instances share it) ──
 let isRefreshing = false;
@@ -204,6 +204,45 @@ export const requestRefundOnUserItemInInvoiceApi = (id) => AuthApi().put(`/usero
  * ############################################################
  */
 
+/** ***
+ * #################################################################
+ * DISPUTES (2026-08-12) — self-service, customer side.
+ * #################################################################
+ */
+
+export const createDisputeApi = (dto) => AuthApi().post('/disputes', dto);
+
+export const getMyDisputesApi = (params = {}) => {
+	const query = serializeQuery(
+		Object.fromEntries(Object.entries(params).filter(([, value]) => value !== undefined && value !== ''))
+	);
+	return AuthApi().get(query ? `/disputes/my?${query}` : '/disputes/my');
+};
+
+export const getMyDisputeDetailApi = (disputeId) => AuthApi().get(`/disputes/${disputeId}`);
+
+export const addMyDisputeNoteApi = (disputeId, note) => AuthApi().post(`/disputes/${disputeId}/note`, { note });
+
+/**
+ * ############################################################
+ */
+
+/** ***
+ * #################################################################
+ * CAREERS — apply/track as the currently logged-in customer (same session
+ * as the rest of this app, see careers plan notes). Public browsing lives
+ * in RepositoryClient.js's getOpenPositionsApi/getPositionByIdApi.
+ * #################################################################
+ */
+
+export const applyToPositionApi = (id, coverNote) => AuthApi().post(`/careers/positions/${id}/apply`, { coverNote });
+
+export const getMyApplicationsApi = () => AuthApi().get('/careers/applications/mine');
+
+/**
+ * ############################################################
+ */
+
 /** *****
  *                      FINTEC-PAYMENTS APP
  * #######################################################################################
@@ -221,6 +260,19 @@ export const requestRefundOnUserItemInInvoiceApi = (id) => AuthApi().put(`/usero
 export const verifyPaystackPaymentFromFintechService = (formData) => {
 	return AuthApi().post(`paystack-payment/verify`, formData);
 }; // (Done => Msvs)
+
+/** *Pre-flight check: are the services needed to complete this order type up? */
+export const getBookingsCheckoutReadiness = () => {
+	return AuthApi().get(`checkout-readiness/bookings`);
+};
+
+export const getMarketplaceCheckoutReadiness = () => {
+	return AuthApi().get(`checkout-readiness/marketplace`);
+};
+
+export const getFoodCheckoutReadiness = () => {
+	return AuthApi().get(`checkout-readiness/food`);
+};
 
 /** *****
  *                      BOOKINGS APP
@@ -323,6 +375,16 @@ export const getUserFoodInvoicesAndItemsByIdEnpoint = (foodOrderId) => {
 	return AuthApi().get(`/rcs-food-orders/${foodOrderId}/view`);
 };
 
+/** Which currently-available tables does this paid order's spend qualify for a reservation at? */
+export const getEligibleTablesForOrderApi = (foodOrderId) => {
+	return AuthApi().get(`/rcs-food-orders/${foodOrderId}/eligible-tables`);
+};
+
+/** Reserve a table the order's spend qualified for. */
+export const createTableReservationApi = (dto) => {
+	return AuthApi().post(`/rcs-food-orders/table-reservations/create`, dto);
+};
+
 /** *******#######################################################################################
  * AUTHENTICATED ACTIVITIES FOR USERS UTULIZING FOOD-MART_APP ends here
  * #######################################################################################
@@ -360,6 +422,22 @@ export const removeCommodityFromCartApi = (formData) => {
 	// console.log("food cart", formData);
 	return AuthApi().put(`${API_ENDPOINTS.REMOVE_CART_ITEM}`, formData);
 };
+
+/**
+ * Wishlist (2026-09-27, customer-10). userId is never sent -- resolved
+ * server-side from the auth token on every route.
+ */
+export const getMyWishlistApi = () => AuthApi().get(`${API_ENDPOINTS.GET_MY_WISHLIST}`);
+export const addToWishlistApi = (productId) => AuthApi().post(`/wishlist/${productId}`);
+export const removeFromWishlistApi = (productId) => AuthApi().delete(`/wishlist/${productId}`);
+export const getWishlistItemStatusApi = (productId) => AuthApi().get(`/wishlist/${productId}/status`);
+
+/**
+ * Create a product review (2026-09-27, customer-9) -- purchase-gated
+ * server-side; a 403 here means the caller hasn't bought this product.
+ */
+export const createProductReviewApi = (reviewData) =>
+	AuthApi().post(`${API_ENDPOINTS.CREATE_PRODUCT_REVIEW}`, reviewData);
 
 /**
  * MANAGE ORDER SECTION
@@ -400,8 +478,21 @@ export const userWithdrawRequestApi = (withdrawFormData) =>
  * --------------------------------------------------------------------------------------------------------------------
  */
 
+/** List this user's active sessions/devices — GET /auth-user/sessions */
+export const getSessionsApi = () => AuthApi().get('/auth-user/sessions');
+
 /** Revoke a specific session on the server — DELETE /auth-user/sessions/:sessionId */
 export const revokeSessionApi = (sessionId) => AuthApi().delete(`/auth-user/sessions/${sessionId}`);
+
+/** Generate (or fetch, if already set) this user's own referral code + links — GET /auth-user/loggedin/referral-links */
+export const getUserReferralLinksApi = () => AuthApi().get('/auth-user/loggedin/referral-links');
+
+/** This user's own referral revenue-share accruals — shallow (date/type/amount only) — GET /auth-user/loggedin/referrals/accruals */
+export const getUserReferralAccrualsApi = (page = 1, limit = 20) =>
+	AuthApi().get(`/auth-user/loggedin/referrals/accruals?page=${page}&limit=${limit}`);
+
+/** Revoke every other session, keeping the current one — DELETE /auth-user/sessions/all */
+export const revokeAllSessionsApi = () => AuthApi().delete('/auth-user/sessions/all');
 
 // Users Logout functionality  usersproducts
 export const logOut = () => {
@@ -434,7 +525,7 @@ export const userLogOutCall = () => {
 			/** Fuse admin starts */
 			resetSessionForShopUsers();
 
-			Cookies.remove('jwt_auth_credentials');
+			Cookies.remove('marketplace_jwt_auth_credentials');
 			/** *Fuse admin ends */
 
 			Cookies.remove('authUserInfo');
@@ -449,7 +540,7 @@ export const userLogOutCall = () => {
 			Cookies.remove('ADMIN_AFSP_Show_Hide_tmp_Lead');
 			Cookies.remove('ADMIN_AFSP_Show_Hide_tmp_Lead_ARC');
 
-			localStorage.removeItem('jwt_auth_credentials');
+			localStorage.removeItem('marketplace_jwt_auth_credentials');
 			localStorage.clear();
 
 			// Cookies.set(
@@ -591,6 +682,70 @@ export const setDefaultUserAddressApi = (addressId) => {
 /**
  * ############################################################
  * @param {User Addresses CRUD Routes ends} FormData
+ * @returns
+ * ############################################################
+ */
+
+/**
+ * ############################################################
+ * @param {Engineering Services — Registered Machines + Service Bookings Routes starts (Phase E6c)} FormData
+ * @returns
+ * ############################################################
+ */
+
+/** *Register a machine (customer-owned, not the shop) */
+export const createRegisteredMachineApi = (formData) => {
+	return AuthApi().post(`/engineering/my-machines`, formData);
+};
+
+/** *Update a registered machine */
+export const updateRegisteredMachineApi = (machineId, formData) => {
+	return AuthApi().put(`/engineering/my-machines/${machineId}`, formData);
+};
+
+/** *Delete a registered machine */
+export const deleteRegisteredMachineApi = (machineId) => {
+	return AuthApi().delete(`/engineering/my-machines/${machineId}`);
+};
+
+/** *Get all of the current user's registered machines */
+export const getMyRegisteredMachinesApi = () => {
+	return AuthApi().get(`/engineering/my-machines`);
+};
+
+/** *Get a single registered machine by id */
+export const getRegisteredMachineByIdApi = (machineId) => {
+	return AuthApi().get(`/engineering/my-machines/${machineId}`);
+};
+
+/** *Book a service against one of the current user's registered machines */
+export const createServiceBookingApi = (formData) => {
+	return AuthApi().post(`/engineering/bookings`, formData);
+};
+
+/** *Get all of the current user's own service bookings (Phase E6d) */
+export const getMyServiceBookingsApi = () => {
+	return AuthApi().get(`/engineering/my-bookings`);
+};
+
+/** *Get a single service booking (customer-owned) */
+export const getServiceBookingByIdApi = (bookingId) => {
+	return AuthApi().get(`/engineering/bookings/${bookingId}`);
+};
+
+/** *Get the repair job for a booking (null until the shop has logged one) */
+export const getRepairJobForBookingApi = (bookingId) => {
+	return AuthApi().get(`/engineering/bookings/${bookingId}/repair-job`);
+};
+
+/** *Cancel one of the current user's own service bookings */
+export const cancelServiceBookingApi = (bookingId, cancellationReason) => {
+	return AuthApi().put(`/engineering/bookings/${bookingId}/cancel`, { cancellationReason });
+};
+
+/**
+ * ############################################################
+ * @param {Engineering Services — Registered Machines + Service Bookings Routes ends} FormData
  * @returns
  * ############################################################
  */

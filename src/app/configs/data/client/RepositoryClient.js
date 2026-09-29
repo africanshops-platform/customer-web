@@ -41,7 +41,15 @@ export const serializeQuery = (query) => {
 
 export const preSignUp = (formData) => Api().post('/authuser/pre-signup', formData);
 
-export const preSignUpWithOtp = (formData) => Api().post('/auth-user/pre-signup-with-otp', formData); // (Msvs => Done)
+// Referral capture (2026-09-04) — the gateway reads adminref/merchantref/usersref
+// as QUERY params on this exact POST (see userauthclient.controller.ts), not from
+// the request body, so a referral code embedded in formData.referral has to be
+// re-attached here as a query string rather than sent as part of the payload.
+export const preSignUpWithOtp = (formData) => {
+	const { referral, ...body } = formData ?? {};
+	const qs = referral ? `?${serializeQuery(referral)}` : '';
+	return Api().post(`/auth-user/pre-signup-with-otp${qs}`, body);
+}; // (Msvs => Done)
 
 export const preUserRegistration = (formData) => Api().post('/authuser/register-preuser', formData);
 
@@ -64,6 +72,24 @@ export const clientRegister = (formData) => Api().post('/authuser/register', for
 /** **********************************************************************************************
  * END: USER AUTHENTICATION OPERATIONS
  *********************************************************************************************** */
+
+/** **********************************************************************************************
+ * CAREERS — public browsing (no auth). See RepositoryAuthClient.js for apply/my-applications.
+ *********************************************************************************************** */
+export const CAREERS_PAGE_SIZE = 12;
+
+export const getOpenPositionsApi = (page = 1) =>
+	Api().get(`/careers/positions?limit=${CAREERS_PAGE_SIZE}&offset=${(page - 1) * CAREERS_PAGE_SIZE}`);
+
+export const getPositionByIdApi = (id) => Api().get(`/careers/positions/${id}`);
+
+/** **********************************************************************************************
+ * LEGAL DOCUMENTS — public, unauthenticated fetch-by-key. Deliberately not
+ * the legacy getApiPrivacies/getApiTerms below (/privacies/clientpricacy,
+ * /privacies/terms) — those predate the microservices split and don't
+ * resolve against the current gateway. Same route civic-web/admin-web use.
+ *********************************************************************************************** */
+export const getLegalDocumentByKeyApi = (key) => Api().get(`/corporate-cms/legal/${key}`);
 
 // GET AUTHENTICATE USER WITH TOKEN REQUES
 
@@ -157,6 +183,9 @@ export const getAllProducts = (filters = {}) => {
 export const getProductById = (id) => Api().get(`/products/${id}/view`);
 export const getProductByCategory = (category) => Api().get(`/clientusersproducts/category/${category}`);
 export const getUserCartProductsById = (payload) => Api().get(`/clientusersproducts/cart?${payload}`);
+
+/** Product reviews -- public read, no auth needed (2026-09-27, customer-9) */
+export const getProductReviews = (productId) => Api().get(`/reviews/${productId}`);
 
 //= =========================Get Markets Routes=====================================
 export const getApiMarkets = () => Api().get(`/markets`);
@@ -290,6 +319,27 @@ export const getEstatePropertyApi = (estatePropId) =>
 /** ====================================================================================================
  * ESTATES-PROPERTIES ROUTES LISTED ENDS HERE
  ====================================================================================================== */
+
+/** =====================================================================================================
+ * ENGINEERING SERVICES ROUTES LISTED BELOW STARTS — public shop directory,
+ * no auth needed to browse (registering a machine / booking is authenticated,
+ * see RepositoryAuthClient.js).
+ ===================================================================================================== */
+export const getEngineeringShopsApi = (specialty) => {
+	const url = specialty ? `/engineering/lookups/shops?specialty=${specialty}` : `/engineering/lookups/shops`;
+	return Api().get(url);
+};
+export const getEngineeringShopByIdApi = (shopId) => Api().get(`/engineering/lookups/shops/${shopId}`);
+/** *Machine-type taxonomy lookup (public, Phase E6c) — powers the register-a-machine autocomplete. */
+export const getMachineTypesApi = (category) => {
+	const url = category
+		? `/engineering/lookups/machine-types?category=${category}`
+		: `/engineering/lookups/machine-types`;
+	return Api().get(url);
+};
+/** =====================================================================================================
+ * ENGINEERING SERVICES ROUTES LISTED ENDS HERE
+ ===================================================================================================== */
 
 /** =====================================================================================================
  * MERCHANT ROUTES LISTED BELOW STARTS

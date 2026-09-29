@@ -32,6 +32,13 @@ const CountrySelect = ({ value, onChange }) => {
             primary25: "#ffe4e6",
           },
         })}
+        // The signup card wraps this in an overflow-hidden Paper. react-select's
+        // menu renders inline (absolutely positioned relative to the nearest
+        // positioned ancestor) by default, so without portaling it out to
+        // <body> the options list gets clipped down to a sliver of the card's
+        // edge instead of floating over the page.
+        menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
+        styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
       />
     </div>
   );

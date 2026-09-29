@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Typography from "@mui/material/Typography";
 import { motion } from "framer-motion";
 import { Button } from "@mui/material";
@@ -6,9 +7,13 @@ import NavLinkAdapter from "@fuse/core/NavLinkAdapter";
 import { useParams } from "react-router";
 import { selectUser } from "src/app/auth/user/store/userSlice";
 import { useAppSelector } from "app/store/hooks";
-import { formatDateUtil } from "src/app/main/vendors-shop/PosUtils";
+import { formatCurrency, formatDateUtil } from "src/app/main/vendors-shop/PosUtils";
 import { CheckCircle, DeliveryDining } from "@mui/icons-material";
-import { useGetAuthUserFoodOrdersAndItems } from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
+import {
+  useCreateTableReservation,
+  useEligibleTablesForOrder,
+  useGetAuthUserFoodOrdersAndItems,
+} from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
 
 // Confetti colours — warm food-brand palette
 const CONFETTI_COLORS = [
@@ -34,6 +39,144 @@ const itemVariants = {
   hidden: { y: 20, opacity: 0 },
   visible: { y: 0, opacity: 1 },
 };
+
+/**
+ * Offer to reserve a table, shown only when this order's spend meets a
+ * currently-available table's minimum spend at its venue. Silent (renders
+ * nothing) when nothing qualifies -- this is a bonus, not an error state.
+ * No extra payment step: the qualifying money already moved through this
+ * order's own checkout.
+ */
+function TableReservationOffer({ orderId }) {
+  const { data, isLoading } = useEligibleTablesForOrder(orderId);
+  const tables = data?.data?.tables ?? [];
+  const [selectedTableId, setSelectedTableId] = useState(null);
+  const [arrivalAt, setArrivalAt] = useState("");
+  const [partySize, setPartySize] = useState(2);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [reserved, setReserved] = useState(null);
+  const createReservation = useCreateTableReservation();
+
+  if (isLoading || tables.length === 0) return null;
+
+  if (reserved) {
+    return (
+      <motion.div
+        variants={itemVariants}
+        className="p-4 rounded-xl mb-6"
+        style={{ background: "rgba(34,197,94,0.08)", border: "2px solid rgba(34,197,94,0.25)" }}
+      >
+        <p className="text-sm font-semibold text-gray-800 mb-1">Table reserved!</p>
+        <p className="text-xs text-gray-600">
+          {reserved.table?.name || "Your table"} is booked for{" "}
+          {new Date(reserved.scheduledArrivalAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}.
+        </p>
+      </motion.div>
+    );
+  }
+
+  function handleReserve() {
+    if (!selectedTableId || !arrivalAt) return;
+    createReservation.mutate(
+      {
+        tableId: selectedTableId,
+        triggeringOrderId: orderId,
+        scheduledArrivalAt: new Date(arrivalAt).toISOString(),
+        partySize: Number(partySize) || undefined,
+        customerName: customerName.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
+      },
+      {
+        onSuccess: (res) => {
+          if (res?.data?.success) setReserved(res.data.reservation);
+        },
+      }
+    );
+  }
+
+  return (
+    <motion.div
+      variants={itemVariants}
+      className="rounded-xl p-5 mb-6"
+      style={{
+        background: "linear-gradient(135deg, rgba(124,58,237,0.06) 0%, rgba(79,70,229,0.04) 100%)",
+        border: "2px solid rgba(124,58,237,0.2)",
+      }}
+    >
+      <h3 className="font-semibold text-gray-800 mb-1">🎉 Your order unlocked a table reservation!</h3>
+      <p className="text-xs text-gray-600 mb-3">Pick a table and your arrival time — no extra payment needed.</p>
+
+      <div className="flex flex-col gap-2 mb-3">
+        {tables.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setSelectedTableId(t.id)}
+            className="text-left p-3 rounded-lg border transition-colors"
+            style={{
+              borderColor: selectedTableId === t.id ? "#7c3aed" : "#e5e7eb",
+              background: selectedTableId === t.id ? "rgba(124,58,237,0.06)" : "transparent",
+            }}
+          >
+            <span className="font-medium text-sm text-gray-800">{t.name}</span>
+            <span className="text-xs text-gray-500 ml-2">
+              {t.section?.name ?? "No section"} · Seats {t.capacity} · Min ₦{formatCurrency(t.minimumSpend)}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {selectedTableId && (
+        <div className="flex flex-col gap-2">
+          <input
+            type="datetime-local"
+            value={arrivalAt}
+            onChange={(e) => setArrivalAt(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          />
+          <div className="flex gap-2">
+            <input
+              type="number"
+              min={1}
+              placeholder="Guests"
+              value={partySize}
+              onChange={(e) => setPartySize(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-24"
+            />
+            <input
+              type="text"
+              placeholder="Your name"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm flex-1"
+            />
+          </div>
+          <input
+            type="tel"
+            placeholder="Phone number"
+            value={customerPhone}
+            onChange={(e) => setCustomerPhone(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          />
+          <Button
+            variant="contained"
+            disabled={!arrivalAt || createReservation.isLoading}
+            onClick={handleReserve}
+            sx={{
+              background: "linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)",
+              textTransform: "none",
+              fontWeight: 600,
+              "&:hover": { background: "linear-gradient(135deg, #6d28d9 0%, #3b0764 100%)" },
+            }}
+          >
+            {createReservation.isLoading ? "Reserving…" : "Reserve this table"}
+          </Button>
+        </div>
+      )}
+    </motion.div>
+  );
+}
 
 /**
  * Success state — full-screen celebration with food order details
@@ -177,6 +320,8 @@ function FoodOrderSuccess({ userName, orderId, orderDate, totalAmount, itemCount
                   )}
                 </motion.div>
               )}
+
+              {orderId && <TableReservationOffer orderId={orderId} />}
 
               {/* Email notice */}
               {userEmail && (
@@ -515,7 +660,9 @@ function FoodmartOrderPaymenSucces() {
   const { orderId } = useParams();
 
   const { data: orderData, isLoading, isError } = useGetAuthUserFoodOrdersAndItems(orderId);
-  const foodOrder = orderData?.data?.foodOrder || orderData?.data?.order;
+  // The backend returns the order under `rcs_order` (see
+  // user-foodorder.service.ts's getOrderByIdByUser) -- not `foodOrder`/`order`.
+  const foodOrder = orderData?.data?.rcs_order;
 
   if (!orderId) {
     return (
@@ -559,10 +706,10 @@ function FoodmartOrderPaymenSucces() {
           userName={user?.name}
           orderId={foodOrder?.id || orderId}
           orderDate={foodOrder?.createdAt ? formatDateUtil(foodOrder.createdAt) : null}
-          totalAmount={foodOrder?.totalAmount || foodOrder?.grandTotal || null}
-          itemCount={foodOrder?.foodCartItems?.length || foodOrder?.itemCount || null}
+          totalAmount={foodOrder?.totalPrice ?? null}
+          itemCount={foodOrder?.foodOrderItems?.length ?? null}
           userEmail={user?.email}
-          foodMartName={foodOrder?.foodMart?.title || null}
+          foodMartName={null}
         />
       ) : (
         <FoodOrderFailed userName={user?.name} />

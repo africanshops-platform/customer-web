@@ -48,7 +48,7 @@ function FinanceShellInner() {
   const { data: rawAccount, isLoading: accountLoading } = useMyAccount();
   const { data: balance, isLoading: balanceLoading, refetch: refetchBalance } = useBalance('NGN');
   const { data: txHistory, refetch: refetchTxHistory } = useTransactionHistory({ limit: 5 });
-  const { data: kycStatus } = useKycStatus();
+  const { data: kycStatus, isLoading: kycLoading } = useKycStatus();
   const authUser = useSelector(selectUser);
 
   // Retail-9 (2026-07-12) bugfix: accountName on the fintech `accounts` row
@@ -99,22 +99,28 @@ function FinanceShellInner() {
     />
   ), [balance, balanceLoading, recentTx, account]);
 
-  // Show wallet setup wizard for brand-new users
-  if (!accountLoading && account === null) {
-    return (
-      <div style={{ background: tokens.pageBg, minHeight: '100vh' }}>
-        <WalletSetupWizard onComplete={() => window.location.reload()} />
-      </div>
-    );
-  }
-
-  if (accountLoading) {
+  // 2026-09-02: reverted the KYC-before-wallet-creation gate (added
+  // 2026-08-02) to match the mobile app's flow, on the founder's explicit
+  // direction — provision the wallet first, verify identity after. Money
+  // movement past a KYC-appropriate cap is enforced server-side by
+  // checkTransferLimits (fintech-accounts.service.ts), not by blocking
+  // wallet creation itself.
+  if (accountLoading || kycLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ background: tokens.pageBg }}>
         <div className="text-center">
           <CircularProgress sx={{ color: tokens.accentSolid }} />
           <Typography className="mt-16 text-sm" style={{ color: tokens.textPrimary }}>Loading your wallet…</Typography>
         </div>
+      </div>
+    );
+  }
+
+  // Show wallet setup wizard for brand-new, already-verified users
+  if (account === null) {
+    return (
+      <div style={{ background: tokens.pageBg, minHeight: '100vh' }}>
+        <WalletSetupWizard onComplete={() => window.location.reload()} />
       </div>
     );
   }

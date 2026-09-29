@@ -196,7 +196,7 @@ export default function FinanceOverviewContent() {
             <span style={{ fontWeight: 700 }}>Identity verification under review.</span>{' '}
             Financial operations will be unlocked once our team approves your documents.
           </Typography>
-          <Link to="/onboarding/kyc" style={{ textDecoration: 'none' }}>
+          <Link to="/account/kyc" style={{ textDecoration: 'none' }}>
             <Button size="small" sx={{ color: tokens.warning, textTransform: 'none', fontWeight: 700, fontSize: F.small }}>Check Status</Button>
           </Link>
         </motion.div>

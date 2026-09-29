@@ -16,12 +16,13 @@ import {
   useCancleOrderItem,
   useRequestRefundOnOrderItem,
 } from "app/configs/data/server-calls/auth/userapp/a_marketplace/useProductsRepo";
+import RaiseDisputeDialog from "src/app/main/zrootclient/buz-disputes/RaiseDisputeDialog";
 
 /**
  * Order Detail Content - Production Ready
  */
 function DemoContent(props) {
-  const { isLoading, isError, userOrder } = props;
+  const { isLoading, isError, userOrder, orderId } = props;
   const cancelOrderItem = useCancleOrderItem();
   const requestRefund = useRequestRefundOnOrderItem();
 
@@ -29,6 +30,7 @@ function DemoContent(props) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState(null);
+  const [disputeDialogOpen, setDisputeDialogOpen] = useState(false);
 
   const handleCancelDialogOpen = (itemId) => {
     setSelectedItemId(itemId);
@@ -555,7 +557,7 @@ function DemoContent(props) {
 
                 {/* Action Buttons */}
                 <div className="mt-4 flex flex-wrap gap-3">
-                  {!orderItem?.isCanceled && !orderItem?.isDelivered && (
+                  {!orderItem?.isCanceled && !orderItem?.isDelivered && !userOrder?.isShipped && (
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -588,11 +590,40 @@ function DemoContent(props) {
                       Request Refund
                     </motion.button>
                   )}
+
+                  {/* Gated on the ORDER-level flag, not orderItem?.isDelivered
+                      (item-level) — the dispute-eligibility check on the
+                      backend reads the parent order's isDelivered, and in
+                      practice item-level delivery flags can lag behind the
+                      order-level one, so item-level would hide this button
+                      on orders the backend would actually accept. */}
+                  {userOrder?.isDelivered && (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setDisputeDialogOpen(true)}
+                      className="px-6 py-2 rounded-xl font-semibold text-sm transition-all"
+                      style={{
+                        background: "white",
+                        color: "#dc2626",
+                        border: "1px solid rgba(220, 38, 38, 0.4)",
+                      }}
+                    >
+                      Report an issue
+                    </motion.button>
+                  )}
                 </div>
               </div>
             </motion.div>
           ))}
         </motion.div>
+
+        <RaiseDisputeDialog
+          open={disputeDialogOpen}
+          onClose={() => setDisputeDialogOpen(false)}
+          orderId={orderId}
+          orderType="PRODUCT"
+        />
 
         {/* Payment & Order Progress Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

@@ -77,7 +77,7 @@ const bookingsNavigationConfig = [
 				title: 'Wallet',
 				type: 'item',
 				icon: 'heroicons-outline:clipboard-check',
-				url: '/africanshops/finance'
+				url: '/africanshops/finance-v2'
 			}
 
 			// {

@@ -1,0 +1,37 @@
+#!/bin/sh
+# Compulsory check: refuses to push any commit that adds/modifies a file
+# matching real env/secret filenames (.env, .env.test, .env.prod, etc).
+# Template files ending in .example/.sample/.template are exempt -- those
+# are meant to be committed as a reference for what keys exist.
+z40=0000000000000000000000000000000000000000
+
+while read local_ref local_sha remote_ref remote_sha; do
+  if [ "$local_sha" = "$z40" ]; then
+    continue
+  fi
+  if [ "$remote_sha" = "$z40" ]; then
+    range="$local_sha"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+
+  # husky invokes this with `sh -e`: grep exits 1 when it finds nothing,
+  # which is the normal/safe case here -- without `|| true`, that non-zero
+  # status inside the command substitution trips errexit and aborts the
+  # script, blocking every push unconditionally regardless of content.
+  bad_files=$(git diff --name-only "$range" -- 2>/dev/null | grep -E '(^|/)\.env(\..+)?$' | grep -vE '\.(example|sample|template)$' || true)
+
+  if [ -n "$bad_files" ]; then
+    echo ""
+    echo "BLOCKED: this push contains real env/secret files:"
+    echo "$bad_files" | sed 's/^/  /'
+    echo ""
+    echo "Env files must never be committed. If one of these is genuinely"
+    echo "safe to commit (e.g. a .env.example template), rename it to end"
+    echo "in .example/.sample/.template."
+    echo ""
+    exit 1
+  fi
+done
+
+exit 0
