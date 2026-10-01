@@ -11,6 +11,7 @@ import {
 	getUserShoppingCartForAuthAndGuest,
 	getWishlistItemStatusApi,
 	payAndPlaceOrderApi,
+	reissueDeliveryCodeApi,
 	removeCommodityFromCartApi,
 	removeFromWishlistApi,
 	requestRefundOnUserItemInInvoiceApi,
@@ -277,6 +278,13 @@ export function useRemoveCartItem() {
  * #################################################################
  */
 
+/** ***Ask for a NEW delivery code for an order (the old one stops working). The plaintext comes back once. */
+export function useReissueDeliveryCode() {
+	return useMutation((orderId) => reissueDeliveryCodeApi(orderId), {
+		onError: handleNestJSError
+	});
+}
+
 /** ***Pay and make payment for order */
 export function usePayAndPlaceOrder() {
 	const navigate = useNavigate();
@@ -293,8 +301,11 @@ export function usePayAndPlaceOrder() {
 					toast.success(data?.data?.message);
 					queryClient.invalidateQueries(['__cart']);
 					queryClient.refetchQueries('__cart', { force: true });
+					// The delivery code is shown ONCE on the success page (passed in route state, never
+					// stored or put in the URL); after that the customer can only request a new one.
 					navigate(
-						`/marketplace/order/${data?.data?.data?.order?.id || data?.data?.data?.order?._id}/payment-success`
+						`/marketplace/order/${data?.data?.data?.order?.id || data?.data?.data?.order?._id}/payment-success`,
+						{ state: { deliveryCode: data?.data?.data?.deliveryCode ?? null } }
 					);
 				} else if (data?.data?.error) {
 					toast.error(data?.data?.error?.message);

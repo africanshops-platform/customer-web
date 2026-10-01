@@ -17,6 +17,7 @@ import {
   useRequestRefundOnOrderItem,
 } from "app/configs/data/server-calls/auth/userapp/a_marketplace/useProductsRepo";
 import RaiseDisputeDialog from "src/app/main/zrootclient/buz-disputes/RaiseDisputeDialog";
+import { DeliveryCodePanel } from "../../../components/DeliveryCodeCard";
 
 /**
  * Order Detail Content - Production Ready
@@ -444,6 +445,9 @@ function DemoContent(props) {
             </div>
           </div>
         </motion.div>
+
+        {/* Delivery code: shown once at checkout; here the customer can only ask for a NEW one */}
+        <DeliveryCodePanel order={userOrder} orderId={orderId} />
 
         {/* Order Items */}
         <motion.div

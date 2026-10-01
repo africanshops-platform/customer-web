@@ -2,6 +2,7 @@ import { Button } from "@mui/material";
 import { motion } from "framer-motion";
 import { CheckCircle, ShoppingBag } from "@mui/icons-material";
 import NavLinkAdapter from "@fuse/core/NavLinkAdapter";
+import { DeliveryCodeSuccessCard } from "../components/DeliveryCodeCard";
 
 /**
  * PaymentSuccessful Component for Marketplace
@@ -14,6 +15,7 @@ function PaymentSuccessful({
   totalAmount,
   itemCount,
   userEmail,
+  deliveryCode = null,
 }) {
   // Animation variants
   const containerVariants = {
@@ -215,6 +217,14 @@ function PaymentSuccessful({
                   )}
                 </motion.div>
               )}
+
+              {/* The delivery code — shown once; the customer presents it to the delivery person */}
+              <motion.div variants={itemVariants}>
+                <DeliveryCodeSuccessCard
+                  code={deliveryCode}
+                  orderViewPath={`/marketplace/user/orders/${orderId}/view-order`}
+                />
+              </motion.div>
 
               {/* Email Confirmation Notice */}
               {userEmail && (
