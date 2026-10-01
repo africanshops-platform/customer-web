@@ -274,6 +274,15 @@ export const getFoodCheckoutReadiness = () => {
 	return AuthApi().get(`checkout-readiness/food`);
 };
 
+/** E7 (2026-10-01) — Engineering Services service-booking invoice payment. */
+export const getEngineeringCheckoutReadiness = () => {
+	return AuthApi().get(`checkout-readiness/engineering`);
+};
+
+export const verifyEngineeringBookingPaymentApi = (formData) => {
+	return AuthApi().post(`paystack-payment/verify-and-pay-engineering-booking`, formData);
+};
+
 /** *****
  *                      BOOKINGS APP
  * #######################################################################################
