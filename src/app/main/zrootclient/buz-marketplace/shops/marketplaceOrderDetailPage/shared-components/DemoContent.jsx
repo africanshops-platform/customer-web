@@ -18,7 +18,7 @@ import {
 } from "app/configs/data/server-calls/auth/userapp/a_marketplace/useProductsRepo";
 import RaiseDisputeDialog from "src/app/main/zrootclient/buz-disputes/RaiseDisputeDialog";
 import { DeliveryCodePanel } from "../../../components/DeliveryCodeCard";
-import { canCancelItem, droppedLabel, isWarehouseRouted, warehouseStatusLabel, warehouseTimeline } from "./orderTracking";
+import { canCancelItem, complaintWindow, droppedLabel, isWarehouseRouted, warehouseStatusLabel, warehouseTimeline } from "./orderTracking";
 
 /**
  * Order Detail Content - Production Ready
@@ -612,7 +612,18 @@ function DemoContent(props) {
                       practice item-level delivery flags can lag behind the
                       order-level one, so item-level would hide this button
                       on orders the backend would actually accept. */}
-                  {userOrder?.isDelivered && (
+                  {userOrder?.isDelivered && complaintWindow(userOrder).state === "open" && (
+                    <p className="w-full text-xs text-gray-600" data-testid="complaint-window-open">
+                      You have about {complaintWindow(userOrder).hoursLeft} hour
+                      {complaintWindow(userOrder).hoursLeft === 1 ? "" : "s"} left to report an issue with this order.
+                    </p>
+                  )}
+                  {userOrder?.isDelivered && complaintWindow(userOrder).state === "closed" && (
+                    <p className="w-full text-xs text-gray-500" data-testid="complaint-window-closed">
+                      The 48-hour window to report an issue with this order has closed.
+                    </p>
+                  )}
+                  {userOrder?.isDelivered && complaintWindow(userOrder).state !== "closed" && (
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}

@@ -103,3 +103,21 @@ export function droppedLabel(reason) {
 
 	return reason ? 'Unavailable — refund on its way' : 'Cancelled';
 }
+
+/**
+ * The post-delivery complaint window (48h). `open`: the customer can still report an issue (a hold is placed
+ * on the merchant's payout); `closed`: defect complaints are no longer considered; `none`: the order predates
+ * the window, so reporting stays available as before.
+ */
+export function complaintWindow(order, now = Date.now()) {
+	if (!order?.isDelivered) return { state: 'none' };
+
+	if (!order.complaintWindowEndsAt) return { state: 'none' };
+
+	const endsAt = new Date(order.complaintWindowEndsAt);
+	const msLeft = endsAt.getTime() - now;
+
+	if (msLeft <= 0) return { state: 'closed', endsAt };
+
+	return { state: 'open', endsAt, hoursLeft: Math.max(1, Math.ceil(msLeft / 3600000)) };
+}
