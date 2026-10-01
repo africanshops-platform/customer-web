@@ -537,7 +537,7 @@ function DemoContent(props) {
                             border: "1px solid rgba(249, 115, 22, 0.3)",
                           }}
                         >
-                          Processing
+                          {isWarehouseRouted(userOrder) ? warehouseStatusLabel(userOrder) : "Processing"}
                         </div>
                       )}
                       {orderItem?.isCanceled && (
