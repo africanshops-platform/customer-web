@@ -84,3 +84,22 @@ export function warehouseStatusLabel(order) {
   if (order?.isShipped) return 'On its way to the warehouse';
   return 'Processing';
 }
+
+/** Has packing started? After that an item can no longer be cancelled (the packed order stays whole). */
+export function packingStarted(order) {
+	if (!order) return false;
+
+	if (isWarehouseRouted(order)) return rankOf(order.fulfillmentStage) >= rankOf('PACKING');
+
+	return Boolean(order.isPacked || order.isShipped);
+}
+
+/** The customer may cancel an item only before packing starts (the server enforces the same rule). */
+export const canCancelItem = (order, item) => !item?.isCanceled && !item?.isDelivered && !packingStarted(order);
+
+/** What to tell the customer about an item that is no longer coming. */
+export function droppedLabel(reason) {
+	if (reason === 'CANCELED_BY_CUSTOMER') return 'Cancelled — refund requested';
+
+	return reason ? 'Unavailable — refund on its way' : 'Cancelled';
+}

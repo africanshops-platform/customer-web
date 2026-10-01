@@ -18,7 +18,7 @@ import {
 } from "app/configs/data/server-calls/auth/userapp/a_marketplace/useProductsRepo";
 import RaiseDisputeDialog from "src/app/main/zrootclient/buz-disputes/RaiseDisputeDialog";
 import { DeliveryCodePanel } from "../../../components/DeliveryCodeCard";
-import { isWarehouseRouted, warehouseStatusLabel, warehouseTimeline } from "./orderTracking";
+import { canCancelItem, droppedLabel, isWarehouseRouted, warehouseStatusLabel, warehouseTimeline } from "./orderTracking";
 
 /**
  * Order Detail Content - Production Ready
@@ -550,7 +550,7 @@ function DemoContent(props) {
                             border: "1px solid rgba(239, 68, 68, 0.3)",
                           }}
                         >
-                          {orderItem?.droppedReason ? "Unavailable — refund on its way" : "Cancelled"}
+                          {droppedLabel(orderItem?.droppedReason)}
                         </div>
                       )}
                       {orderItem?.isRefundRequested && (
@@ -572,7 +572,7 @@ function DemoContent(props) {
 
                 {/* Action Buttons */}
                 <div className="mt-4 flex flex-wrap gap-3">
-                  {!orderItem?.isCanceled && !orderItem?.isDelivered && !userOrder?.isShipped && (
+                  {canCancelItem(userOrder, orderItem) && (
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
