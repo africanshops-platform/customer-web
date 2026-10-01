@@ -18,6 +18,7 @@ import {
 } from "app/configs/data/server-calls/auth/userapp/a_marketplace/useProductsRepo";
 import RaiseDisputeDialog from "src/app/main/zrootclient/buz-disputes/RaiseDisputeDialog";
 import { DeliveryCodePanel } from "../../../components/DeliveryCodeCard";
+import { isWarehouseRouted, warehouseStatusLabel, warehouseTimeline } from "./orderTracking";
 
 /**
  * Order Detail Content - Production Ready
@@ -77,6 +78,16 @@ function DemoContent(props) {
         color: "#16a34a",
         bgColor: "rgba(34, 197, 94, 0.1)",
         borderColor: "rgba(34, 197, 94, 0.3)",
+      };
+    }
+    if (isWarehouseRouted(userOrder)) {
+      const label = warehouseStatusLabel(userOrder);
+      const ready = label === "Ready for delivery" || label === "Packed";
+      return {
+        label,
+        color: ready ? "#16a34a" : "#2563eb",
+        bgColor: ready ? "rgba(34, 197, 94, 0.1)" : "rgba(59, 130, 246, 0.1)",
+        borderColor: ready ? "rgba(34, 197, 94, 0.3)" : "rgba(59, 130, 246, 0.3)",
       };
     }
     if (userOrder?.hasArrivedWarehouse) {
@@ -713,6 +724,30 @@ function DemoContent(props) {
               <h3 className="text-lg font-bold text-gray-900">Order Progress</h3>
             </div>
 
+            {isWarehouseRouted(userOrder) ? (
+              <div className="space-y-3" data-testid="warehouse-timeline">
+                {warehouseTimeline(userOrder).map((step) => (
+                  <div key={step.key} className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">{step.label}:</span>
+                    <span
+                      className={`font-semibold ${
+                        step.state === "done"
+                          ? "text-green-600"
+                          : step.state === "active"
+                            ? "text-blue-600"
+                            : "text-gray-400"
+                      }`}
+                    >
+                      {step.state === "done"
+                        ? step.doneText
+                        : step.state === "active"
+                          ? step.activeText || "Pending..."
+                          : "Pending..."}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">Packaged:</span>
@@ -747,6 +782,7 @@ function DemoContent(props) {
                 </span>
               </div>
             </div>
+            )}
           </motion.div>
         </div>
 
