@@ -550,7 +550,7 @@ function DemoContent(props) {
                             border: "1px solid rgba(239, 68, 68, 0.3)",
                           }}
                         >
-                          Cancelled
+                          {orderItem?.droppedReason ? "Unavailable — refund on its way" : "Cancelled"}
                         </div>
                       )}
                       {orderItem?.isRefundRequested && (
@@ -589,7 +589,7 @@ function DemoContent(props) {
                     </motion.button>
                   )}
 
-                  {orderItem?.isCanceled && !orderItem?.isRefundRequested && (
+                  {orderItem?.isCanceled && !orderItem?.droppedReason && !orderItem?.isRefundRequested && (
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
