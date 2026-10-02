@@ -44,15 +44,8 @@ function FoodCartSummaryAndPay({
 }) {
   const user = useAppSelector(selectUser);
 
-  // Food orders are LGA-locked: the vendor's own LGA (real server-side field on the food
-  // cart session, cartSession.lgaId — a stale client-side cookie was used here previously
-  // and was never populated by the actual add-to-cart flow, silently breaking every food
-  // order's foodMart/LGA fields) must match the delivery LGA — food needs to travel fast,
-  // so cross-LGA (let alone cross-state) delivery isn't offered.
-  const isOutsideVendorLga =
-    !!cartSession?.lgaId &&
-    !!orderLgaDestination &&
-    cartSession.lgaId !== orderLgaDestination;
+  // Range rule (2026-10-02): a restaurant may be up to 50 km from the delivery location. The server enforces it and
+  // answers the fee estimate with the distance, or a clear 'too far' message that is shown below and blocks payment.
 
   const queryClient = useQueryClient();
   const [deliveryFee, setDeliveryFee] = useState(0);
@@ -83,7 +76,7 @@ function FoodCartSummaryAndPay({
   // it never recalculates (the backend re-runs the same calculation itself, authoritatively,
   // at verify time — that's a separate concern from what the customer sees before paying).
   useEffect(() => {
-    if (!orderLgaDestination) {
+    if (!orderLgaDestination && !exactPoint) {
       setDeliveryFee(0);
       setDeliveryError(null);
       return;
@@ -91,8 +84,7 @@ function FoodCartSummaryAndPay({
 
     const destinationPayload = {
       // food goes restaurant -> the customer's home: the destination is their LGA, refined by their exact point
-      destinationGeoId: orderLgaDestination,
-      destinationLevel: "LGA",
+      ...(orderLgaDestination ? { destinationGeoId: orderLgaDestination, destinationLevel: "LGA" } : {}),
       // the customer's exact point (when shared) prices the real distance from the restaurant
       ...(exactPoint ? { destinationLat: exactPoint.lat, destinationLng: exactPoint.lng } : {}),
     };
@@ -103,14 +95,15 @@ function FoodCartSummaryAndPay({
         if (result?.success) {
           setDeliveryFee(Math.round((result.amountKobo ?? 0) / 100));
           setDeliveryError(null);
-          setDeliveryDetail({ breakdown: result.breakdown, restaurantPinned: result.restaurantPinned });
+          setDeliveryDetail({ breakdown: result.breakdown, restaurantPinned: result.restaurantPinned, restaurantDistanceKm: result.restaurantDistanceKm });
         }
       },
       onError: (error) => {
         setDeliveryFee(0);
+        setDeliveryDetail(null);
         setDeliveryError(
           error?.response?.data?.message ||
-            "Delivery isn't available to this location yet — try a different pickup point.",
+            "Delivery isn't available to this location yet — try a different delivery address.",
         );
       },
     });
@@ -189,7 +182,6 @@ function FoodCartSummaryAndPay({
     !orderStateProvinceDestination ||
     !orderLgaDestination ||
     !district ||
-    isOutsideVendorLga ||
     deliveryLoading ||
     !!deliveryError ||
     paymentFailedPermanently ||
@@ -255,11 +247,16 @@ function FoodCartSummaryAndPay({
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Delivery Fee</span>
             <span className="font-semibold text-gray-800">
-              {deliveryLoading ? "Calculating…" : `₦${formatCurrency(deliveryFee)}`}
+              {deliveryLoading
+                ? "Calculating…"
+                : !orderLgaDestination && !exactPoint
+                  ? "Set your location"
+                  : `₦${formatCurrency(deliveryFee)}`}
             </span>
           </div>
-          {!deliveryLoading && deliveryFee > 0 && deliveryDetail?.breakdown && (
+          {!deliveryLoading && !deliveryError && (deliveryDetail?.breakdown || deliveryDetail?.restaurantDistanceKm != null) && (
             <p className="text-xs text-gray-500 -mt-2" data-testid="food-fee-breakdown">
+              {deliveryDetail.restaurantDistanceKm != null ? `Restaurant is about ${Math.round(deliveryDetail.restaurantDistanceKm)} km from you · ` : ""}
               {deliveryDetail.restaurantPinned ? "Measured from the restaurant" : "Measured from the restaurant's area"}
               {deliveryDetail.breakdown.distanceKm ? ` · about ${deliveryDetail.breakdown.distanceKm} km` : ""}
               {deliveryDetail.breakdown.minimumApplied ? " · minimum delivery charge applied" : ""}
@@ -384,9 +381,7 @@ function FoodCartSummaryAndPay({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                     <p className="text-xs text-red-700 font-semibold">
-                      {isOutsideVendorLga
-                        ? "This food mart only delivers within its own L.G.A/County — choose a delivery location in the same L.G.A."
-                        : deliveryError || "Please complete all required fields"}
+                      {deliveryError || "Please complete all required fields"}
                     </p>
                   </div>
                 </div>

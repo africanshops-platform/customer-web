@@ -33,6 +33,9 @@ import { useGetMyFoodCart } from "app/configs/data/server-calls/auth/userapp/a_f
 import FoodCartSummaryAndPay from "./components/FoodCartSummaryAndPay";
 import "../buz-marketplace/shops/checkout-comfort.css";
 import FoodDeliveryTimePicker from "./components/FoodDeliveryTimePicker";
+import DeliveryPointPanel from "./components/DeliveryPointPanel";
+import { locateDestinationApi } from "app/configs/data/client/clientToApiRoutes";
+import { useGetUserAddresses, useCreateUserAddress } from "app/configs/data/server-calls/auth/userapp/a_bookings/use-addresses";
 import MyAddresses from "../buz-bookings/user-reservations/MyAddresses";
 import { formatCurrency } from "../../vendors-shop/PosUtils";
 import { selectUser } from "../../../auth/user/store/userSlice";
@@ -179,6 +182,8 @@ function FoodCartReview() {
   // exact point the customer shared from their device: prices the delivery distance from the restaurant precisely
   const [exactPoint, setExactPoint] = useState(null);
   const [locatingExact, setLocatingExact] = useState(false);
+  const [located, setLocated] = useState(null); // nearest LGA/state/country of the pinned point
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [deliverBy, setDeliverBy] = useState("");
 
   const methods = useForm({
@@ -250,26 +255,94 @@ function FoodCartReview() {
     await trigger(["name", "phone", "address"]);
   };
 
-  /** "Use my exact location": the device position, so the fee reflects the real distance from the restaurant. */
+  const { data: savedAddresses = [] } = useGetUserAddresses({ enabled: Boolean(user?.id) });
+  const createAddress = useCreateUserAddress();
+
+  /** A new pin (tap, drag, search, device location): remember it, then fill Country / State / L.G.A from it so the
+   *  fee can be priced straight away. The selects stay editable. */
+  const setDeliveryPoint = async (pt) => {
+    setExactPoint(pt);
+    try {
+      const res = await locateDestinationApi(pt.lat, pt.lng);
+      const data = res?.data;
+      if (data?.success) {
+        setLocated(data);
+        await applyDeliveryLocation({ country: data.country?.id, state: data.state?.id, lga: data.lga?.id });
+      }
+    } catch (err) {
+      setLocated(null);
+      toast.info(err?.response?.data?.message || "We could not match that spot to a delivery area — choose your Country, State and L.G.A below.");
+    }
+  };
+
+  /** "Use my current location": the device position. */
   const shareExactLocation = () => {
     if (!navigator.geolocation) {
-      toast.info("This device can't share its location.");
+      toast.info("This device can't share its location — tap the map to place your pin instead.");
       return;
     }
     setLocatingExact(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setExactPoint({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setLocatingExact(false);
-        toast.success("Delivery distance will be measured to your exact location");
+        setSelectedAddressId(null);
+        setDeliveryPoint({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       },
       () => {
         setLocatingExact(false);
-        toast.info("Location permission was declined — the fee will use your chosen area instead.");
+        toast.info("Location permission was declined — tap the map or search your address instead.");
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     );
   };
+
+  /** One click: a saved address fills the whole form (name, phone, street, area) and its pinned point. */
+  const pickSavedAddress = async (a) => {
+    setSelectedAddressId(a.id);
+    await handleSelectAddress(a);
+    if (a.latitude != null && a.longitude != null) {
+      setExactPoint({ lat: a.latitude, lng: a.longitude });
+      setLocated(null);
+    } else {
+      setExactPoint(null);
+      setLocated(null);
+    }
+  };
+
+  const useDifferentAddress = () => {
+    setSelectedAddressId(null);
+    setExactPoint(null);
+    setLocated(null);
+    ["address", "district"].forEach((k) => setValue(k, "", { shouldValidate: true, shouldDirty: true }));
+  };
+
+  /** Keep this delivery address (with its pin) for next time. */
+  const saveCurrentAddress = (label) => {
+    createAddress.mutate(
+      {
+        name,
+        phone,
+        address,
+        label,
+        isDefault: savedAddresses.length === 0,
+        country: orderCountryDestination || undefined,
+        state: orderStateProvinceDestination || undefined,
+        lga: orderLgaDestination || undefined,
+        latitude: exactPoint?.lat,
+        longitude: exactPoint?.lng,
+      },
+      { onSuccess: (res) => res?.data?.address?.id && setSelectedAddressId(res.data.address.id) },
+    );
+  };
+
+  // The customer's default saved address is picked for them once, so a returning customer starts with a full form.
+  const [autoPicked, setAutoPicked] = useState(false);
+  useEffect(() => {
+    if (autoPicked || !savedAddresses.length || name || address) return;
+    const preferred = savedAddresses.find((a) => a.isDefault) || savedAddresses[0];
+    setAutoPicked(true);
+    pickSavedAddress(preferred);
+  }, [savedAddresses]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cartProducts = foodCart?.data?.userFoodCartSession?.cartProducts || [];
   const cartSession = foodCart?.data?.userFoodCartSession || {};
@@ -449,22 +522,24 @@ function FoodCartReview() {
                     />
 
                     <div className="p-4 sm:p-6 space-y-4">
-                      <div className="flex flex-wrap gap-3">
-                        <Button
-                          variant={exactPoint ? "contained" : "outlined"}
-                          onClick={shareExactLocation}
-                          disabled={locatingExact}
-                          data-testid="use-exact-location"
-                          sx={{ textTransform: "none", borderColor: "#ea580c", color: exactPoint ? "#fff" : "#ea580c", bgcolor: exactPoint ? "#ea580c" : "transparent", fontWeight: 600, "&:hover": { bgcolor: exactPoint ? "#c2410c" : "rgba(234,88,12,0.06)" } }}
-                        >
-                          {locatingExact ? "Locating you…" : exactPoint ? "✓ Delivering to my exact location" : "📍 Use my current location"}
-                        </Button>
-                        {exactPoint && (
-                          <Button size="small" onClick={() => setExactPoint(null)} sx={{ textTransform: "none", color: "#6b7280" }}>
-                            Clear
-                          </Button>
-                        )}
-                      </div>
+                      <DeliveryPointPanel
+                        addresses={savedAddresses}
+                        selectedAddressId={selectedAddressId}
+                        onPickSaved={pickSavedAddress}
+                        onDifferentAddress={useDifferentAddress}
+                        point={exactPoint}
+                        onPointChange={(pt) => {
+                          setSelectedAddressId(null);
+                          setDeliveryPoint(pt);
+                        }}
+                        locating={locatingExact}
+                        onUseCurrentLocation={shareExactLocation}
+                        searchText={[address, district].filter(Boolean).join(", ")}
+                        located={located}
+                        canSave={Boolean(user?.id) && !selectedAddressId && Boolean(name && phone && address)}
+                        saving={createAddress.isLoading}
+                        onSave={saveCurrentAddress}
+                      />
                       {/* Country + State */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -554,18 +629,6 @@ function FoodCartReview() {
                         </div>
                       </div>
 
-                      {/* Delivery point confirmation */}
-                      {exactPoint ? (
-                        <div className="p-4 rounded-xl" style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)" }}>
-                          <p className="m-0 font-semibold text-gray-800 text-sm">Delivering to your shared location</p>
-                          <p className="m-0 mt-1 text-xs text-gray-600">The delivery fee is measured from the restaurant to this exact point.</p>
-                        </div>
-                      ) : (
-                        <div className="p-4 rounded-xl" style={{ background: "rgba(245,158,11,0.10)", border: "1px solid rgba(245,158,11,0.3)" }}>
-                          <p className="m-0 font-semibold text-gray-800 text-sm">Tip: share your current location</p>
-                          <p className="m-0 mt-1 text-xs text-gray-600">Without it the fee uses a standard rate for your area; sharing it prices the real distance from the restaurant and helps the rider find you.</p>
-                        </div>
-                      )}
                     </div>
                   </motion.div>
 

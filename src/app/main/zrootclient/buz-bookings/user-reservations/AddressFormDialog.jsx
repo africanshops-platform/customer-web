@@ -16,6 +16,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import DeliveryLocationFields from "./DeliveryLocationFields";
+import LocationPickerMap from "../../buz-foodmart/components/LocationPickerMap";
 import { useCreateUserAddress } from "app/configs/data/server-calls/auth/userapp/a_bookings/use-addresses";
 
 /**
@@ -33,6 +34,9 @@ const addressSchema = z.object({
     .nonempty("Address is required")
     .min(10, "Address must be at least 10 characters"),
   isDefault: z.boolean().optional(),
+  label: z.string().max(40).optional(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
   country: z.string().optional(),
   state: z.string().optional(),
   lga: z.string().optional(),
@@ -60,6 +64,9 @@ function AddressFormDialog({ open, onClose, onSuccess }) {
       phone: "",
       address: "",
       isDefault: false,
+      label: "",
+      latitude: null,
+      longitude: null,
       country: "",
       state: "",
       lga: "",
@@ -346,6 +353,31 @@ function AddressFormDialog({ open, onClose, onSuccess }) {
                 />
               )}
             />
+
+            {/* A short name, and the exact spot on the map (used by food checkout to fill itself in and price delivery) */}
+            <Controller
+              name="label"
+              control={control}
+              render={({ field }) => <TextField {...field} label="Name this address (e.g. Home)" fullWidth inputProps={{ maxLength: 40 }} sx={{ mb: 2 }} />}
+            />
+            <div className="mb-4">
+              <p className="m-0 mb-2 text-sm font-semibold text-gray-700">
+                Pin your exact location <span className="font-normal text-gray-500">(optional — tap the map or drag the pin)</span>
+              </p>
+              <LocationPickerMap
+                height={240}
+                value={watch("latitude") != null && watch("longitude") != null ? { lat: watch("latitude"), lng: watch("longitude") } : null}
+                onChange={(pt) => {
+                  setValue("latitude", pt.lat, { shouldDirty: true });
+                  setValue("longitude", pt.lng, { shouldDirty: true });
+                }}
+              />
+              {watch("latitude") != null && (
+                <Button size="small" onClick={() => { setValue("latitude", null, { shouldDirty: true }); setValue("longitude", null, { shouldDirty: true }); }} sx={{ textTransform: "none", mt: 1 }}>
+                  Remove pin
+                </Button>
+              )}
+            </div>
 
             {/* Set as Default Checkbox */}
             <Controller

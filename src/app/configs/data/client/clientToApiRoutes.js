@@ -486,5 +486,8 @@ export const merchantLogOutCall = () => {
 	}
 };
 
+/** A pinned point -> its nearest LGA/state/country (public): fills the delivery form and prices the fee. */
+export const locateDestinationApi = (lat, lng) => Api().get(`/buzshipping/locate?lat=${lat}&lng=${lng}`);
+
 /** Operational markets nearest to a coordinate, closest first (public) — "use my nearest pickup point". */
 export const getNearestMarketsApi = (lat, lng, limit = 3) => Api().get(`/markets/nearest?lat=${lat}&lng=${lng}&limit=${limit}`);
