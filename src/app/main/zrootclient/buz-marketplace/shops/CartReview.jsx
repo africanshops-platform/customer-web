@@ -1,4 +1,5 @@
 import _ from "@lodash";
+import "./checkout-comfort.css";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
@@ -314,7 +315,7 @@ function CartReview() {
     <FusePageSimple
       content={
         <>
-          <div className="min-h-screen flex flex-col px-4 md:px-8 lg:px-12 py-8 md:py-12">
+          <div className="checkout-comfort min-h-screen flex flex-col px-4 md:px-8 lg:px-12 py-8 md:py-12">
             <div className="max-w-[1600px] mx-auto w-full">
               <div className="flex flex-1 flex-col lg:flex-row gap-6 lg:gap-8">
                 {/* Left Side - Review & Form (60% width, scrollable) */}
@@ -698,6 +699,7 @@ function CartReview() {
                                     {...field}
                                     value={orderCountryDestination || ""}
                                     displayEmpty
+                                    MenuProps={{ className: "checkout-comfort" }}
                                     renderValue={(v) => (((countryData?.data?.countries) || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select Country")}
                                     variant="outlined"
                                     startAdornment={
@@ -765,6 +767,7 @@ function CartReview() {
                                     {...field}
                                     value={orderStateProvinceDestination || ""}
                                     displayEmpty
+                                    MenuProps={{ className: "checkout-comfort" }}
                                     renderValue={(v) => (((stateData) || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select State")}
                                     variant="outlined"
                                     disabled={!stateData || stateData.length === 0}
@@ -833,6 +836,7 @@ function CartReview() {
                                     {...field}
                                     value={orderLgaDestination || ""}
                                     displayEmpty
+                                    MenuProps={{ className: "checkout-comfort" }}
                                     renderValue={(v) => (((blgas) || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select L.G.A")}
                                     variant="outlined"
                                     disabled={!blgas || blgas.length === 0}
@@ -901,6 +905,7 @@ function CartReview() {
                                     {...field}
                                     value={orderMarketPickupDestination || ""}
                                     displayEmpty
+                                    MenuProps={{ className: "checkout-comfort" }}
                                     renderValue={(v) => (((markets) || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select Market")}
                                     variant="outlined"
                                     disabled={!markets || markets.length === 0}
@@ -1424,7 +1429,7 @@ function CartReview() {
                     </div>
 
                     {/* Warehouse Location Map - 60% of available height on desktop, full on mobile */}
-                    <div className="lg:h-[60%] lg:min-h-[450px] min-h-[400px]">
+                    <div className="lg:h-[60%] lg:min-h-[540px] min-h-[460px]">
                       {selectedMarketData?.lat && selectedMarketData?.lng ? (
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}
