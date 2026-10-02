@@ -401,8 +401,13 @@ function DemoContent(props) {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Order Details</h1>
-              <p className="text-sm sm:text-base text-gray-600">
-                Order ID: {userOrder?.paymentResult?.reference || "N/A"}
+              <p className="text-sm sm:text-base text-gray-600" data-testid="order-id-line">
+                Order #{String(userOrder?.id || userOrder?._id || "").slice(-8).toUpperCase() || "N/A"}
+                {userOrder?.paymentResult?.reference && (
+                  <span className="block text-xs text-gray-500">
+                    Payment reference: {userOrder.paymentResult.reference}
+                  </span>
+                )}
               </p>
             </div>
 

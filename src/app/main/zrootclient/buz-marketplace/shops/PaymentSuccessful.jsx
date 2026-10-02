@@ -180,7 +180,7 @@ function PaymentSuccessful({
               </motion.div>
 
               {/* Order Summary */}
-              {(orderId || orderDate || totalAmount || itemCount) && (
+              {(orderId || orderDate || totalAmount > 0 || itemCount > 0) && (
                 <motion.div
                   variants={itemVariants}
                   className="rounded-lg p-5 mb-6"
@@ -204,15 +204,15 @@ function PaymentSuccessful({
                       <span className="font-medium">Order Date:</span> {orderDate}
                     </p>
                   )}
-                  {itemCount && (
+                  {itemCount > 0 && (
                     <p className="text-sm text-gray-600 mb-2">
                       <span className="font-medium">Items:</span> {itemCount}{" "}
                       {itemCount === 1 ? "item" : "items"}
                     </p>
                   )}
-                  {totalAmount && (
+                  {totalAmount > 0 && (
                     <p className="text-sm text-gray-700 font-semibold">
-                      <span className="font-medium">Total Amount:</span> ${totalAmount}
+                      <span className="font-medium">Total Amount:</span> ₦{Number(totalAmount).toLocaleString("en-NG")}
                     </p>
                   )}
                 </motion.div>

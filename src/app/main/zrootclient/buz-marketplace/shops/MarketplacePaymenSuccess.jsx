@@ -87,8 +87,8 @@ function MarketplacePaymenSuccess() {
           userName={user?.name}
           orderId={successPaidOrder?.data?.order?.id}
           orderDate={formatDateUtil(successPaidOrder?.data?.order?.createdAt)}
-          totalAmount={successPaidOrder?.data?.order?.totalAmount}
-          itemCount={successPaidOrder?.data?.order?.itemCount}
+          totalAmount={successPaidOrder?.data?.order?.totalPrice}
+          itemCount={successPaidOrder?.data?.order?.orderItems?.length}
           userEmail={user?.email}
           deliveryCode={deliveryCode}
         />
