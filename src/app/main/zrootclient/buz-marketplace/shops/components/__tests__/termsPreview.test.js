@@ -15,6 +15,11 @@ describe("terms preview", () => {
     expect(r.hasMore).toBe(true);
   });
 
+  it("skips blockquote lines (drafting notes) in the excerpt", () => {
+    const r = previewLines(["> Drafting note: not yet reviewed", "# Terms", "Real first line"].join("\n"), 5);
+    expect(r.lines).toEqual(["Terms", "Real first line"]);
+  });
+
   it("a short document has no 'more'", () => {
     expect(previewLines("Only one line").hasMore).toBe(false);
     expect(previewLines("").lines).toEqual([]);

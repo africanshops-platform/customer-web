@@ -17,6 +17,7 @@ export function stripMarkdown(line) {
 export function previewLines(markdown, count = 5) {
   const all = String(markdown ?? "")
     .split("\n")
+    .filter((line) => !/^\s*>/.test(line)) // blockquotes are editorial/drafting notes, never part of the excerpt
     .map(stripMarkdown)
     .filter(Boolean);
   return { lines: all.slice(0, count), hasMore: all.length > count };
