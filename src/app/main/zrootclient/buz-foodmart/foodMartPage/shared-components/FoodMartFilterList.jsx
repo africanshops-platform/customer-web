@@ -27,11 +27,10 @@ const FOODMART_CATEGORIES = [
 ];
 
 const OPERATION_MODES = [
-  { value: "RESTAURANT", label: "Dine-in Restaurant" },
-  { value: "TAKE_OUT", label: "Take Out" },
-  { value: "DELIVERY", label: "Delivery" },
-  { value: "BAR", label: "Bar" },
-  { value: "CLUB", label: "Club" },
+  { value: "RESTAURANT", label: "Restaurant" },
+  { value: "CAFE", label: "Café" },
+  { value: "CLUB", label: "Club / Lounge" },
+  { value: "SPOT", label: "Spot" },
 ];
 
 const inputSx = {

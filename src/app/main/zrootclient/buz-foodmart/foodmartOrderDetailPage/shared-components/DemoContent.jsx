@@ -12,6 +12,7 @@ import { CheckCircle, RestaurantMenu, DeliveryDining } from "@mui/icons-material
 import NavLinkAdapter from "@fuse/core/NavLinkAdapter";
 import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
 import ClienttErrorPage from "src/app/main/zrootclient/components/ClienttErrorPage";
+import FoodOrderTracker from "../../components/FoodOrderTracker";
 import RaiseDisputeDialog from "src/app/main/zrootclient/buz-disputes/RaiseDisputeDialog";
 
 const FOOD_STEPS = [
@@ -31,6 +32,14 @@ function resolveActiveStep(orderData) {
 
 function getStatusBadge(orderData) {
   const s = orderData?.status?.toLowerCase();
+  if (orderData?.kitchenStage === "DECLINED" || orderData?.isCancelled)
+    return { label: "Declined",   color: "#dc2626", bgColor: "rgba(239,68,68,0.1)",    borderColor: "rgba(239,68,68,0.3)"    };
+  if (orderData?.kitchenStage === "AWAITING_ACCEPTANCE")
+    return { label: "Awaiting chef", color: "#b45309", bgColor: "rgba(245,158,11,0.12)", borderColor: "rgba(245,158,11,0.35)" };
+  if (orderData?.kitchenStage === "GONE_TO_MARKET")
+    return { label: "At the market", color: "#7c3aed", bgColor: "rgba(124,58,237,0.1)", borderColor: "rgba(124,58,237,0.3)" };
+  if (orderData?.kitchenStage === "IN_PREPARATION")
+    return { label: "Cooking",    color: "#ea580c", bgColor: "rgba(249,115,22,0.1)",   borderColor: "rgba(249,115,22,0.3)"   };
   if (s === "cancelled" || s === "refunded")
     return { label: "Cancelled",  color: "#dc2626", bgColor: "rgba(239,68,68,0.1)",    borderColor: "rgba(239,68,68,0.3)"    };
   if (orderData?.isDelivered || s === "delivered" || s === "completed")
@@ -579,8 +588,11 @@ function DemoContent({ isLoading, isError, orderData, orderId }) {
           </div>
         </motion.div>
 
-        {/* Delivery progress tracker */}
-        {orderData?.isPaid && !isCancelled && (
+        {/* Kitchen-aware tracker for orders that carry a kitchen stage */}
+        {orderData?.isPaid && orderData?.kitchenStage && <FoodOrderTracker order={orderData} />}
+
+        {/* Delivery progress tracker (orders placed before kitchen tracking) */}
+        {orderData?.isPaid && !orderData?.kitchenStage && !isCancelled && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

@@ -32,6 +32,9 @@ import { useGetMyFoodCart } from "app/configs/data/server-calls/auth/userapp/a_f
 // import { formatCurrency } from "app/main/vendors-shop/PosUtils";
 // import { selectUser } from "app/auth/user/store/userSlice";
 import FoodCartSummaryAndPay from "./components/FoodCartSummaryAndPay";
+import "../buz-marketplace/shops/checkout-comfort.css";
+import useNearestPickup from "../buz-bookings/user-reservations/useNearestPickup";
+import FoodDeliveryTimePicker from "./components/FoodDeliveryTimePicker";
 import MyAddresses from "../buz-bookings/user-reservations/MyAddresses";
 import { formatCurrency } from "../../vendors-shop/PosUtils";
 import { selectUser } from "../../../auth/user/store/userSlice";
@@ -178,6 +181,10 @@ function FoodCartReview() {
   const [blgas, setBlgas] = useState([]);
   const [markets, setBMarkets] = useState([]);
   const [selectedMarketData, setSelectedMarketData] = useState(null);
+  // exact point the customer shared from their device: prices the delivery distance from the restaurant precisely
+  const [exactPoint, setExactPoint] = useState(null);
+  const [locatingExact, setLocatingExact] = useState(false);
+  const [deliverBy, setDeliverBy] = useState("");
 
   const methods = useForm({
     mode: "onChange",
@@ -237,11 +244,64 @@ function FoodCartReview() {
     if (res) setBMarkets(res?.data?.markets || []);
   }
 
+  /**
+   * Fill the destination selects the way a person does: set a level, let its list load, then the next.
+   * Setting all four at once leaves the dropdowns blank (their options arrive after the values).
+   */
+  const applyDeliveryLocation = async ({ country, state, lga, market }) => {
+    const opts = { shouldValidate: true, shouldDirty: true, shouldTouch: true };
+    if (country) {
+      setValue("orderCountryDestination", country, opts);
+      await findStatesByCountry();
+    }
+    if (country && state) {
+      setValue("orderStateProvinceDestination", state, opts);
+      await getLgasFromState(state);
+    }
+    if (state && lga) {
+      setValue("orderLgaDestination", lga, opts);
+      await getMarketsFromLgaId(lga);
+    }
+    if (lga && market) {
+      setValue("orderMarketPickupDestination", market, opts);
+    }
+  };
+
   const handleSelectAddress = async (selectedAddress) => {
     setValue("name", selectedAddress.name, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     setValue("phone", selectedAddress.phone, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     setValue("address", selectedAddress.address, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+    // the saved address's delivery location fills the destination too
+    await applyDeliveryLocation({
+      country: selectedAddress.country,
+      state: selectedAddress.state,
+      lga: selectedAddress.lga,
+      market: selectedAddress.market,
+    });
     await trigger(["name", "phone", "address"]);
+  };
+
+  const { locate: locateNearestPickup, locating: locatingNearest } = useNearestPickup((loc) => applyDeliveryLocation(loc));
+
+  /** "Use my exact location": the device position, so the fee reflects the real distance from the restaurant. */
+  const shareExactLocation = () => {
+    if (!navigator.geolocation) {
+      toast.info("This device can't share its location.");
+      return;
+    }
+    setLocatingExact(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setExactPoint({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocatingExact(false);
+        toast.success("Delivery distance will be measured to your exact location");
+      },
+      () => {
+        setLocatingExact(false);
+        toast.info("Location permission was declined — the fee will use your chosen area instead.");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
   };
 
   const cartProducts = foodCart?.data?.userFoodCartSession?.cartProducts || [];
@@ -264,7 +324,7 @@ function FoodCartReview() {
     <FusePageSimple
       content={
         <>
-          <div className="min-h-screen flex flex-col px-4 md:px-8 lg:px-12 py-8 md:py-12">
+          <div className="checkout-comfort min-h-screen flex flex-col px-4 md:px-8 lg:px-12 py-8 md:py-12">
             <div className="max-w-[1600px] mx-auto w-full">
               <div className="flex flex-1 flex-col lg:flex-row gap-6 lg:gap-8">
 
@@ -422,6 +482,31 @@ function FoodCartReview() {
                     />
 
                     <div className="p-4 sm:p-6 space-y-4">
+                      <div className="flex flex-wrap gap-3">
+                        <Button
+                          variant="outlined"
+                          onClick={locateNearestPickup}
+                          disabled={locatingNearest}
+                          data-testid="use-nearest-pickup"
+                          sx={{ textTransform: "none", borderColor: "#ea580c", color: "#ea580c", fontWeight: 600 }}
+                        >
+                          {locatingNearest ? "Finding your nearest pickup point…" : "📍 Use my nearest pickup point"}
+                        </Button>
+                        <Button
+                          variant={exactPoint ? "contained" : "outlined"}
+                          onClick={shareExactLocation}
+                          disabled={locatingExact}
+                          data-testid="use-exact-location"
+                          sx={{ textTransform: "none", borderColor: "#ea580c", color: exactPoint ? "#fff" : "#ea580c", bgcolor: exactPoint ? "#ea580c" : "transparent", fontWeight: 600, "&:hover": { bgcolor: exactPoint ? "#c2410c" : "rgba(234,88,12,0.06)" } }}
+                        >
+                          {locatingExact ? "Locating you…" : exactPoint ? "✓ Using my exact location" : "🎯 Measure delivery from my exact location"}
+                        </Button>
+                        {exactPoint && (
+                          <Button size="small" onClick={() => setExactPoint(null)} sx={{ textTransform: "none", color: "#6b7280" }}>
+                            Clear
+                          </Button>
+                        )}
+                      </div>
                       {/* Country + State */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -431,7 +516,7 @@ function FoodCartReview() {
                             name="orderCountryDestination"
                             render={({ field }) => (
                               <FormControl fullWidth error={!!errors.orderCountryDestination}>
-                                <Select {...field} displayEmpty variant="outlined" sx={selectSx}>
+                                <Select {...field} value={orderCountryDestination || ""} displayEmpty MenuProps={{ className: "checkout-comfort" }} renderValue={(v) => ((countryData?.data?.countries || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select Country")} variant="outlined" sx={selectSx}>
                                   <MenuItem value="" disabled>Select Country</MenuItem>
                                   {countryData?.data?.countries?.map((c, i) => (
                                     <MenuItem key={i} value={c?.id}>{c?.name}</MenuItem>
@@ -452,7 +537,7 @@ function FoodCartReview() {
                             name="orderStateProvinceDestination"
                             render={({ field }) => (
                               <FormControl fullWidth error={!!errors.orderStateProvinceDestination}>
-                                <Select {...field} displayEmpty variant="outlined" disabled={!stateData?.length} sx={selectSx}>
+                                <Select {...field} value={orderStateProvinceDestination || ""} displayEmpty MenuProps={{ className: "checkout-comfort" }} renderValue={(v) => ((stateData || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select State")} variant="outlined" disabled={!stateData?.length} sx={selectSx}>
                                   <MenuItem value="" disabled>Select State</MenuItem>
                                   {stateData?.map((s, i) => (
                                     <MenuItem key={i} value={s?.id}>{s?.name}</MenuItem>
@@ -476,7 +561,7 @@ function FoodCartReview() {
                             name="orderLgaDestination"
                             render={({ field }) => (
                               <FormControl fullWidth error={!!errors.orderLgaDestination}>
-                                <Select {...field} displayEmpty variant="outlined" disabled={!blgas?.length} sx={selectSx}>
+                                <Select {...field} value={orderLgaDestination || ""} displayEmpty MenuProps={{ className: "checkout-comfort" }} renderValue={(v) => ((blgas || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select L.G.A")} variant="outlined" disabled={!blgas?.length} sx={selectSx}>
                                   <MenuItem value="" disabled>Select L.G.A</MenuItem>
                                   {blgas?.map((l, i) => (
                                     <MenuItem key={i} value={l?.id}>{l?.name}</MenuItem>
@@ -497,7 +582,7 @@ function FoodCartReview() {
                             name="orderMarketPickupDestination"
                             render={({ field }) => (
                               <FormControl fullWidth error={!!errors.orderMarketPickupDestination}>
-                                <Select {...field} displayEmpty variant="outlined" disabled={!markets?.length} sx={selectSx}>
+                                <Select {...field} value={orderMarketPickupDestination || ""} displayEmpty MenuProps={{ className: "checkout-comfort" }} renderValue={(v) => ((markets || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select Market")} variant="outlined" disabled={!markets?.length} sx={selectSx}>
                                   <MenuItem value="" disabled>Select Market</MenuItem>
                                   {markets?.map((m, i) => (
                                     <MenuItem key={i} value={m?.id}>{m?.name}</MenuItem>
@@ -557,6 +642,8 @@ function FoodCartReview() {
                       )}
                     </div>
                   </motion.div>
+
+                  <FoodDeliveryTimePicker cartItems={cartProducts} value={deliverBy} onChange={setDeliverBy} />
 
                   {/* ── Section 3: Order Items Review ── */}
                   <motion.div
@@ -772,6 +859,8 @@ function FoodCartReview() {
                         isValid={isValid}
                         setIsProcessingPayment={setIsProcessingPayment}
                         selectedMarketData={selectedMarketData}
+                        exactPoint={exactPoint}
+                        deliverBy={deliverBy}
                       />
                     </div>
 

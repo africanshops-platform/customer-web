@@ -11,8 +11,18 @@ const DELIVERY_STEPS = [
   { key: "delivered",  label: "Delivered",  icon: <CheckCircle sx={{ fontSize: "1.25rem" }} /> },
 ];
 
+/** The order's real state from its flags / kitchen stage (orders have no `status` field). */
+function deriveStatus(order) {
+  if (order?.status) return order.status;
+  if (order?.isCancelled || order?.kitchenStage === "DECLINED") return "cancelled";
+  if (order?.isDelivered || order?.kitchenStage === "DELIVERED") return "delivered";
+  if (order?.isShipped || order?.kitchenStage === "OUT_FOR_DELIVERY") return "on_the_way";
+  if (order?.isPacked || ["IN_PREPARATION", "GONE_TO_MARKET", "ACCEPTED", "READY"].includes(order?.kitchenStage)) return "preparing";
+  return order?.isPaid ? "confirmed" : "pending";
+}
+
 function resolveActiveStep(order) {
-  const s = order?.status?.toLowerCase();
+  const s = deriveStatus(order)?.toLowerCase();
   if (!s || s === "pending")   return 0;
   if (s === "confirmed" || s === "processing" || s === "preparing") return 1;
   if (s === "dispatched" || s === "on_the_way" || s === "shipped")  return 2;
@@ -27,6 +37,10 @@ function StatusBadge({ isPaid, status }) {
     return <Chip label="Cancelled" sx={{ ...base, background: "rgba(239,68,68,0.1)", color: "#dc2626" }} />;
   if (s === "delivered" || s === "completed")
     return <Chip label="Delivered" sx={{ ...base, background: "rgba(34,197,94,0.1)", color: "#16a34a" }} />;
+  if (s === "on_the_way")
+    return <Chip label="On the way" sx={{ ...base, background: "rgba(124,58,237,0.1)", color: "#7c3aed" }} />;
+  if (s === "preparing")
+    return <Chip label="Preparing" sx={{ ...base, background: "rgba(249,115,22,0.14)", color: "#c2410c" }} />;
   if (isPaid)
     return <Chip label="Confirmed" sx={{ ...base, background: "rgba(249,115,22,0.1)", color: "#ea580c" }} />;
   return <Chip label="Unpaid" sx={{ ...base, background: "rgba(239,68,68,0.08)", color: "#dc2626", border: "1px solid rgba(239,68,68,0.3)" }} />;
@@ -45,7 +59,7 @@ const FoodOrderCard = ({ orderData }) => {
   const itemCount      = orderData?.foodOrderItems?.length ?? orderData?.foodCartItems?.length ?? 0;
   const dateStr        = orderData?.createdAt ? new Date(orderData.createdAt).toDateString() : "—";
   const isPaid         = orderData?.isPaid;
-  const status         = orderData?.status;
+  const status         = deriveStatus(orderData);
   const activeStep     = isPaid ? resolveActiveStep(orderData) : -1;
   const isCancelled    = status?.toLowerCase() === "cancelled" || status?.toLowerCase() === "refunded";
 

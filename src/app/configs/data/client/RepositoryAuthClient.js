@@ -383,6 +383,9 @@ export const payAndPlaceFoodOrderApi = (formData) => {
 
 export const getUserFoodInvoicesEnpoint = () => AuthApi().get(`${API_ENDPOINTS.GET_USER_FOOD_ORDER_LIST}`); // (Mcsvs => Done)
 
+/** Completed (sealed) food orders — finished orders live here, never in the active list */
+export const getUserSealedFoodOrdersEndpoint = () => AuthApi().get('/rcs-food-orders/sealed');
+
 export const getUserFoodInvoicesAndItemsByIdEnpoint = (foodOrderId) => {
 	return AuthApi().get(`/rcs-food-orders/${foodOrderId}/view`);
 };
@@ -448,6 +451,10 @@ export const getWishlistItemStatusApi = (productId) => AuthApi().get(`/wishlist/
  * Create a product review (2026-09-27, customer-9) -- purchase-gated
  * server-side; a 403 here means the caller hasn't bought this product.
  */
+/** Food menu reviews: may this customer review the dish, and post the review (order-gated server-side) */
+export const canReviewFoodMenuApi = (menuId) => AuthApi().get(`/food-menu-reviews/${menuId}/can-review`);
+export const createFoodMenuReviewApi = (reviewData) => AuthApi().post('/food-menu-reviews', reviewData);
+
 export const createProductReviewApi = (reviewData) =>
 	AuthApi().post(`${API_ENDPOINTS.CREATE_PRODUCT_REVIEW}`, reviewData);
 

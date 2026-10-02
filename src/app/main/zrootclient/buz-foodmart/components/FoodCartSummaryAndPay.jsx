@@ -40,6 +40,8 @@ function FoodCartSummaryAndPay({
   dirtyFields,
   isValid,
   setIsProcessingPayment,
+  exactPoint,
+  deliverBy,
 }) {
   const user = useAppSelector(selectUser);
 
@@ -56,6 +58,7 @@ function FoodCartSummaryAndPay({
   const queryClient = useQueryClient();
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [deliveryError, setDeliveryError] = useState(null);
+  const [deliveryDetail, setDeliveryDetail] = useState(null);
   const { mutate: calculateFoodCartShipping, isLoading: deliveryLoading } =
     useCalculateFoodCartShipping();
 
@@ -87,9 +90,13 @@ function FoodCartSummaryAndPay({
       return;
     }
 
-    const destinationPayload = orderMarketPickupDestination
-      ? { destinationMarketId: orderMarketPickupDestination }
-      : { destinationGeoId: orderLgaDestination, destinationLevel: "LGA" };
+    const destinationPayload = {
+      ...(orderMarketPickupDestination
+        ? { destinationMarketId: orderMarketPickupDestination }
+        : { destinationGeoId: orderLgaDestination, destinationLevel: "LGA" }),
+      // the customer's exact point (when shared) prices the real distance from the restaurant
+      ...(exactPoint ? { destinationLat: exactPoint.lat, destinationLng: exactPoint.lng } : {}),
+    };
 
     calculateFoodCartShipping(destinationPayload, {
       onSuccess: (response) => {
@@ -97,6 +104,7 @@ function FoodCartSummaryAndPay({
         if (result?.success) {
           setDeliveryFee(Math.round((result.amountKobo ?? 0) / 100));
           setDeliveryError(null);
+          setDeliveryDetail({ breakdown: result.breakdown, restaurantPinned: result.restaurantPinned });
         }
       },
       onError: (error) => {
@@ -107,7 +115,7 @@ function FoodCartSummaryAndPay({
         );
       },
     });
-  }, [orderMarketPickupDestination, orderLgaDestination]);
+  }, [orderMarketPickupDestination, orderLgaDestination, exactPoint?.lat, exactPoint?.lng]);
 
   // VAT
   const taxInfo =
@@ -138,6 +146,8 @@ function FoodCartSummaryAndPay({
         orderStateProvinceDestination,
         orderLgaDestination,
         orderMarketPickupDestination,
+        ...(exactPoint ? { destinationLat: exactPoint.lat, destinationLng: exactPoint.lng } : {}),
+        ...(deliverBy ? { requestedDeliverBy: new Date(deliverBy).toISOString() } : {}),
         district,
         paymentMethod: methodOfPay,
         shoppingLgaSession: cartSession?.lgaId,
@@ -251,6 +261,13 @@ function FoodCartSummaryAndPay({
               {deliveryLoading ? "Calculating…" : `₦${formatCurrency(deliveryFee)}`}
             </span>
           </div>
+          {!deliveryLoading && deliveryFee > 0 && deliveryDetail?.breakdown && (
+            <p className="text-xs text-gray-500 -mt-2" data-testid="food-fee-breakdown">
+              {deliveryDetail.restaurantPinned ? "Measured from the restaurant" : "Measured from the restaurant's area"}
+              {deliveryDetail.breakdown.distanceKm ? ` · about ${deliveryDetail.breakdown.distanceKm} km` : ""}
+              {deliveryDetail.breakdown.minimumApplied ? " · minimum delivery charge applied" : ""}
+            </p>
+          )}
 
           {/* VAT with country tooltip */}
           <div className="flex justify-between text-sm">

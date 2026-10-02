@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Playfair+Display:wght@600;800&family=Poppins:wght@500;700&family=Quicksand:wght@500;700&display=swap');
+/* Venue theming for the visit-restaurant page. Scoped by the .venue-* class on the page wrapper. */
+.venue-hero h1 { letter-spacing: -0.01em; }
+
+/* Dark venues: flip the hard-coded light surfaces and greys inside the menu area */
+.venue-club, .venue-spot { color: #f3f4f6; }
+.venue-club .bg-white, .venue-spot .bg-white { background: rgba(255,255,255,0.06) !important; backdrop-filter: blur(6px); }
+.venue-club .bg-gray-100, .venue-spot .bg-gray-100 { background: rgba(255,255,255,0.08) !important; }
+.venue-club .text-gray-900, .venue-spot .text-gray-900,
+.venue-club .text-gray-800, .venue-spot .text-gray-800 { color: #fff !important; }
+.venue-club .text-gray-700, .venue-spot .text-gray-700,
+.venue-club .text-gray-600, .venue-spot .text-gray-600,
+.venue-club .text-gray-500, .venue-spot .text-gray-500 { color: #d1d5db !important; }
+.venue-club .border-gray-200, .venue-spot .border-gray-200 { border-color: rgba(255,255,255,0.12) !important; }
+.venue-club .MuiTypography-root, .venue-spot .MuiTypography-root { color: inherit; }
+
+.venue-club .menu-card { box-shadow: 0 0 0 1px rgba(225,29,143,0.35), 0 12px 40px rgba(91,31,168,0.35); }
+.venue-spot .menu-card { box-shadow: 0 0 0 1px rgba(249,115,22,0.35), 0 12px 32px rgba(0,0,0,0.5); }
+
+/* Light venues */
+.venue-cafe .menu-card { border-radius: 28px !important; }
+.venue-restaurant .menu-card { border-radius: 8px !important; border-top: 3px solid #b45309; }
+
+/* Accent for the call-to-action buttons inside cards (they carry an inline orange gradient) */
+.venue-club .menu-card .MuiButton-contained { background: linear-gradient(to right,#5b1fa8,#e11d8f) !important; }
+.venue-cafe .menu-card .MuiButton-contained { background: linear-gradient(to right,#7a5238,#a47551) !important; }
+.venue-restaurant .menu-card .MuiButton-contained { background: linear-gradient(to right,#92400e,#b45309) !important; }
