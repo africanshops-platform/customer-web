@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "react-query";
-import { FormControl, InputLabel, MenuItem, Select, Typography } from "@mui/material";
+import { Button, FormControl, InputLabel, MenuItem, Select, Typography } from "@mui/material";
+import useNearestPickup from "./useNearestPickup";
 import {
   getCountries,
   getStateByCountryId,
@@ -28,6 +29,7 @@ function DeliveryLocationFields({ value, onChange }) {
     enabled: Boolean(v.lga),
     staleTime: 10 * 60 * 1000,
   });
+  const { locate, locating } = useNearestPickup((loc) => onChange(loc));
   const countries = countriesRes?.data?.countries ?? [];
   const states = statesRes?.data?.states ?? [];
   const lgas = lgasRes?.data?.lgas ?? [];
@@ -65,6 +67,16 @@ function DeliveryLocationFields({ value, onChange }) {
       <Typography variant="subtitle2" className="font-semibold text-gray-800">
         Delivery location <span className="font-normal text-gray-500">(optional — fills checkout for you and shows real shipping costs)</span>
       </Typography>
+      <Button
+        size="small"
+        variant="outlined"
+        onClick={locate}
+        disabled={locating}
+        data-testid="use-nearest-pickup"
+        sx={{ textTransform: "none", borderColor: "#ea580c", color: "#ea580c" }}
+      >
+        {locating ? "Finding your nearest pickup point…" : "📍 Use my nearest pickup point"}
+      </Button>
       <div className="grid grid-cols-2 gap-3">
         {field("Country", "country", countries, false)}
         {field("State / Province", "state", states, !v.country)}

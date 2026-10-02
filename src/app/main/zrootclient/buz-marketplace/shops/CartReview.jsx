@@ -40,6 +40,7 @@ import {
   getStateByCountryId,
 } from "app/configs/data/client/clientToApiRoutes";
 import MyAddresses from "../../buz-bookings/user-reservations/MyAddresses";
+import useNearestPickup from "../../buz-bookings/user-reservations/useNearestPickup";
 import CartSummaryAndPay from "./components/CartSummaryAndPay";
 // import ClienttErrorPage from "../../components/ClienttErrorPage";
 
@@ -246,6 +247,30 @@ function CartReview() {
     }
   }
 
+  /**
+   * Fill the destination selects the way a person does: set a level, let its list load, then the next.
+   * Setting all four at once leaves the dropdowns showing blank (their options arrive after the values),
+   * so each value is applied only after the list that contains it has loaded.
+   */
+  const applyDeliveryLocation = async ({ country, state, lga, market }) => {
+    const opts = { shouldValidate: true, shouldDirty: true, shouldTouch: true };
+    if (country) {
+      setValue("orderCountryDestination", country, opts);
+      await findStatesByCountry();
+    }
+    if (country && state) {
+      setValue("orderStateProvinceDestination", state, opts);
+      await getLgasFromState(state);
+    }
+    if (state && lga) {
+      setValue("orderLgaDestination", lga, opts);
+      await getMarketsFromLgaId(lga);
+    }
+    if (lga && market) {
+      setValue("orderMarketPickupDestination", market, opts);
+    }
+  };
+
   // Handle address selection from MyAddresses modal
   const handleSelectAddress = async (selectedAddress) => {
     // Set each field individually with shouldValidate and shouldDirty flags
@@ -267,19 +292,19 @@ function CartReview() {
 
     // The address's saved delivery location fills the destination too — the dependent lists
     // (states, LGAs, markets) load from these ids through the existing effect above.
-    const destination = {
-      orderCountryDestination: selectedAddress.country,
-      orderStateProvinceDestination: selectedAddress.state,
-      orderLgaDestination: selectedAddress.lga,
-      orderMarketPickupDestination: selectedAddress.market,
-    };
-    Object.entries(destination).forEach(([field, id]) => {
-      if (id) setValue(field, id, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+    await applyDeliveryLocation({
+      country: selectedAddress.country,
+      state: selectedAddress.state,
+      lga: selectedAddress.lga,
+      market: selectedAddress.market,
     });
 
     // Trigger validation for all fields to ensure form validity
     await trigger(["name", "phone", "address"]);
   };
+
+  // "Use my nearest pickup point": the server ranks operational markets by distance from the device location
+  const { locate: locateNearestPickup, locating: locatingNearest } = useNearestPickup((loc) => applyDeliveryLocation(loc));
 
   const onClose = () => {
     setPaymentCloseDialogOpen(true);
@@ -648,6 +673,15 @@ function CartReview() {
 
                       {/* Form Content */}
                       <div className="p-4 sm:p-6 space-y-4">
+                        <Button
+                          variant="outlined"
+                          onClick={locateNearestPickup}
+                          disabled={locatingNearest}
+                          data-testid="use-nearest-pickup"
+                          sx={{ textTransform: "none", borderColor: "#ea580c", color: "#ea580c", fontWeight: 600 }}
+                        >
+                          {locatingNearest ? "Finding your nearest pickup point…" : "📍 Use my nearest pickup point"}
+                        </Button>
                         {/* Country and State Row */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {/* Country Select */}
@@ -662,7 +696,9 @@ function CartReview() {
                                 <FormControl fullWidth error={!!errors.orderCountryDestination}>
                                   <Select
                                     {...field}
+                                    value={orderCountryDestination || ""}
                                     displayEmpty
+                                    renderValue={(v) => (((countryData?.data?.countries) || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select Country")}
                                     variant="outlined"
                                     startAdornment={
                                       <svg
@@ -727,7 +763,9 @@ function CartReview() {
                                 >
                                   <Select
                                     {...field}
+                                    value={orderStateProvinceDestination || ""}
                                     displayEmpty
+                                    renderValue={(v) => (((stateData) || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select State")}
                                     variant="outlined"
                                     disabled={!stateData || stateData.length === 0}
                                     startAdornment={
@@ -793,7 +831,9 @@ function CartReview() {
                                 <FormControl fullWidth error={!!errors.orderLgaDestination}>
                                   <Select
                                     {...field}
+                                    value={orderLgaDestination || ""}
                                     displayEmpty
+                                    renderValue={(v) => (((blgas) || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select L.G.A")}
                                     variant="outlined"
                                     disabled={!blgas || blgas.length === 0}
                                     startAdornment={
@@ -859,7 +899,9 @@ function CartReview() {
                                 >
                                   <Select
                                     {...field}
+                                    value={orderMarketPickupDestination || ""}
                                     displayEmpty
+                                    renderValue={(v) => (((markets) || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select Market")}
                                     variant="outlined"
                                     disabled={!markets || markets.length === 0}
                                     startAdornment={

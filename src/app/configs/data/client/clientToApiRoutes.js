@@ -485,3 +485,6 @@ export const merchantLogOutCall = () => {
 		}
 	}
 };
+
+/** Operational markets nearest to a coordinate, closest first (public) — "use my nearest pickup point". */
+export const getNearestMarketsApi = (lat, lng, limit = 3) => Api().get(`/markets/nearest?lat=${lat}&lng=${lng}&limit=${limit}`);
