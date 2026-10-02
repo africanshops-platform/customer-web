@@ -35,7 +35,6 @@ function FoodCartSummaryAndPay({
   orderCountryDestination,
   orderStateProvinceDestination,
   orderLgaDestination,
-  orderMarketPickupDestination,
   district,
   dirtyFields,
   isValid,
@@ -84,16 +83,16 @@ function FoodCartSummaryAndPay({
   // it never recalculates (the backend re-runs the same calculation itself, authoritatively,
   // at verify time — that's a separate concern from what the customer sees before paying).
   useEffect(() => {
-    if (!orderMarketPickupDestination && !orderLgaDestination) {
+    if (!orderLgaDestination) {
       setDeliveryFee(0);
       setDeliveryError(null);
       return;
     }
 
     const destinationPayload = {
-      ...(orderMarketPickupDestination
-        ? { destinationMarketId: orderMarketPickupDestination }
-        : { destinationGeoId: orderLgaDestination, destinationLevel: "LGA" }),
+      // food goes restaurant -> the customer's home: the destination is their LGA, refined by their exact point
+      destinationGeoId: orderLgaDestination,
+      destinationLevel: "LGA",
       // the customer's exact point (when shared) prices the real distance from the restaurant
       ...(exactPoint ? { destinationLat: exactPoint.lat, destinationLng: exactPoint.lng } : {}),
     };
@@ -115,7 +114,7 @@ function FoodCartSummaryAndPay({
         );
       },
     });
-  }, [orderMarketPickupDestination, orderLgaDestination, exactPoint?.lat, exactPoint?.lng]);
+  }, [orderLgaDestination, exactPoint?.lat, exactPoint?.lng]);
 
   // VAT
   const taxInfo =
@@ -145,7 +144,6 @@ function FoodCartSummaryAndPay({
         orderCountryDestination,
         orderStateProvinceDestination,
         orderLgaDestination,
-        orderMarketPickupDestination,
         ...(exactPoint ? { destinationLat: exactPoint.lat, destinationLng: exactPoint.lng } : {}),
         ...(deliverBy ? { requestedDeliverBy: new Date(deliverBy).toISOString() } : {}),
         district,
@@ -191,7 +189,6 @@ function FoodCartSummaryAndPay({
     !orderStateProvinceDestination ||
     !orderLgaDestination ||
     !district ||
-    !orderMarketPickupDestination ||
     isOutsideVendorLga ||
     deliveryLoading ||
     !!deliveryError ||
