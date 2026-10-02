@@ -11,9 +11,9 @@ const PIN = new L.Icon({
 
 const RESTAURANT_PIN = L.divIcon({
   className: "",
-  html: '<div style="font-size:26px;line-height:26px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45))">🍽️</div>',
-  iconSize: [26, 26],
-  iconAnchor: [13, 13],
+  html: '<div style="width:38px;height:38px;border-radius:50%;background:#fff;border:3px solid #ea580c;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 2px 6px rgba(0,0,0,.4)">🍽️</div>',
+  iconSize: [38, 38],
+  iconAnchor: [19, 19],
 });
 
 const NIGERIA_CENTRE = [9.082, 8.6753];
@@ -100,7 +100,7 @@ function LocationPickerMap({ value, onChange, restaurant, height = 320 }) {
       .bindTooltip(`${restaurant.name || "Restaurant"}${restaurant.approximate ? " (approximate area)" : ""}`)
       .addTo(map);
     if (value && Number.isFinite(value.lat)) {
-      lineRef.current = L.polyline([rp, [value.lat, value.lng]], { color: "#ea580c", weight: 3, dashArray: "6 8" }).addTo(map);
+      lineRef.current = L.polyline([rp, [value.lat, value.lng]], { color: "#c2410c", weight: 5, opacity: 0.95, dashArray: "4 10", lineCap: "round" }).addTo(map);
       map.flyToBounds(L.latLngBounds(rp, [value.lat, value.lng]).pad(0.3), { duration: 0.8, maxZoom: 15 });
     } else {
       map.flyTo(rp, 13, { duration: 0.8 });
