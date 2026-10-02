@@ -182,6 +182,7 @@ function FoodCartReview() {
   // exact point the customer shared from their device: prices the delivery distance from the restaurant precisely
   const [exactPoint, setExactPoint] = useState(null);
   const [locatingExact, setLocatingExact] = useState(false);
+  const [restaurantInfo, setRestaurantInfo] = useState(null); // {restaurant, distanceKm} from the fee estimate
   const [located, setLocated] = useState(null); // nearest LGA/state/country of the pinned point
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [deliverBy, setDeliverBy] = useState("");
@@ -536,6 +537,8 @@ function FoodCartReview() {
                         onUseCurrentLocation={shareExactLocation}
                         searchText={[address, district].filter(Boolean).join(", ")}
                         located={located}
+                        restaurant={restaurantInfo?.restaurant}
+                        distanceKm={restaurantInfo?.distanceKm}
                         canSave={Boolean(user?.id) && !selectedAddressId && Boolean(name && phone && address)}
                         saving={createAddress.isLoading}
                         onSave={saveCurrentAddress}
@@ -848,6 +851,7 @@ function FoodCartReview() {
                         setIsProcessingPayment={setIsProcessingPayment}
                         exactPoint={exactPoint}
                         deliverBy={deliverBy}
+                        onRestaurantInfo={setRestaurantInfo}
                       />
                     </div>
 

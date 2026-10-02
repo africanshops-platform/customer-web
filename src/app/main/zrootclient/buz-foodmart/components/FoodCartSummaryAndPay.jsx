@@ -41,6 +41,7 @@ function FoodCartSummaryAndPay({
   setIsProcessingPayment,
   exactPoint,
   deliverBy,
+  onRestaurantInfo,
 }) {
   const user = useAppSelector(selectUser);
 
@@ -96,11 +97,14 @@ function FoodCartSummaryAndPay({
           setDeliveryFee(Math.round((result.amountKobo ?? 0) / 100));
           setDeliveryError(null);
           setDeliveryDetail({ breakdown: result.breakdown, restaurantPinned: result.restaurantPinned, restaurantDistanceKm: result.restaurantDistanceKm });
+          onRestaurantInfo?.({ restaurant: result.restaurant, distanceKm: result.restaurantDistanceKm });
         }
       },
       onError: (error) => {
         setDeliveryFee(0);
         setDeliveryDetail(null);
+        // out of range / no route: keep the restaurant on the map if the server says where it is
+        onRestaurantInfo?.(error?.response?.data?.restaurant ? { restaurant: error.response.data.restaurant, distanceKm: error.response.data.restaurantDistanceKm ?? null } : null);
         setDeliveryError(
           error?.response?.data?.message ||
             "Delivery isn't available to this location yet — try a different delivery address.",
@@ -254,6 +258,9 @@ function FoodCartSummaryAndPay({
                   : `₦${formatCurrency(deliveryFee)}`}
             </span>
           </div>
+          {!deliveryLoading && deliveryError && (
+            <p className="text-xs text-red-600 -mt-2" data-testid="food-delivery-error">{deliveryError}</p>
+          )}
           {!deliveryLoading && !deliveryError && (deliveryDetail?.breakdown || deliveryDetail?.restaurantDistanceKm != null) && (
             <p className="text-xs text-gray-500 -mt-2" data-testid="food-fee-breakdown">
               {deliveryDetail.restaurantDistanceKm != null ? `Restaurant is about ${Math.round(deliveryDetail.restaurantDistanceKm)} km from you · ` : ""}

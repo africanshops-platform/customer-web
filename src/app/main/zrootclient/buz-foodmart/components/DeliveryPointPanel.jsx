@@ -27,6 +27,8 @@ function DeliveryPointPanel({
   onUseCurrentLocation,
   searchText,
   located,
+  restaurant,
+  distanceKm,
   canSave,
   saving,
   onSave,
@@ -90,7 +92,14 @@ function DeliveryPointPanel({
       </div>
       {searchNote && <p className="m-0 text-sm text-gray-600">{searchNote}</p>}
 
-      <LocationPickerMap value={point} onChange={onPointChange} />
+      <LocationPickerMap value={point} onChange={onPointChange} restaurant={restaurant} />
+      {restaurant && (
+        <p className="m-0 text-sm text-gray-700" data-testid="restaurant-distance">
+          🍽️ <strong>{restaurant.name || "The restaurant"}</strong>
+          {distanceKm != null ? ` is about ${Math.round(distanceKm)} km from your delivery point.` : " is shown on the map."}
+          {restaurant.approximate ? " (The restaurant has not pinned its exact spot yet, so this uses its area.)" : ""}
+        </p>
+      )}
 
       <div className="rounded-xl p-4" style={{ background: point ? "rgba(34,197,94,0.08)" : "rgba(245,158,11,0.10)", border: `1px solid ${point ? "rgba(34,197,94,0.25)" : "rgba(245,158,11,0.3)"}` }} data-testid="delivery-point-status">
         {point ? (
