@@ -41,6 +41,7 @@ import {
   getStateByCountryId,
 } from "app/configs/data/client/clientToApiRoutes";
 import MyAddresses from "../../buz-bookings/user-reservations/MyAddresses";
+import TermsAndConditionsPreview from "./components/TermsAndConditionsPreview";
 import useNearestPickup from "../../buz-bookings/user-reservations/useNearestPickup";
 import CartSummaryAndPay from "./components/CartSummaryAndPay";
 // import ClienttErrorPage from "../../components/ClienttErrorPage";
@@ -1368,37 +1369,13 @@ function CartReview() {
                       {/* Terms Content */}
                       <div className="p-4 sm:p-6">
                         <div
-                          className="max-h-[320px] overflow-y-auto p-4 rounded-xl"
+                          className="p-4 rounded-xl"
                           style={{
                             background: "rgba(249, 250, 251, 1)",
                             border: "1px solid rgba(229, 231, 235, 1)",
                           }}
                         >
-                          <p className="text-orange-600 font-semibold mb-3">
-                            Terms and conditions on placing an order on Africanshops
-                          </p>
-                          <p className="text-sm text-gray-700 mb-3 leading-relaxed">
-                            This may be because: 1) Your order is below the minimum purchase amount
-                            of 2,000 naira or above the maximum purchase amount of 250,000 naira; or
-                            2) Cash on delivery is not available for your delivery address or the
-                            pick-up station selected; or 3) You have had multiple failed delivery
-                            attempts or cancelled orders; or 4) the number you are using to place
-                            the order is a number that has a restriction
-                          </p>
-                          <p className="text-sm text-gray-700 mb-3 leading-relaxed">
-                            By placing an order, you agree to our delivery terms and conditions. All
-                            orders are subject to availability and confirmation of the order price.
-                            Dispatch times may vary according to availability and subject to any
-                            delays resulting from postal delays or force majeure for which we will
-                            not be responsible.
-                          </p>
-                          <p className="text-sm text-gray-700 mb-3 leading-relaxed">
-                            We reserve the right to refuse any order you place with us. We may, in
-                            our sole discretion, limit or cancel quantities purchased per person,
-                            per household or per order. These restrictions may include orders placed
-                            by or under the same customer account, the same credit card, and/or
-                            orders that use the same billing and/or shipping address.
-                          </p>
+                          <TermsAndConditionsPreview />
                         </div>
                       </div>
                     </motion.div>
