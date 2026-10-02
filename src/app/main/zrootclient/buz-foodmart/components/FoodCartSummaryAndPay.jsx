@@ -265,8 +265,8 @@ function FoodCartSummaryAndPay({
             <p className="text-xs text-gray-500 -mt-2" data-testid="food-fee-breakdown">
               {deliveryDetail.restaurantDistanceKm != null ? `Restaurant is about ${Math.round(deliveryDetail.restaurantDistanceKm)} km from you · ` : ""}
               {deliveryDetail.restaurantPinned ? "Measured from the restaurant" : "Measured from the restaurant's area"}
-              {deliveryDetail.breakdown.distanceKm ? ` · about ${deliveryDetail.breakdown.distanceKm} km` : ""}
-              {deliveryDetail.breakdown.minimumApplied ? " · minimum delivery charge applied" : ""}
+              {deliveryDetail.breakdown?.distanceKm ? ` · about ${deliveryDetail.breakdown?.distanceKm} km` : ""}
+              {deliveryDetail.breakdown?.minimumApplied ? " · minimum delivery charge applied" : ""}
             </p>
           )}
 
