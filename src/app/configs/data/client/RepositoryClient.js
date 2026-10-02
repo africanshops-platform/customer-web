@@ -357,3 +357,6 @@ export const getUserAppSettingApi = () => Api().get(`/application-settings/publi
 /** =====================================================================================================
  * APPLICATION SETTINGS ROUTES LISTED BELOW ENDS
  ===================================================================================================== */
+
+/** Public single-shop shipping estimate (server prices it: route table + distance) — used on the product page. */
+export const getProductShippingEstimateApi = (body) => Api().post('/buzshipping/calculate', body);

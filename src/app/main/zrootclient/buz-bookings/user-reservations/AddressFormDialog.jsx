@@ -15,6 +15,7 @@ import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import DeliveryLocationFields from "./DeliveryLocationFields";
 import { useCreateUserAddress } from "app/configs/data/server-calls/auth/userapp/a_bookings/use-addresses";
 
 /**
@@ -32,6 +33,10 @@ const addressSchema = z.object({
     .nonempty("Address is required")
     .min(10, "Address must be at least 10 characters"),
   isDefault: z.boolean().optional(),
+  country: z.string().optional(),
+  state: z.string().optional(),
+  lga: z.string().optional(),
+  market: z.string().optional(),
 });
 
 /**
@@ -46,6 +51,8 @@ function AddressFormDialog({ open, onClose, onSuccess }) {
     handleSubmit,
     formState: { errors, isValid },
     reset,
+    watch,
+    setValue,
   } = useForm({
     mode: "onChange",
     defaultValues: {
@@ -53,6 +60,10 @@ function AddressFormDialog({ open, onClose, onSuccess }) {
       phone: "",
       address: "",
       isDefault: false,
+      country: "",
+      state: "",
+      lga: "",
+      market: "",
     },
     resolver: zodResolver(addressSchema),
   });
@@ -63,7 +74,12 @@ function AddressFormDialog({ open, onClose, onSuccess }) {
   };
 
   const onSubmit = async (data) => {
-    createAddress.mutate(data, {
+    // empty location levels are sent as null so they are stored as 'not set'
+    const payload = { ...data };
+    ["country", "state", "lga", "market"].forEach((k) => {
+      if (!payload[k]) delete payload[k];
+    });
+    createAddress.mutate(payload, {
       onSuccess: (response) => {
         if (response?.data?.success) {
           reset();
@@ -312,6 +328,20 @@ function AddressFormDialog({ open, onClose, onSuccess }) {
                         borderColor: "#ea580c",
                       },
                     },
+                  }}
+                />
+              )}
+            />
+
+            {/* Delivery location — saved with the address */}
+            <Controller
+              name="country"
+              control={control}
+              render={() => (
+                <DeliveryLocationFields
+                  value={{ country: watch("country"), state: watch("state"), lga: watch("lga"), market: watch("market") }}
+                  onChange={(loc) => {
+                    ["country", "state", "lga", "market"].forEach((k) => setValue(k, loc[k] || "", { shouldDirty: true }));
                   }}
                 />
               )}

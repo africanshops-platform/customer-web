@@ -16,6 +16,7 @@ import { Close, Add } from "@mui/icons-material";
 import { useState, useEffect } from "react";
 import { useGetUserAddresses } from "app/configs/data/server-calls/auth/userapp/a_bookings/use-addresses";
 import AddressFormDialog from "./AddressFormDialog";
+import EditDeliveryLocationDialog from "./EditDeliveryLocationDialog";
 
 /**
  * MyAddresses Modal Component
@@ -24,6 +25,7 @@ import AddressFormDialog from "./AddressFormDialog";
 function MyAddresses({ open, onClose, onSelectAddress, onCreateNew }) {
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [formDialogOpen, setFormDialogOpen] = useState(false);
+  const [locationAddress, setLocationAddress] = useState(null);
 
   // Fetch user addresses from API
   const { data: addresses = [], isLoading, isError } = useGetUserAddresses();
@@ -194,7 +196,7 @@ function MyAddresses({ open, onClose, onSelectAddress, onCreateNew }) {
         {!isLoading && !isError && addresses.length > 0 && (
           <RadioGroup
             value={selectedAddressId}
-            onChange={(e) => setSelectedAddressId(Number(e.target.value))}
+            onChange={(e) => setSelectedAddressId(e.target.value)}
           >
             {addresses.map((address, index) => (
               <div key={address.id}>
@@ -237,6 +239,29 @@ function MyAddresses({ open, onClose, onSelectAddress, onCreateNew }) {
                       <Typography variant="body2" className="text-gray-600">
                         Phone: {address.phone}
                       </Typography>
+                      <span
+                        className={`inline-block mt-1 text-xs px-2 py-0.5 rounded ${
+                          address.lga || address.market ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                        }`}
+                        data-testid="address-location-chip"
+                      >
+                        {address.market
+                          ? "📍 Delivery location + pickup market saved"
+                          : address.lga
+                            ? "📍 Delivery location saved"
+                            : "No delivery location yet"}
+                      </span>
+                      <Button
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLocationAddress(address);
+                        }}
+                        data-testid="edit-address-location"
+                        sx={{ textTransform: "none", ml: 1, color: "#ea580c", minWidth: 0, p: 0 }}
+                      >
+                        {address.lga || address.market ? "Change location" : "Add location"}
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -287,6 +312,11 @@ function MyAddresses({ open, onClose, onSelectAddress, onCreateNew }) {
       </div>
 
       {/* Address Form Dialog */}
+      <EditDeliveryLocationDialog
+        open={Boolean(locationAddress)}
+        address={locationAddress}
+        onClose={() => setLocationAddress(null)}
+      />
       <AddressFormDialog
         open={formDialogOpen}
         onClose={handleFormDialogClose}

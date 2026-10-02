@@ -265,6 +265,18 @@ function CartReview() {
       shouldTouch: true,
     });
 
+    // The address's saved delivery location fills the destination too — the dependent lists
+    // (states, LGAs, markets) load from these ids through the existing effect above.
+    const destination = {
+      orderCountryDestination: selectedAddress.country,
+      orderStateProvinceDestination: selectedAddress.state,
+      orderLgaDestination: selectedAddress.lga,
+      orderMarketPickupDestination: selectedAddress.market,
+    };
+    Object.entries(destination).forEach(([field, id]) => {
+      if (id) setValue(field, id, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+    });
+
     // Trigger validation for all fields to ensure form validity
     await trigger(["name", "phone", "address"]);
   };
