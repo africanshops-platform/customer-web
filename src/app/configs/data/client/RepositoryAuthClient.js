@@ -183,6 +183,8 @@ export const createApiOrder = (FormData) => AuthApi().post('/userorders', FormDa
 export const getPlacedOrders = (id) => AuthApi().get(`/user-orders/order-item/${id}/view`); // (Done => Msvs)
 
 /** Delivery code (2026-10-01): a NEW code for this order — the old one stops working. The plaintext is returned once. */
+/** Food order delivery code (2026-10-02): same idea, food-order-service owns it. */
+export const reissueFoodDeliveryCodeApi = (orderId) => AuthApi().put(`/rcs-food-orders/${orderId}/delivery-code/reissue`);
 export const reissueDeliveryCodeApi = (orderId) => AuthApi().put(`/user-orders/${orderId}/delivery-code/reissue`);
 
 export const onSuccessPlacedOrders = (id) => AuthApi().put(`/userorders/${id}`);

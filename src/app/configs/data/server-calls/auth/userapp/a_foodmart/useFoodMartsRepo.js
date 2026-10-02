@@ -10,6 +10,7 @@ import {
 	getUserFoodInvoicesEnpoint,
 	getUserSealedFoodOrdersEndpoint,
 	payAndPlaceFoodOrderApi,
+	reissueFoodDeliveryCodeApi,
 	updateUserFoodCartApi
 } from 'app/configs/data/client/RepositoryAuthClient';
 import {
@@ -209,6 +210,13 @@ export function useUpdateFoodCartItemQty() {
  * #################################################################
  */
 
+/** ***Ask for a NEW food delivery code for my order (the old one stops working). The plaintext comes back once. */
+export function useReissueFoodDeliveryCode() {
+	return useMutation((orderId) => reissueFoodDeliveryCodeApi(orderId), {
+		onError: handleNestJSError
+	});
+}
+
 /** ***Pay and place food order */
 export function usePayAndPlaceFoodOrder() {
 	const navigate = useNavigate();
@@ -222,7 +230,10 @@ export function usePayAndPlaceFoodOrder() {
 					toast.success(data?.data?.message || 'Order placed successfully!');
 					queryClient.invalidateQueries(['__foodcart']);
 					queryClient.refetchQueries('__foodcart', { force: true });
-					navigate(`/foodmarts/${data?.data?.order?.id || data?.data?.order?._id}/payment-success`);
+					// The delivery code is shown once on the success page (and emailed); only a hash is stored.
+					navigate(`/foodmarts/${data?.data?.order?.id || data?.data?.order?._id}/payment-success`, {
+						state: { deliveryCode: data?.data?.deliveryCode ?? null }
+					});
 				}
 			},
 			onError: (error, _variables, rollback) => {

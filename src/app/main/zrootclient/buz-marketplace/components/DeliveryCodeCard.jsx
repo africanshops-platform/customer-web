@@ -44,20 +44,20 @@ export function DeliveryCodeReveal({ code }) {
   );
 }
 
-const RULES = [
-  "Give this code to the delivery person ONLY when your order is in your hands.",
+const rulesFor = (who) => [
+  `Give this code to ${who} ONLY when your order is in your hands.`,
   "Never share it earlier, by phone, or with anyone who is not delivering your order.",
 ];
 
 /** Shown at checkout success: the code appears once, so the customer is told to keep it. */
-export function DeliveryCodeSuccessCard({ code, orderViewPath }) {
+export function DeliveryCodeSuccessCard({ code, orderViewPath, who = "the delivery person" }) {
   return (
     <motion.div className="mb-6" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
       {code ? (
         <>
           <DeliveryCodeReveal code={code} />
           <ul className="mt-3 space-y-1 text-sm text-gray-700 list-disc pl-5">
-            {RULES.map((r) => (
+            {rulesFor(who).map((r) => (
               <li key={r}>{r}</li>
             ))}
             <li>We also emailed it to you. If you lose it, you can get a new one from your order page.</li>
@@ -77,8 +77,8 @@ export function DeliveryCodeSuccessCard({ code, orderViewPath }) {
 }
 
 /** On the order page: no code is ever re-displayed — the customer can ask for a NEW one. */
-export function DeliveryCodePanel({ order, orderId }) {
-  const reissue = useReissueDeliveryCode();
+export function DeliveryCodePanel({ order, orderId, useReissue = useReissueDeliveryCode, who = "the delivery person" }) {
+  const reissue = useReissue();
   const [newCode, setNewCode] = useState(null);
 
   if (!order || order.isDelivered || order.isCancelled) return null;
@@ -101,7 +101,7 @@ export function DeliveryCodePanel({ order, orderId }) {
         <div className="flex-1">
           <h3 className="font-bold text-gray-900 mb-1">Your delivery code</h3>
           <p className="text-sm text-gray-700">
-            You were shown a code when you paid (and we emailed it). Give it to the delivery person when your order
+            You were shown a code when you paid (and we emailed it). Give it to {who} when your order
             arrives — never before. Lost it? Get a new one; the old code then stops working.
           </p>
         </div>

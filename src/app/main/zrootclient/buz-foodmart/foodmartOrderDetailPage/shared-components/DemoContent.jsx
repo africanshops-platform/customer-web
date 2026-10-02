@@ -13,6 +13,8 @@ import NavLinkAdapter from "@fuse/core/NavLinkAdapter";
 import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
 import ClienttErrorPage from "src/app/main/zrootclient/components/ClienttErrorPage";
 import FoodOrderTracker from "../../components/FoodOrderTracker";
+import { DeliveryCodePanel } from "../../../buz-marketplace/components/DeliveryCodeCard";
+import { useReissueFoodDeliveryCode } from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
 import RaiseDisputeDialog from "src/app/main/zrootclient/buz-disputes/RaiseDisputeDialog";
 
 const FOOD_STEPS = [
@@ -587,6 +589,16 @@ function DemoContent({ isLoading, isError, orderData, orderId }) {
             </div>
           </div>
         </motion.div>
+
+        {/* Delivery code: only for paid delivery orders still on their way; a lost code is replaced, never re-shown */}
+        {orderData?.isPaid && (orderData?.orderType ?? "DELIVERY") === "DELIVERY" && !orderData?.isWalkIn && (
+          <DeliveryCodePanel
+            order={orderData}
+            orderId={orderData?.id || orderId}
+            useReissue={useReissueFoodDeliveryCode}
+            who="the restaurant's rider"
+          />
+        )}
 
         {/* Kitchen-aware tracker for orders that carry a kitchen stage */}
         {orderData?.isPaid && orderData?.kitchenStage && <FoodOrderTracker order={orderData} />}
