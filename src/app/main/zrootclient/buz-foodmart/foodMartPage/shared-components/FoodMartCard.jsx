@@ -92,7 +92,7 @@ function FoodMartCard({
             }}
           >
             <span style={{ fontSize: "3.5rem" }}>🍽️</span>
-            <Typography sx={{ color: "#9ca3af", fontSize: "0.875rem", marginTop: "8px" }}>
+            <Typography sx={{ color: "#9ca3af", fontSize: "1.4rem", marginTop: "8px" }}>
               No image available
             </Typography>
           </div>
@@ -114,16 +114,16 @@ function FoodMartCard({
           sx={{ backdropFilter: "blur(4px)" }}
         >
           {isFavorite ? (
-            <Favorite sx={{ color: "#ef4444", fontSize: "1.25rem" }} />
+            <Favorite sx={{ color: "#ef4444", fontSize: "2.0rem" }} />
           ) : (
-            <FavoriteBorder sx={{ color: "#374151", fontSize: "1.25rem" }} />
+            <FavoriteBorder sx={{ color: "#374151", fontSize: "2.0rem" }} />
           )}
         </IconButton>
 
         {/* Featured Badge */}
         {isFeatured && (
           <div
-            className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold text-white"
+            className="absolute top-3 left-3 px-3 py-1 rounded-full text-base font-bold text-white"
             style={{
               background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
               boxShadow: "0 2px 8px rgba(234, 88, 12, 0.4)",
@@ -136,7 +136,7 @@ function FoodMartCard({
         {/* Category Badge — bottom left of image */}
         {foodMartCategory && (
           <div
-            className="absolute bottom-3 left-3 px-3 py-1 rounded-full text-xs font-bold capitalize"
+            className="absolute bottom-3 left-3 px-3 py-1 rounded-full text-base font-bold capitalize"
             style={{
               backgroundColor: categoryColor.bg,
               color: categoryColor.text,
@@ -155,15 +155,15 @@ function FoodMartCard({
         <div className="flex items-center justify-between mb-3">
           {operationMode && (
             <span
-              className="text-xs font-semibold uppercase tracking-wide px-2 py-1 rounded"
+              className="text-base font-semibold uppercase tracking-wide px-2 py-1 rounded"
               style={{ backgroundColor: "#f3f4f6", color: "#6b7280" }}
             >
               {operationMode.replace(/_/g, " ")}
             </span>
           )}
           {businessHours && (
-            <div className="flex items-center gap-1 text-xs text-gray-500">
-              <AccessTime sx={{ fontSize: "0.875rem", color: "#9ca3af" }} />
+            <div className="flex items-center gap-1 text-base text-gray-500">
+              <AccessTime sx={{ fontSize: "1.4rem", color: "#9ca3af" }} />
               <span>{businessHours}</span>
             </div>
           )}
@@ -174,7 +174,7 @@ function FoodMartCard({
           variant="h6"
           sx={{
             fontWeight: 700,
-            fontSize: "1.1rem",
+            fontSize: "1.76rem",
             color: "#111827",
             marginBottom: "6px",
             lineHeight: 1.35,
@@ -194,7 +194,7 @@ function FoodMartCard({
             variant="body2"
             sx={{
               color: "#6b7280",
-              fontSize: "0.875rem",
+              fontSize: "1.4rem",
               fontStyle: "italic",
               marginBottom: "10px",
               lineHeight: 1.5,
@@ -211,12 +211,12 @@ function FoodMartCard({
         {/* Address */}
         {address && (
           <div className="flex items-start gap-1.5 mb-2">
-            <LocationOn sx={{ fontSize: "1rem", color: "#9ca3af", marginTop: "2px", flexShrink: 0 }} />
+            <LocationOn sx={{ fontSize: "1.6rem", color: "#9ca3af", marginTop: "2px", flexShrink: 0 }} />
             <Typography
               variant="body2"
               sx={{
                 color: "#6b7280",
-                fontSize: "0.875rem",
+                fontSize: "1.4rem",
                 lineHeight: 1.4,
                 display: "-webkit-box",
                 WebkitLineClamp: 1,
@@ -232,8 +232,8 @@ function FoodMartCard({
         {/* Phone */}
         {phoneNumber && (
           <div className="flex items-center gap-1.5 mb-3">
-            <Phone sx={{ fontSize: "1rem", color: "#9ca3af", flexShrink: 0 }} />
-            <Typography variant="body2" sx={{ color: "#6b7280", fontSize: "0.875rem" }}>
+            <Phone sx={{ fontSize: "1.6rem", color: "#9ca3af", flexShrink: 0 }} />
+            <Typography variant="body2" sx={{ color: "#6b7280", fontSize: "1.4rem" }}>
               {phoneNumber}
             </Typography>
           </div>
@@ -243,12 +243,12 @@ function FoodMartCard({
         <div className="flex items-center justify-between mb-4">
           {displayRating ? (
             <div className="flex items-center gap-1.5">
-              <Star sx={{ fontSize: "1rem", color: "#f59e0b" }} />
-              <Typography variant="body2" sx={{ fontWeight: 700, color: "#111827", fontSize: "0.9rem" }}>
+              <Star sx={{ fontSize: "1.6rem", color: "#f59e0b" }} />
+              <Typography variant="body2" sx={{ fontWeight: 700, color: "#111827", fontSize: "1.44rem" }}>
                 {displayRating}
               </Typography>
               {numReviews && (
-                <Typography variant="body2" sx={{ color: "#9ca3af", fontSize: "0.8rem" }}>
+                <Typography variant="body2" sx={{ color: "#9ca3af", fontSize: "1.28rem" }}>
                   ({numReviews} reviews)
                 </Typography>
               )}
@@ -256,9 +256,9 @@ function FoodMartCard({
           ) : (
             <div className="flex items-center gap-1.5">
               {[1, 2, 3, 4, 5].map((s) => (
-                <Star key={s} sx={{ fontSize: "0.9rem", color: s <= 4 ? "#fbbf24" : "#e5e7eb" }} />
+                <Star key={s} sx={{ fontSize: "1.44rem", color: s <= 4 ? "#fbbf24" : "#e5e7eb" }} />
               ))}
-              <Typography variant="body2" sx={{ color: "#9ca3af", fontSize: "0.8rem" }}>
+              <Typography variant="body2" sx={{ color: "#9ca3af", fontSize: "1.28rem" }}>
                 New
               </Typography>
             </div>
@@ -277,7 +277,7 @@ function FoodMartCard({
             fontWeight: 700,
             borderRadius: "10px",
             paddingY: "10px",
-            fontSize: "0.9rem",
+            fontSize: "1.44rem",
             textTransform: "none",
             boxShadow: "0 4px 12px rgba(234, 88, 12, 0.3)",
             transition: "all 0.3s ease",

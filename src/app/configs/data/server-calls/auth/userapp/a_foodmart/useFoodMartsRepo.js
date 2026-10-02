@@ -91,7 +91,7 @@ const handleApiError = (error, options = {}) => {
 
 /** *1) Get All FoodMart/RCS with filters */
 export default function useGetAllFoodMarts(filters = {}) {
-	return useQuery(['__foodmarts', filters], () => getAllFoodMarts(filters));
+	return useQuery(['__foodmarts', filters], () => getAllFoodMarts(filters), { keepPreviousData: true });
 } // (Mcsvs => Done)
 
 /** *2) Get single food-mart-SHOP/RCS */

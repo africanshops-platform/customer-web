@@ -44,23 +44,23 @@ function PaginationBar({
     <Box className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-white border-t border-gray-200">
       {/* Items per page selector */}
       <div className="flex items-center gap-4">
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel id="items-per-page-label">Items per page</InputLabel>
+        <FormControl size="small" sx={{ minWidth: 140, "& .MuiSelect-select": { fontSize: "1.5rem" } }}>
+          <InputLabel id="items-per-page-label" sx={{ fontSize: "1.4rem" }}>Items per page</InputLabel>
           <Select
             labelId="items-per-page-label"
             value={itemsPerPage}
             label="Items per page"
             onChange={handleItemsPerPageChange}
           >
-            <MenuItem value={10}>10</MenuItem>
-            <MenuItem value={20}>20</MenuItem>
-            <MenuItem value={30}>30</MenuItem>
-            <MenuItem value={50}>50</MenuItem>
+            <MenuItem sx={{ fontSize: "1.5rem" }} value={12}>12</MenuItem>
+            <MenuItem sx={{ fontSize: "1.5rem" }} value={24}>24</MenuItem>
+            <MenuItem sx={{ fontSize: "1.5rem" }} value={36}>36</MenuItem>
+            <MenuItem sx={{ fontSize: "1.5rem" }} value={48}>48</MenuItem>
           </Select>
         </FormControl>
 
         {/* Item range display */}
-        <Typography variant="body2" className="text-gray-600">
+        <Typography variant="body2" className="text-gray-600" sx={{ fontSize: "1.5rem" }}>
           Showing {startItem}-{endItem} of {totalItems}
         </Typography>
       </div>
@@ -76,6 +76,7 @@ function PaginationBar({
         showLastButton
         sx={{
           "& .MuiPaginationItem-root": {
+            fontSize: "1.5rem",
             "&.Mui-selected": {
               backgroundColor: "#ea580c",
               color: "white",
