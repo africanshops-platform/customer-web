@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "react-query";
 import { FormControl, InputLabel, MenuItem, Select, Typography } from "@mui/material";
-import { getCountries } from "app/configs/data/client/clientToApiRoutes";
 import {
+  getCountries,
   getStateByCountryId,
   getLgaByStateId,
   getMarketsByLgaId,
-} from "app/configs/data/client/RepositoryClient";
+} from "app/configs/data/client/clientToApiRoutes";
 
 /**
  * Cascading country → state → LGA → pickup-market selects: a saved address's delivery location.

@@ -1,4 +1,6 @@
 import { useQuery } from "react-query";
+import { useAppSelector } from "app/store/hooks";
+import { selectUser } from "src/app/auth/user/store/userSlice";
 import { Typography } from "@mui/material";
 import { LocalShipping } from "@mui/icons-material";
 import { useGetUserAddresses } from "app/configs/data/server-calls/auth/userapp/a_bookings/use-addresses";
@@ -11,7 +13,10 @@ import { naira, pickDeliveryAddress, estimateBody } from "./shippingEstimateUtil
  * honestly instead of guessing.
  */
 function ProductShippingEstimate({ productData }) {
-  const { data: addresses = [], isLoading: addressesLoading } = useGetUserAddresses();
+  const user = useAppSelector(selectUser);
+  const signedIn = Boolean(user?.email);
+  // only signed-in buyers have saved addresses; a guest request would 401 and trigger the logout handler
+  const { data: addresses = [], isLoading: addressesLoading } = useGetUserAddresses({ enabled: signedIn });
   const address = pickDeliveryAddress(addresses);
   const shopId = productData?.shop;
   const enabled = Boolean(address && shopId);
@@ -24,7 +29,9 @@ function ProductShippingEstimate({ productData }) {
 
   const cost = data?.data?.costs?.[0];
   let text;
-  if (!enabled) {
+  if (!signedIn) {
+    text = "Sign in and save a delivery location to see the shipping cost here";
+  } else if (!enabled) {
     text = addressesLoading
       ? "Checking delivery options…"
       : "Add a delivery location to one of your saved addresses to see the shipping cost here";
