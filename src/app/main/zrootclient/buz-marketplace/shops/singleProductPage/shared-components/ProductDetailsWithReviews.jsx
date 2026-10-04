@@ -18,6 +18,7 @@ import {
   Star,
 } from "@mui/icons-material";
 import { useAppSelector } from "app/store/hooks";
+import useProductCats from "app/configs/data/server-calls/product-categories/useProductCategories";
 import { selectUser } from "src/app/auth/user/store/userSlice";
 import { motion } from "framer-motion";
 import {
@@ -38,6 +39,14 @@ function ratingBarColor(stars) {
 const ProductDetailsWithReviews = ({ productData }) => {
   const user = useAppSelector(selectUser);
   const isAuthenticated = Boolean(user?.email);
+
+  // The public product API returns the category as an id only. Resolve it to the category's name from the cached
+  // categories list (the same one the marketplace sidebar uses); a value that is not an id is already a name.
+  const { data: categoriesData } = useProductCats();
+  const rawCategory = productData?.category;
+  const categoryName = /^[a-f0-9]{24}$/i.test(String(rawCategory ?? ""))
+    ? categoriesData?.data?.categories?.find((c) => c.id === rawCategory)?.name
+    : rawCategory;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [active, setActive] = useState(1);
@@ -186,7 +195,7 @@ const ProductDetailsWithReviews = ({ productData }) => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {productData?.category && (
+                {categoryName && (
                   <motion.div
                     whileHover={{ scale: 1.02 }}
                     className="p-5 bg-white border-2 border-gray-200 rounded-xl hover:border-orange-300 hover:shadow-md transition-all duration-300"
@@ -201,7 +210,7 @@ const ProductDetailsWithReviews = ({ productData }) => {
                       variant={isMobile ? "body1" : "h6"}
                       className="text-gray-900 font-bold"
                     >
-                      {productData?.category}
+                      {categoryName}
                     </Typography>
                   </motion.div>
                 )}
