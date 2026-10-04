@@ -198,13 +198,8 @@ function UserMenu({ user }) {
 
             <Divider variant="middle" />
 
-            {/* ── Finance Section ── */}
-            <div className="px-16 pt-8 pb-4">
-              <Typography className="text-10 font-semibold uppercase tracking-widest" color="text.disabled">
-                Finance
-              </Typography>
-            </div>
-
+            {/* Every fintech page (transfer, withdraw, savings, wallets, cards, history...) is reachable from the
+                finance dashboard itself, so the menu carries a single entry to it. */}
             <MenuItem
               component={Link}
               to="/africanshops/finance-v2/overview"
@@ -212,93 +207,9 @@ function UserMenu({ user }) {
               role="button"
             >
               <ListItemIcon className="min-w-40">
-                <FuseSvgIcon>heroicons-outline:home</FuseSvgIcon>
+                <FuseSvgIcon>heroicons-outline:cash</FuseSvgIcon>
               </ListItemIcon>
-              <ListItemText primary="Finance Overview" />
-            </MenuItem>
-
-            <MenuItem
-              component={Link}
-              to="/africanshops/finance-v2/transactions"
-              onClick={userMenuClose}
-              role="button"
-            >
-              <ListItemIcon className="min-w-40">
-                <FuseSvgIcon>heroicons-outline:clipboard-document-list</FuseSvgIcon>
-              </ListItemIcon>
-              <ListItemText primary="Transactions" />
-            </MenuItem>
-
-            <MenuItem
-              component={Link}
-              to="/africanshops/finance-v2/transfer"
-              onClick={userMenuClose}
-              role="button"
-            >
-              <ListItemIcon className="min-w-40">
-                <FuseSvgIcon>heroicons-outline:arrows-right-left</FuseSvgIcon>
-              </ListItemIcon>
-              <ListItemText primary="Transfer Money" />
-            </MenuItem>
-
-            <MenuItem
-              component={Link}
-              to="/africanshops/finance-v2/transfer-external"
-              onClick={userMenuClose}
-              role="button"
-            >
-              <ListItemIcon className="min-w-40">
-                <FuseSvgIcon>heroicons-outline:paper-airplane</FuseSvgIcon>
-              </ListItemIcon>
-              <ListItemText primary="Send to Bank" />
-            </MenuItem>
-
-            <MenuItem
-              component={Link}
-              to="/africanshops/finance-v2/withdrawal"
-              onClick={userMenuClose}
-              role="button"
-            >
-              <ListItemIcon className="min-w-40">
-                <FuseSvgIcon>heroicons-outline:arrow-up-tray</FuseSvgIcon>
-              </ListItemIcon>
-              <ListItemText primary="Withdraw" />
-            </MenuItem>
-
-            <MenuItem
-              component={Link}
-              to="/africanshops/finance-v2/savings"
-              onClick={userMenuClose}
-              role="button"
-            >
-              <ListItemIcon className="min-w-40">
-                <FuseSvgIcon>heroicons-outline:banknotes</FuseSvgIcon>
-              </ListItemIcon>
-              <ListItemText primary="Savings" />
-            </MenuItem>
-
-            <MenuItem
-              component={Link}
-              to="/africanshops/finance-v2/wallets"
-              onClick={userMenuClose}
-              role="button"
-            >
-              <ListItemIcon className="min-w-40">
-                <FuseSvgIcon>heroicons-outline:wallet</FuseSvgIcon>
-              </ListItemIcon>
-              <ListItemText primary="Multi-Currency Wallets" />
-            </MenuItem>
-
-            <MenuItem
-              component={Link}
-              to="/africanshops/finance-v2/cards"
-              onClick={userMenuClose}
-              role="button"
-            >
-              <ListItemIcon className="min-w-40">
-                <FuseSvgIcon>heroicons-outline:credit-card</FuseSvgIcon>
-              </ListItemIcon>
-              <ListItemText primary="Virtual Card" />
+              <ListItemText primary="Wallet" />
             </MenuItem>
 
             <Divider variant="middle" />

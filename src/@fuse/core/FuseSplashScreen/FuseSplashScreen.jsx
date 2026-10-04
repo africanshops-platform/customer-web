@@ -10,7 +10,7 @@ function FuseSplashScreen() {
   return (
     <div id="fuse-splash-screen">
       <div className="logo">
-        <img width="128" src="assets/images/logo/logo.svg" alt="logo" />
+        <img width="128" src="assets/images/afslogo/afslogo.png" alt="logo" />
       </div>
       <Box
         id="spinner"
