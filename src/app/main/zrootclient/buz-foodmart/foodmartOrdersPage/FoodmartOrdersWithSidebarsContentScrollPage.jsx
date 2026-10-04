@@ -6,7 +6,7 @@ import DemoContent from "./shared-components/DemoContent";
 import DemoSidebar from "./shared-components/DemoSidebar";
 import DemoSidebarRight from "./shared-components/DemoSidebarRight";
 import FusePageSimpleWithMargin from "@fuse/core/FusePageSimple/FusePageSimpleWithMargin";
-import { useGetAuthUserFoodOrders } from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
+import { useGetAuthUserSealedFoodOrders, useGetAuthUserFoodOrders } from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
 
 
 const Root = styled(FusePageSimpleWithMargin)(({ theme }) => ({
@@ -39,6 +39,7 @@ function FoodmartOrdersWithSidebarsContentScrollPage() {
     isLoading: isLoading,
     isError: isError,
   } = useGetAuthUserFoodOrders();
+  const { data: sealedFoodOrders } = useGetAuthUserSealedFoodOrders();
 
   return (
     <Root
@@ -55,6 +56,7 @@ function FoodmartOrdersWithSidebarsContentScrollPage() {
       content={
         <DemoContent
           userCreatedOrders={userFoodOrders?.data?.rcs_orders}
+          completedOrders={sealedFoodOrders?.data?.rcs_orders}
           isLoading={isLoading}
           isError={isError}
         />

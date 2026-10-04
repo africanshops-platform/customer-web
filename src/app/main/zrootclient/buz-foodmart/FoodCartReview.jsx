@@ -25,13 +25,17 @@ import { toast } from "react-toastify";
 import useSellerCountries from "app/configs/data/server-calls/countries/useCountries";
 import {
   getLgasByStateId,
-  getMarketsByLgaId,
   getStateByCountryId,
 } from "app/configs/data/client/RepositoryClient";
 import { useGetMyFoodCart } from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
 // import { formatCurrency } from "app/main/vendors-shop/PosUtils";
 // import { selectUser } from "app/auth/user/store/userSlice";
 import FoodCartSummaryAndPay from "./components/FoodCartSummaryAndPay";
+import "../buz-marketplace/shops/checkout-comfort.css";
+import FoodDeliveryTimePicker from "./components/FoodDeliveryTimePicker";
+import DeliveryPointPanel from "./components/DeliveryPointPanel";
+import { locateDestinationApi } from "app/configs/data/client/clientToApiRoutes";
+import { useGetUserAddresses, useCreateUserAddress } from "app/configs/data/server-calls/auth/userapp/a_bookings/use-addresses";
 import MyAddresses from "../buz-bookings/user-reservations/MyAddresses";
 import { formatCurrency } from "../../vendors-shop/PosUtils";
 import { selectUser } from "../../../auth/user/store/userSlice";
@@ -63,7 +67,6 @@ const schema = z.object({
   orderCountryDestination: z.string().min(1, "You must select a country for this order"),
   orderStateProvinceDestination: z.string().min(1, "You must select a state for this order"),
   orderLgaDestination: z.string().min(1, "You must select an L.G.A / County for this order"),
-  orderMarketPickupDestination: z.string().min(1, "You must select a market pickup point"),
   district: z.string().min(1, "You must enter a district for this order"),
 });
 
@@ -176,8 +179,13 @@ function FoodCartReview() {
   const { data: countryData } = useSellerCountries();
   const [stateData, setStateData] = useState([]);
   const [blgas, setBlgas] = useState([]);
-  const [markets, setBMarkets] = useState([]);
-  const [selectedMarketData, setSelectedMarketData] = useState(null);
+  // exact point the customer shared from their device: prices the delivery distance from the restaurant precisely
+  const [exactPoint, setExactPoint] = useState(null);
+  const [locatingExact, setLocatingExact] = useState(false);
+  const [restaurantInfo, setRestaurantInfo] = useState(null); // {restaurant, distanceKm} from the fee estimate
+  const [located, setLocated] = useState(null); // nearest LGA/state/country of the pinned point
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [deliverBy, setDeliverBy] = useState("");
 
   const methods = useForm({
     mode: "onChange",
@@ -193,11 +201,10 @@ function FoodCartReview() {
     orderCountryDestination,
     orderStateProvinceDestination,
     orderLgaDestination,
-    orderMarketPickupDestination,
     district,
   } = watch();
 
-  // Cascade: country → state → lga → market
+  // Cascade: country → state → lga
   useEffect(() => {
     if (getValues()?.orderCountryDestination) findStatesByCountry();
   }, [orderCountryDestination]);
@@ -206,20 +213,6 @@ function FoodCartReview() {
     if (getValues()?.orderStateProvinceDestination)
       getLgasFromState(getValues().orderStateProvinceDestination);
   }, [orderStateProvinceDestination]);
-
-  useEffect(() => {
-    if (getValues()?.orderLgaDestination)
-      getMarketsFromLgaId(getValues().orderLgaDestination);
-  }, [orderLgaDestination]);
-
-  // Track selected market for display
-  useEffect(() => {
-    if (orderMarketPickupDestination && markets?.length > 0) {
-      setSelectedMarketData(markets.find((m) => m.id === orderMarketPickupDestination) || null);
-    } else {
-      setSelectedMarketData(null);
-    }
-  }, [orderMarketPickupDestination, markets]);
 
   async function findStatesByCountry() {
     const res = await getStateByCountryId(getValues()?.orderCountryDestination);
@@ -231,18 +224,126 @@ function FoodCartReview() {
     if (res) setBlgas(res?.data?.lgas || []);
   }
 
-  async function getMarketsFromLgaId(lid) {
-    if (!lid) return;
-    const res = await getMarketsByLgaId(lid);
-    if (res) setBMarkets(res?.data?.markets || []);
-  }
+  /**
+   * Fill the destination selects the way a person does: set a level, let its list load, then the next.
+   * Setting all four at once leaves the dropdowns blank (their options arrive after the values).
+   */
+  const applyDeliveryLocation = async ({ country, state, lga }) => {
+    const opts = { shouldValidate: true, shouldDirty: true, shouldTouch: true };
+    if (country) {
+      setValue("orderCountryDestination", country, opts);
+      await findStatesByCountry();
+    }
+    if (country && state) {
+      setValue("orderStateProvinceDestination", state, opts);
+      await getLgasFromState(state);
+    }
+    if (state && lga) {
+      setValue("orderLgaDestination", lga, opts);
+    }
+  };
 
   const handleSelectAddress = async (selectedAddress) => {
     setValue("name", selectedAddress.name, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     setValue("phone", selectedAddress.phone, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     setValue("address", selectedAddress.address, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+    // the saved address's delivery location fills the destination too
+    await applyDeliveryLocation({
+      country: selectedAddress.country,
+      state: selectedAddress.state,
+      lga: selectedAddress.lga,
+    });
     await trigger(["name", "phone", "address"]);
   };
+
+  const { data: savedAddresses = [] } = useGetUserAddresses({ enabled: Boolean(user?.id) });
+  const createAddress = useCreateUserAddress();
+
+  /** A new pin (tap, drag, search, device location): remember it, then fill Country / State / L.G.A from it so the
+   *  fee can be priced straight away. The selects stay editable. */
+  const setDeliveryPoint = async (pt) => {
+    setExactPoint(pt);
+    try {
+      const res = await locateDestinationApi(pt.lat, pt.lng);
+      const data = res?.data;
+      if (data?.success) {
+        setLocated(data);
+        await applyDeliveryLocation({ country: data.country?.id, state: data.state?.id, lga: data.lga?.id });
+      }
+    } catch (err) {
+      setLocated(null);
+      toast.info(err?.response?.data?.message || "We could not match that spot to a delivery area — choose your Country, State and L.G.A below.");
+    }
+  };
+
+  /** "Use my current location": the device position. */
+  const shareExactLocation = () => {
+    if (!navigator.geolocation) {
+      toast.info("This device can't share its location — tap the map to place your pin instead.");
+      return;
+    }
+    setLocatingExact(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocatingExact(false);
+        setSelectedAddressId(null);
+        setDeliveryPoint({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      },
+      () => {
+        setLocatingExact(false);
+        toast.info("Location permission was declined — tap the map or search your address instead.");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  };
+
+  /** One click: a saved address fills the whole form (name, phone, street, area) and its pinned point. */
+  const pickSavedAddress = async (a) => {
+    setSelectedAddressId(a.id);
+    await handleSelectAddress(a);
+    if (a.latitude != null && a.longitude != null) {
+      setExactPoint({ lat: a.latitude, lng: a.longitude });
+      setLocated(null);
+    } else {
+      setExactPoint(null);
+      setLocated(null);
+    }
+  };
+
+  const useDifferentAddress = () => {
+    setSelectedAddressId(null);
+    setExactPoint(null);
+    setLocated(null);
+    ["address", "district"].forEach((k) => setValue(k, "", { shouldValidate: true, shouldDirty: true }));
+  };
+
+  /** Keep this delivery address (with its pin) for next time. */
+  const saveCurrentAddress = (label) => {
+    createAddress.mutate(
+      {
+        name,
+        phone,
+        address,
+        label,
+        isDefault: savedAddresses.length === 0,
+        country: orderCountryDestination || undefined,
+        state: orderStateProvinceDestination || undefined,
+        lga: orderLgaDestination || undefined,
+        latitude: exactPoint?.lat,
+        longitude: exactPoint?.lng,
+      },
+      { onSuccess: (res) => res?.data?.address?.id && setSelectedAddressId(res.data.address.id) },
+    );
+  };
+
+  // The customer's default saved address is picked for them once, so a returning customer starts with a full form.
+  const [autoPicked, setAutoPicked] = useState(false);
+  useEffect(() => {
+    if (autoPicked || !savedAddresses.length || name || address) return;
+    const preferred = savedAddresses.find((a) => a.isDefault) || savedAddresses[0];
+    setAutoPicked(true);
+    pickSavedAddress(preferred);
+  }, [savedAddresses]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cartProducts = foodCart?.data?.userFoodCartSession?.cartProducts || [];
   const cartSession = foodCart?.data?.userFoodCartSession || {};
@@ -264,7 +365,7 @@ function FoodCartReview() {
     <FusePageSimple
       content={
         <>
-          <div className="min-h-screen flex flex-col px-4 md:px-8 lg:px-12 py-8 md:py-12">
+          <div className="checkout-comfort min-h-screen flex flex-col px-4 md:px-8 lg:px-12 py-8 md:py-12">
             <div className="max-w-[1600px] mx-auto w-full">
               <div className="flex flex-1 flex-col lg:flex-row gap-6 lg:gap-8">
 
@@ -417,11 +518,31 @@ function FoodCartReview() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                       }
-                      title="Delivery Location & Pickup Point"
-                      subtitle="Select your area for order dispatch"
+                      title="Where should we deliver?"
+                      subtitle="Your home or current address — the restaurant delivers straight to your door"
                     />
 
                     <div className="p-4 sm:p-6 space-y-4">
+                      <DeliveryPointPanel
+                        addresses={savedAddresses}
+                        selectedAddressId={selectedAddressId}
+                        onPickSaved={pickSavedAddress}
+                        onDifferentAddress={useDifferentAddress}
+                        point={exactPoint}
+                        onPointChange={(pt) => {
+                          setSelectedAddressId(null);
+                          setDeliveryPoint(pt);
+                        }}
+                        locating={locatingExact}
+                        onUseCurrentLocation={shareExactLocation}
+                        searchText={[address, district].filter(Boolean).join(", ")}
+                        located={located}
+                        restaurant={restaurantInfo?.restaurant}
+                        distanceKm={restaurantInfo?.distanceKm}
+                        canSave={Boolean(user?.id) && !selectedAddressId && Boolean(name && phone && address)}
+                        saving={createAddress.isLoading}
+                        onSave={saveCurrentAddress}
+                      />
                       {/* Country + State */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -431,7 +552,7 @@ function FoodCartReview() {
                             name="orderCountryDestination"
                             render={({ field }) => (
                               <FormControl fullWidth error={!!errors.orderCountryDestination}>
-                                <Select {...field} displayEmpty variant="outlined" sx={selectSx}>
+                                <Select {...field} value={orderCountryDestination || ""} displayEmpty MenuProps={{ className: "checkout-comfort" }} renderValue={(v) => ((countryData?.data?.countries || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select Country")} variant="outlined" sx={selectSx}>
                                   <MenuItem value="" disabled>Select Country</MenuItem>
                                   {countryData?.data?.countries?.map((c, i) => (
                                     <MenuItem key={i} value={c?.id}>{c?.name}</MenuItem>
@@ -452,7 +573,7 @@ function FoodCartReview() {
                             name="orderStateProvinceDestination"
                             render={({ field }) => (
                               <FormControl fullWidth error={!!errors.orderStateProvinceDestination}>
-                                <Select {...field} displayEmpty variant="outlined" disabled={!stateData?.length} sx={selectSx}>
+                                <Select {...field} value={orderStateProvinceDestination || ""} displayEmpty MenuProps={{ className: "checkout-comfort" }} renderValue={(v) => ((stateData || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select State")} variant="outlined" disabled={!stateData?.length} sx={selectSx}>
                                   <MenuItem value="" disabled>Select State</MenuItem>
                                   {stateData?.map((s, i) => (
                                     <MenuItem key={i} value={s?.id}>{s?.name}</MenuItem>
@@ -467,7 +588,7 @@ function FoodCartReview() {
                         </div>
                       </div>
 
-                      {/* LGA + Market */}
+                      {/* LGA + district / landmark */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <Typography className="mb-2 text-sm font-semibold text-gray-700">L.G.A / County</Typography>
@@ -476,7 +597,7 @@ function FoodCartReview() {
                             name="orderLgaDestination"
                             render={({ field }) => (
                               <FormControl fullWidth error={!!errors.orderLgaDestination}>
-                                <Select {...field} displayEmpty variant="outlined" disabled={!blgas?.length} sx={selectSx}>
+                                <Select {...field} value={orderLgaDestination || ""} displayEmpty MenuProps={{ className: "checkout-comfort" }} renderValue={(v) => ((blgas || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select L.G.A")} variant="outlined" disabled={!blgas?.length} sx={selectSx}>
                                   <MenuItem value="" disabled>Select L.G.A</MenuItem>
                                   {blgas?.map((l, i) => (
                                     <MenuItem key={i} value={l?.id}>{l?.name}</MenuItem>
@@ -491,72 +612,30 @@ function FoodCartReview() {
                         </div>
 
                         <div>
-                          <Typography className="mb-2 text-sm font-semibold text-gray-700">Market Pickup Point</Typography>
+                          <Typography className="mb-2 text-sm font-semibold text-gray-700">District / Nearest Landmark</Typography>
                           <Controller
+                            name="district"
                             control={control}
-                            name="orderMarketPickupDestination"
                             render={({ field }) => (
-                              <FormControl fullWidth error={!!errors.orderMarketPickupDestination}>
-                                <Select {...field} displayEmpty variant="outlined" disabled={!markets?.length} sx={selectSx}>
-                                  <MenuItem value="" disabled>Select Market</MenuItem>
-                                  {markets?.map((m, i) => (
-                                    <MenuItem key={i} value={m?.id}>{m?.name}</MenuItem>
-                                  ))}
-                                </Select>
-                                {errors.orderMarketPickupDestination && (
-                                  <Typography className="text-xs text-red-600 mt-1">{errors.orderMarketPickupDestination.message}</Typography>
-                                )}
-                              </FormControl>
+                              <TextField
+                                {...field}
+                                required
+                                variant="outlined"
+                                fullWidth
+                                placeholder="e.g. Garki Area 11, near GTBank"
+                                error={!!errors.district}
+                                helperText={errors?.district?.message || "Helps riders find your door"}
+                                sx={inputSx}
+                              />
                             )}
                           />
                         </div>
                       </div>
 
-                      {/* District — food-order specific field */}
-                      <Controller
-                        name="district"
-                        control={control}
-                        render={({ field }) => (
-                          <TextField
-                            {...field}
-                            required
-                            label="District / Nearest Landmark"
-                            variant="outlined"
-                            fullWidth
-                            placeholder="e.g. Garki Area 11, near GTBank"
-                            error={!!errors.district}
-                            helperText={errors?.district?.message || "Helps riders find you faster"}
-                            sx={inputSx}
-                          />
-                        )}
-                      />
-
-                      {/* Selected market confirmation */}
-                      {selectedMarketData && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="p-4 rounded-xl"
-                          style={{
-                            background: "linear-gradient(135deg, rgba(34,197,94,0.08) 0%, rgba(22,163,74,0.05) 100%)",
-                            border: "1px solid rgba(34,197,94,0.2)",
-                          }}
-                        >
-                          <div className="flex items-start gap-3">
-                            <svg className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <div>
-                              <p className="font-semibold text-gray-800 text-sm">
-                                Pickup point: {selectedMarketData.name}
-                              </p>
-                              <p className="text-xs text-gray-600 mt-0.5">Your order will be dispatched from this location</p>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
                     </div>
                   </motion.div>
+
+                  <FoodDeliveryTimePicker cartItems={cartProducts} value={deliverBy} onChange={setDeliverBy} />
 
                   {/* ── Section 3: Order Items Review ── */}
                   <motion.div
@@ -766,18 +845,19 @@ function FoodCartReview() {
                         orderCountryDestination={orderCountryDestination}
                         orderStateProvinceDestination={orderStateProvinceDestination}
                         orderLgaDestination={orderLgaDestination}
-                        orderMarketPickupDestination={orderMarketPickupDestination}
                         district={district}
                         dirtyFields={dirtyFields}
                         isValid={isValid}
                         setIsProcessingPayment={setIsProcessingPayment}
-                        selectedMarketData={selectedMarketData}
+                        exactPoint={exactPoint}
+                        deliverBy={deliverBy}
+                        onRestaurantInfo={setRestaurantInfo}
                       />
                     </div>
 
                     {/* Pickup Location Map — 60% height on desktop */}
                     <div className="lg:h-[60%] lg:min-h-[450px] min-h-[400px]">
-                      {selectedMarketData?.lat && selectedMarketData?.lng ? (
+                      {exactPoint?.lat && exactPoint?.lng ? (
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -794,18 +874,18 @@ function FoodCartReview() {
                           >
                             <ShopLocationMap
                               shopData={{
-                                id: selectedMarketData?.id,
-                                shopName: selectedMarketData?.name,
-                                address: selectedMarketData?.address || "Market Address",
-                                city: selectedMarketData?.city || "City",
-                                state: selectedMarketData?.state || "State",
-                                country: selectedMarketData?.country || "Nigeria",
+                                id: "delivery-point",
+                                shopName: "Your delivery point",
+                                address: address || "Your delivery address",
+                                city: district || "",
+                                state: "",
+                                country: "Nigeria",
                                 coordinates: [
-                                  parseFloat(selectedMarketData?.lat),
-                                  parseFloat(selectedMarketData?.lng),
+                                  exactPoint.lat,
+                                  exactPoint.lng,
                                 ],
                                 zoom: 14,
-                                phone: selectedMarketData?.phone || "+234 800 000 0000",
+                                phone: phone || "",
                                 isVerified: true,
                                 rating: 4.8,
                                 totalSales: 1234,
@@ -834,9 +914,9 @@ function FoodCartReview() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                               </svg>
                             </div>
-                            <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-2">Select a Pickup Location</h3>
+                            <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-2">Share your location to see your delivery point</h3>
                             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                              Choose a market pickup point from the delivery location section above to view its location on the map
+                              Tap “Use my current location” above to pin where the restaurant should deliver.
                             </p>
                           </div>
                         </motion.div>

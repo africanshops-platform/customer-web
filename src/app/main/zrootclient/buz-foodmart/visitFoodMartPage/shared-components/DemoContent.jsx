@@ -1,3 +1,7 @@
+import VenueHero from "./VenueHero";
+import { themeFor } from "../venueThemes";
+import "../venue-themes.css";
+import FulfillmentBadge from "../../components/FulfillmentBadge";
 import FuseLoading from "@fuse/core/FuseLoading";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -52,7 +56,7 @@ function MenuItemCard({ item, index }) {
       transition={{ delay: index * 0.05 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="group bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer flex flex-col"
+      className="menu-card group bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer flex flex-col"
     >
       {/* Image Section */}
       <div className="relative h-100 overflow-hidden bg-gray-100">
@@ -237,6 +241,9 @@ function MenuItemCard({ item, index }) {
             </Typography>
           </div>
         </div>
+        <div className="mb-3">
+          <FulfillmentBadge item={item} withDetail />
+        </div>
 
         {/* Action Buttons */}
         <div className="flex gap-2 mt-auto pt-4">
@@ -266,7 +273,8 @@ function MenuItemCard({ item, index }) {
  * Demo Content
  */
 function DemoContent(props) {
-  const { rcsId } = props;
+  const { rcsId, rcsFoodMart } = props;
+  const venue = themeFor(rcsFoodMart?.operationMode);
 
   const { data: RcsMenu, isLoading: menuLoading, isError: menuError } = useGetRCSMenuItems(rcsId);
   console.log("RcsMenu data:", RcsMenu);
@@ -302,7 +310,8 @@ function DemoContent(props) {
   }
 
   return (
-    <div className="flex-auto p-0 sm:p-0 bg-gradient-to-b from-gray-50 to-white">
+    <div className={`${venue.className} flex-auto p-0 sm:p-0`} style={{ background: venue.ground, fontFamily: venue.font }}>
+      <VenueHero foodMart={rcsFoodMart} />
       {/* Header Section */}
       <div className="px-8 py-6 bg-white border-b border-gray-200">
         <div className="flex items-center justify-between">

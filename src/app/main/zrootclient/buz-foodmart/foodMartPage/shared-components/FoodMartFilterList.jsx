@@ -27,16 +27,19 @@ const FOODMART_CATEGORIES = [
 ];
 
 const OPERATION_MODES = [
-  { value: "RESTAURANT", label: "Dine-in Restaurant" },
-  { value: "TAKE_OUT", label: "Take Out" },
-  { value: "DELIVERY", label: "Delivery" },
-  { value: "BAR", label: "Bar" },
-  { value: "CLUB", label: "Club" },
+  { value: "RESTAURANT", label: "Restaurant" },
+  { value: "CAFE", label: "Café" },
+  { value: "CLUB", label: "Club / Lounge" },
+  { value: "SPOT", label: "Spot" },
 ];
 
 const inputSx = {
   backgroundColor: "white",
   borderRadius: "8px",
+  "& .MuiInputBase-root": { fontSize: "1.5rem" },
+  "& .MuiInputBase-input": { fontSize: "1.5rem" },
+  "& .MuiInputLabel-root": { fontSize: "1.4rem" },
+  "& .MuiSelect-select": { fontSize: "1.5rem" },
   "& .MuiOutlinedInput-root": {
     "&:hover fieldset": { borderColor: "#f97316" },
     "&.Mui-focused fieldset": { borderColor: "#ea580c" },
@@ -149,8 +152,8 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
           boxShadow: "0 4px 15px rgba(249, 115, 22, 0.3)",
         }}
       >
-        <FilterListIcon sx={{ color: "white", fontSize: "1.75rem" }} />
-        <Typography variant="h6" sx={{ fontWeight: 700, color: "white", fontSize: "1.25rem" }}>
+        <FilterListIcon sx={{ color: "white", fontSize: "2.8rem" }} />
+        <Typography variant="h6" sx={{ fontWeight: 700, color: "white", fontSize: "2.0rem" }}>
           Filter Restaurants
         </Typography>
       </div>
@@ -223,7 +226,7 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
         <Divider className="my-2" />
 
         {/* Category */}
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151", paddingTop: "4px" }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#374151", paddingTop: "4px", fontSize: "1.6rem" }}>
           Establishment Type
         </Typography>
 
@@ -235,11 +238,11 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
             label="Category"
             onChange={(e) => setCategory(e.target.value)}
           >
-            <MenuItem value="">
+            <MenuItem sx={{ fontSize: "1.5rem" }} value="">
               <em>All Categories</em>
             </MenuItem>
             {FOODMART_CATEGORIES.map((c) => (
-              <MenuItem key={c.value} value={c.value}>
+              <MenuItem sx={{ fontSize: "1.5rem" }} key={c.value} value={c.value}>
                 {c.label}
               </MenuItem>
             ))}
@@ -255,11 +258,11 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
             label="Operation Mode"
             onChange={(e) => setOperationMode(e.target.value)}
           >
-            <MenuItem value="">
+            <MenuItem sx={{ fontSize: "1.5rem" }} value="">
               <em>All Modes</em>
             </MenuItem>
             {OPERATION_MODES.map((m) => (
-              <MenuItem key={m.value} value={m.value}>
+              <MenuItem sx={{ fontSize: "1.5rem" }} key={m.value} value={m.value}>
                 {m.label}
               </MenuItem>
             ))}
@@ -269,7 +272,7 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
         <Divider className="my-2" />
 
         {/* Location Section */}
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151", paddingTop: "4px" }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#374151", paddingTop: "4px", fontSize: "1.6rem" }}>
           Location
         </Typography>
 
@@ -282,11 +285,11 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
             label="Country"
             onChange={(e) => setCountry(e.target.value)}
           >
-            <MenuItem value="">
+            <MenuItem sx={{ fontSize: "1.5rem" }} value="">
               <em>All Countries</em>
             </MenuItem>
             {COUNTRIES?.data?.countries?.map((c) => (
-              <MenuItem key={c.id} value={c.id}>
+              <MenuItem sx={{ fontSize: "1.5rem" }} key={c.id} value={c.id}>
                 {c.name}
               </MenuItem>
             ))}
@@ -302,16 +305,16 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
             label="State"
             onChange={(e) => setState(e.target.value)}
           >
-            <MenuItem value="">
+            <MenuItem sx={{ fontSize: "1.5rem" }} value="">
               <em>All States</em>
             </MenuItem>
             {statesLoading && (
-              <MenuItem disabled>
+              <MenuItem sx={{ fontSize: "1.5rem" }} disabled>
                 <em>Loading...</em>
               </MenuItem>
             )}
             {availableStates?.map((s) => (
-              <MenuItem key={s.id} value={s.id}>
+              <MenuItem sx={{ fontSize: "1.5rem" }} key={s.id} value={s.id}>
                 {s.name}
               </MenuItem>
             ))}
@@ -327,16 +330,16 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
             label="LGA"
             onChange={(e) => setLga(e.target.value)}
           >
-            <MenuItem value="">
+            <MenuItem sx={{ fontSize: "1.5rem" }} value="">
               <em>All LGAs</em>
             </MenuItem>
             {lgasLoading && (
-              <MenuItem disabled>
+              <MenuItem sx={{ fontSize: "1.5rem" }} disabled>
                 <em>Loading...</em>
               </MenuItem>
             )}
             {availableLgas?.map((l) => (
-              <MenuItem key={l.id} value={l.id}>
+              <MenuItem sx={{ fontSize: "1.5rem" }} key={l.id} value={l.id}>
                 {l.name}
               </MenuItem>
             ))}
@@ -349,6 +352,7 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
           variant="outlined"
           onClick={handleClearFilters}
           sx={{
+            fontSize: "1.4rem",
             borderColor: "#ea580c",
             color: "#ea580c",
             marginTop: "8px",

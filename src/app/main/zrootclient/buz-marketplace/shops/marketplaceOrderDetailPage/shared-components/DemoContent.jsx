@@ -17,6 +17,8 @@ import {
   useRequestRefundOnOrderItem,
 } from "app/configs/data/server-calls/auth/userapp/a_marketplace/useProductsRepo";
 import RaiseDisputeDialog from "src/app/main/zrootclient/buz-disputes/RaiseDisputeDialog";
+import { DeliveryCodePanel } from "../../../components/DeliveryCodeCard";
+import { canCancelItem, complaintWindow, droppedLabel, isWarehouseRouted, warehouseStatusLabel, warehouseTimeline } from "./orderTracking";
 
 /**
  * Order Detail Content - Production Ready
@@ -76,6 +78,16 @@ function DemoContent(props) {
         color: "#16a34a",
         bgColor: "rgba(34, 197, 94, 0.1)",
         borderColor: "rgba(34, 197, 94, 0.3)",
+      };
+    }
+    if (isWarehouseRouted(userOrder)) {
+      const label = warehouseStatusLabel(userOrder);
+      const ready = label === "Ready for delivery" || label === "Packed";
+      return {
+        label,
+        color: ready ? "#16a34a" : "#2563eb",
+        bgColor: ready ? "rgba(34, 197, 94, 0.1)" : "rgba(59, 130, 246, 0.1)",
+        borderColor: ready ? "rgba(34, 197, 94, 0.3)" : "rgba(59, 130, 246, 0.3)",
       };
     }
     if (userOrder?.hasArrivedWarehouse) {
@@ -389,8 +401,13 @@ function DemoContent(props) {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Order Details</h1>
-              <p className="text-sm sm:text-base text-gray-600">
-                Order ID: {userOrder?.paymentResult?.reference || "N/A"}
+              <p className="text-sm sm:text-base text-gray-600" data-testid="order-id-line">
+                Order #{String(userOrder?.id || userOrder?._id || "").slice(-8).toUpperCase() || "N/A"}
+                {userOrder?.paymentResult?.reference && (
+                  <span className="block text-xs text-gray-500">
+                    Payment reference: {userOrder.paymentResult.reference}
+                  </span>
+                )}
               </p>
             </div>
 
@@ -444,6 +461,9 @@ function DemoContent(props) {
             </div>
           </div>
         </motion.div>
+
+        {/* Delivery code: shown once at checkout; here the customer can only ask for a NEW one */}
+        <DeliveryCodePanel order={userOrder} orderId={orderId} />
 
         {/* Order Items */}
         <motion.div
@@ -522,7 +542,7 @@ function DemoContent(props) {
                             border: "1px solid rgba(249, 115, 22, 0.3)",
                           }}
                         >
-                          Processing
+                          {isWarehouseRouted(userOrder) ? warehouseStatusLabel(userOrder) : "Processing"}
                         </div>
                       )}
                       {orderItem?.isCanceled && (
@@ -535,7 +555,7 @@ function DemoContent(props) {
                             border: "1px solid rgba(239, 68, 68, 0.3)",
                           }}
                         >
-                          Cancelled
+                          {droppedLabel(orderItem?.droppedReason)}
                         </div>
                       )}
                       {orderItem?.isRefundRequested && (
@@ -557,7 +577,7 @@ function DemoContent(props) {
 
                 {/* Action Buttons */}
                 <div className="mt-4 flex flex-wrap gap-3">
-                  {!orderItem?.isCanceled && !orderItem?.isDelivered && !userOrder?.isShipped && (
+                  {canCancelItem(userOrder, orderItem) && (
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -574,7 +594,7 @@ function DemoContent(props) {
                     </motion.button>
                   )}
 
-                  {orderItem?.isCanceled && !orderItem?.isRefundRequested && (
+                  {orderItem?.isCanceled && !orderItem?.droppedReason && !orderItem?.isRefundRequested && (
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -597,7 +617,18 @@ function DemoContent(props) {
                       practice item-level delivery flags can lag behind the
                       order-level one, so item-level would hide this button
                       on orders the backend would actually accept. */}
-                  {userOrder?.isDelivered && (
+                  {userOrder?.isDelivered && complaintWindow(userOrder).state === "open" && (
+                    <p className="w-full text-xs text-gray-600" data-testid="complaint-window-open">
+                      You have about {complaintWindow(userOrder).hoursLeft} hour
+                      {complaintWindow(userOrder).hoursLeft === 1 ? "" : "s"} left to report an issue with this order.
+                    </p>
+                  )}
+                  {userOrder?.isDelivered && complaintWindow(userOrder).state === "closed" && (
+                    <p className="w-full text-xs text-gray-500" data-testid="complaint-window-closed">
+                      The 48-hour window to report an issue with this order has closed.
+                    </p>
+                  )}
+                  {userOrder?.isDelivered && complaintWindow(userOrder).state !== "closed" && (
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -709,6 +740,30 @@ function DemoContent(props) {
               <h3 className="text-lg font-bold text-gray-900">Order Progress</h3>
             </div>
 
+            {isWarehouseRouted(userOrder) ? (
+              <div className="space-y-3" data-testid="warehouse-timeline">
+                {warehouseTimeline(userOrder).map((step) => (
+                  <div key={step.key} className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">{step.label}:</span>
+                    <span
+                      className={`font-semibold ${
+                        step.state === "done"
+                          ? "text-green-600"
+                          : step.state === "active"
+                            ? "text-blue-600"
+                            : "text-gray-400"
+                      }`}
+                    >
+                      {step.state === "done"
+                        ? step.doneText
+                        : step.state === "active"
+                          ? step.activeText || "Pending..."
+                          : "Pending..."}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">Packaged:</span>
@@ -743,6 +798,7 @@ function DemoContent(props) {
                 </span>
               </div>
             </div>
+            )}
           </motion.div>
         </div>
 

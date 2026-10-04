@@ -32,92 +32,48 @@ function ActiveFoodMartPage() {
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(!isMobile);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(!isMobile);
 
-  // Filter state management
-  const [filters, setFilters] = useState({});
+  // Filter inputs as the sidebar reports them; the API query is derived from these plus the page.
+  const [filterInputs, setFilterInputs] = useState({});
 
-  // Pagination state management - default limit of 10 as requested
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
 
   useEffect(() => {
     setLeftSidebarOpen(!isMobile);
     setRightSidebarOpen(!isMobile);
   }, [isMobile]);
 
-  // Fetch food marts with filters
+  // Map the sidebar's filter names to the listing API's parameters
+  const filters = useMemo(() => {
+    const f = { limit: itemsPerPage, offset: (currentPage - 1) * itemsPerPage };
+    const title = filterInputs.title || filterInputs.keyword;
+    if (title) f.title = title;
+    if (filterInputs.address) f.address = filterInputs.address;
+    if (filterInputs.category) f.foodMartCategory = filterInputs.category;
+    if (filterInputs.operationMode) f.operationMode = filterInputs.operationMode;
+    if (filterInputs.country) f.foodMartCountry = filterInputs.country;
+    if (filterInputs.state) f.foodMartState = filterInputs.state;
+    if (filterInputs.lga) f.foodMartLga = filterInputs.lga;
+    return f;
+  }, [filterInputs, itemsPerPage, currentPage]);
+
   const { data: AllFoodMarts, isLoading, isError } = useGetAllFoodMarts(filters);
 
-  // Handle filter changes from FilterList component
-  const handleFilterChange = useCallback(
-    (newFilters) => {
-      // Map FilterList filter names to API parameter names
-      const apiFilters = {};
+  // Stable, so the sidebar is not re-rendered on every page change. A changed filter starts at page 1.
+  const handleFilterChange = useCallback((newFilters) => {
+    setFilterInputs((prev) => (JSON.stringify(prev) === JSON.stringify(newFilters) ? prev : newFilters));
+    setCurrentPage(1);
+  }, []);
 
-      // Pagination parameters
-      apiFilters.limit = itemsPerPage;
-      apiFilters.offset = (currentPage - 1) * itemsPerPage;
-
-      // Keyword / title search
-      if (newFilters.keyword) {
-        apiFilters.title = newFilters.keyword;
-      }
-      if (newFilters.title) {
-        apiFilters.title = newFilters.title;
-      }
-
-      // Address filter
-      if (newFilters.address) {
-        apiFilters.address = newFilters.address;
-      }
-
-      // Category filter
-      if (newFilters.category) {
-        apiFilters.foodMartCategory = newFilters.category;
-      }
-
-      // Operation mode filter
-      if (newFilters.operationMode) {
-        apiFilters.operationMode = newFilters.operationMode;
-      }
-
-      // Location filters - using foodMart prefix as per API convention
-      if (newFilters.country) {
-        apiFilters.foodMartCountry = newFilters.country;
-      }
-      if (newFilters.state) {
-        apiFilters.foodMartState = newFilters.state;
-      }
-      if (newFilters.lga) {
-        apiFilters.foodMartLga = newFilters.lga;
-      }
-
-      // Update filters state (this will trigger useGetAllFoodMarts to refetch)
-      setFilters(apiFilters);
-    },
-    [itemsPerPage, currentPage],
-  );
-
-  // Handle page change
   const handlePageChange = useCallback((newPage) => {
     setCurrentPage(newPage);
   }, []);
 
-  // Handle items per page change
   const handleItemsPerPageChange = useCallback((newItemsPerPage) => {
     setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1); // Reset to first page when changing items per page
+    setCurrentPage(1);
   }, []);
-
-  // Sync pagination changes with filters
-  useEffect(() => {
-    if (Object.keys(filters).length > 0) {
-      setFilters((prevFilters) => ({
-        ...prevFilters,
-        limit: itemsPerPage,
-        offset: (currentPage - 1) * itemsPerPage,
-      }));
-    }
-  }, [currentPage, itemsPerPage]);
 
   // Memoize sidebar toggle handlers to prevent re-renders
   const handleLeftSidebarToggle = useCallback(() => {

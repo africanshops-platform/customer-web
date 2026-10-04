@@ -1,5 +1,7 @@
+import FulfillmentBadge from "../../components/FulfillmentBadge";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { useGetFoodMenuReviews } from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
 import { Button, Typography, Chip, Rating, IconButton, Divider } from "@mui/material";
 import {
   LocalOffer,
@@ -27,6 +29,9 @@ const PLACEHOLDER_IMG = "https://placehold.co/500x500/fff7ed/ea580c?text=No+Imag
  * Modelled after buz-marketplace/shops/singleProductPage/DemoContentSingleProduct.jsx
  */
 function DemoContent({ isLoading, isError, menuData, onAddToFoodCart, addFoodCartLoading, foodCart }) {
+  const { data: reviewsRes } = useGetFoodMenuReviews(menuData?.id);
+  const reviewCount = reviewsRes?.data?.count ?? 0;
+  const averageRating = reviewsRes?.data?.averageRating ?? 0;
   const [select, setSelect] = useState(0);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -233,17 +238,17 @@ function DemoContent({ isLoading, isError, menuData, onAddToFoodCart, addFoodCar
               {/* Rating */}
               <div className="flex items-center gap-3 mb-6 p-4 bg-orange-50 rounded-xl">
                 <Rating
-                  value={4.5}
-                  precision={0.5}
+                  value={averageRating}
+                  precision={0.1}
                   size="large"
                   readOnly
                   sx={{ "& .MuiRating-iconFilled": { color: "#f59e0b" } }}
                 />
                 <Typography variant="body1" className="text-gray-700 font-medium">
-                  4.5 out of 5
+                  {reviewCount ? `${averageRating.toFixed(1)} out of 5` : "No ratings yet"}
                 </Typography>
                 <Typography variant="body2" className="text-gray-500">
-                  (24 reviews)
+                  ({reviewCount} review{reviewCount === 1 ? "" : "s"})
                 </Typography>
               </div>
 
@@ -265,6 +270,10 @@ function DemoContent({ isLoading, isError, menuData, onAddToFoodCart, addFoodCar
                   <Typography variant="h6" className="text-gray-600 font-medium">
                     per {menuData?.unitPerQuantity || "serving"}
                   </Typography>
+                </div>
+
+                <div className="mt-3">
+                  <FulfillmentBadge item={menuData} withDetail large />
                 </div>
 
                 {hasDiscount && (
@@ -393,8 +402,8 @@ function DemoContent({ isLoading, isError, menuData, onAddToFoodCart, addFoodCar
           description: menuData?.description,
           price: menuData?.price,
           listprice: menuData?.listprice,
-          rating: 4.5,
-          reviewCount: 24,
+          rating: averageRating,
+          reviewCount,
         }}
         onAddToCart={onAddToFoodCart}
       />

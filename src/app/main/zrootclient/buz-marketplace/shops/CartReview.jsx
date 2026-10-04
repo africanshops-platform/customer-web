@@ -1,4 +1,5 @@
 import _ from "@lodash";
+import "./checkout-comfort.css";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
@@ -40,6 +41,8 @@ import {
   getStateByCountryId,
 } from "app/configs/data/client/clientToApiRoutes";
 import MyAddresses from "../../buz-bookings/user-reservations/MyAddresses";
+import TermsAndConditionsPreview from "./components/TermsAndConditionsPreview";
+import useNearestPickup from "../../buz-bookings/user-reservations/useNearestPickup";
 import CartSummaryAndPay from "./components/CartSummaryAndPay";
 // import ClienttErrorPage from "../../components/ClienttErrorPage";
 
@@ -246,6 +249,30 @@ function CartReview() {
     }
   }
 
+  /**
+   * Fill the destination selects the way a person does: set a level, let its list load, then the next.
+   * Setting all four at once leaves the dropdowns showing blank (their options arrive after the values),
+   * so each value is applied only after the list that contains it has loaded.
+   */
+  const applyDeliveryLocation = async ({ country, state, lga, market }) => {
+    const opts = { shouldValidate: true, shouldDirty: true, shouldTouch: true };
+    if (country) {
+      setValue("orderCountryDestination", country, opts);
+      await findStatesByCountry();
+    }
+    if (country && state) {
+      setValue("orderStateProvinceDestination", state, opts);
+      await getLgasFromState(state);
+    }
+    if (state && lga) {
+      setValue("orderLgaDestination", lga, opts);
+      await getMarketsFromLgaId(lga);
+    }
+    if (lga && market) {
+      setValue("orderMarketPickupDestination", market, opts);
+    }
+  };
+
   // Handle address selection from MyAddresses modal
   const handleSelectAddress = async (selectedAddress) => {
     // Set each field individually with shouldValidate and shouldDirty flags
@@ -265,9 +292,21 @@ function CartReview() {
       shouldTouch: true,
     });
 
+    // The address's saved delivery location fills the destination too — the dependent lists
+    // (states, LGAs, markets) load from these ids through the existing effect above.
+    await applyDeliveryLocation({
+      country: selectedAddress.country,
+      state: selectedAddress.state,
+      lga: selectedAddress.lga,
+      market: selectedAddress.market,
+    });
+
     // Trigger validation for all fields to ensure form validity
     await trigger(["name", "phone", "address"]);
   };
+
+  // "Use my nearest pickup point": the server ranks operational markets by distance from the device location
+  const { locate: locateNearestPickup, locating: locatingNearest } = useNearestPickup((loc) => applyDeliveryLocation(loc));
 
   const onClose = () => {
     setPaymentCloseDialogOpen(true);
@@ -277,7 +316,7 @@ function CartReview() {
     <FusePageSimple
       content={
         <>
-          <div className="min-h-screen flex flex-col px-4 md:px-8 lg:px-12 py-8 md:py-12">
+          <div className="checkout-comfort min-h-screen flex flex-col px-4 md:px-8 lg:px-12 py-8 md:py-12">
             <div className="max-w-[1600px] mx-auto w-full">
               <div className="flex flex-1 flex-col lg:flex-row gap-6 lg:gap-8">
                 {/* Left Side - Review & Form (60% width, scrollable) */}
@@ -636,6 +675,15 @@ function CartReview() {
 
                       {/* Form Content */}
                       <div className="p-4 sm:p-6 space-y-4">
+                        <Button
+                          variant="outlined"
+                          onClick={locateNearestPickup}
+                          disabled={locatingNearest}
+                          data-testid="use-nearest-pickup"
+                          sx={{ textTransform: "none", borderColor: "#ea580c", color: "#ea580c", fontWeight: 600 }}
+                        >
+                          {locatingNearest ? "Finding your nearest pickup point…" : "📍 Use my nearest pickup point"}
+                        </Button>
                         {/* Country and State Row */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {/* Country Select */}
@@ -650,7 +698,10 @@ function CartReview() {
                                 <FormControl fullWidth error={!!errors.orderCountryDestination}>
                                   <Select
                                     {...field}
+                                    value={orderCountryDestination || ""}
                                     displayEmpty
+                                    MenuProps={{ className: "checkout-comfort" }}
+                                    renderValue={(v) => (((countryData?.data?.countries) || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select Country")}
                                     variant="outlined"
                                     startAdornment={
                                       <svg
@@ -715,7 +766,10 @@ function CartReview() {
                                 >
                                   <Select
                                     {...field}
+                                    value={orderStateProvinceDestination || ""}
                                     displayEmpty
+                                    MenuProps={{ className: "checkout-comfort" }}
+                                    renderValue={(v) => (((stateData) || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select State")}
                                     variant="outlined"
                                     disabled={!stateData || stateData.length === 0}
                                     startAdornment={
@@ -781,7 +835,10 @@ function CartReview() {
                                 <FormControl fullWidth error={!!errors.orderLgaDestination}>
                                   <Select
                                     {...field}
+                                    value={orderLgaDestination || ""}
                                     displayEmpty
+                                    MenuProps={{ className: "checkout-comfort" }}
+                                    renderValue={(v) => (((blgas) || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select L.G.A")}
                                     variant="outlined"
                                     disabled={!blgas || blgas.length === 0}
                                     startAdornment={
@@ -847,7 +904,10 @@ function CartReview() {
                                 >
                                   <Select
                                     {...field}
+                                    value={orderMarketPickupDestination || ""}
                                     displayEmpty
+                                    MenuProps={{ className: "checkout-comfort" }}
+                                    renderValue={(v) => (((markets) || []).find((o) => o?.id === v)?.name) || (v ? "Loading…" : "Select Market")}
                                     variant="outlined"
                                     disabled={!markets || markets.length === 0}
                                     startAdornment={
@@ -1309,37 +1369,13 @@ function CartReview() {
                       {/* Terms Content */}
                       <div className="p-4 sm:p-6">
                         <div
-                          className="max-h-[320px] overflow-y-auto p-4 rounded-xl"
+                          className="p-4 rounded-xl"
                           style={{
                             background: "rgba(249, 250, 251, 1)",
                             border: "1px solid rgba(229, 231, 235, 1)",
                           }}
                         >
-                          <p className="text-orange-600 font-semibold mb-3">
-                            Terms and conditions on placing an order on Africanshops
-                          </p>
-                          <p className="text-sm text-gray-700 mb-3 leading-relaxed">
-                            This may be because: 1) Your order is below the minimum purchase amount
-                            of 2,000 naira or above the maximum purchase amount of 250,000 naira; or
-                            2) Cash on delivery is not available for your delivery address or the
-                            pick-up station selected; or 3) You have had multiple failed delivery
-                            attempts or cancelled orders; or 4) the number you are using to place
-                            the order is a number that has a restriction
-                          </p>
-                          <p className="text-sm text-gray-700 mb-3 leading-relaxed">
-                            By placing an order, you agree to our delivery terms and conditions. All
-                            orders are subject to availability and confirmation of the order price.
-                            Dispatch times may vary according to availability and subject to any
-                            delays resulting from postal delays or force majeure for which we will
-                            not be responsible.
-                          </p>
-                          <p className="text-sm text-gray-700 mb-3 leading-relaxed">
-                            We reserve the right to refuse any order you place with us. We may, in
-                            our sole discretion, limit or cancel quantities purchased per person,
-                            per household or per order. These restrictions may include orders placed
-                            by or under the same customer account, the same credit card, and/or
-                            orders that use the same billing and/or shipping address.
-                          </p>
+                          <TermsAndConditionsPreview />
                         </div>
                       </div>
                     </motion.div>
@@ -1370,7 +1406,7 @@ function CartReview() {
                     </div>
 
                     {/* Warehouse Location Map - 60% of available height on desktop, full on mobile */}
-                    <div className="lg:h-[60%] lg:min-h-[450px] min-h-[400px]">
+                    <div className="lg:h-[60%] lg:min-h-[540px] min-h-[460px]">
                       {selectedMarketData?.lat && selectedMarketData?.lng ? (
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}

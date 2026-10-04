@@ -20,6 +20,7 @@ import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
 import ClienttErrorPage from "src/app/main/zrootclient/components/ClienttErrorPage";
 import AddToProductCartButton from "../../components/AddToProductCartButton";
 import ProductDetailsWithReviews from "./ProductDetailsWithReviews";
+import ProductShippingEstimate from "./ProductShippingEstimate";
 import ProductImageGalleryView from "./ProductImageGalleryView";
 import SingleProductLoadingPlaceholder from "./SingleProductLoadingPlaceholder";
 
@@ -338,12 +339,7 @@ function DemoContentSingleProduct(props) {
                     </span>
                   </Typography>
                 </div>
-                <div className="flex items-center gap-3">
-                  <LocalShipping sx={{ color: "#3b82f6", fontSize: "1.5rem" }} />
-                  <Typography variant="body2" className="text-gray-600">
-                    Shipping from ₦1,080 to your location
-                  </Typography>
-                </div>
+                <ProductShippingEstimate productData={productData} />
               </div>
 
               {/* Add to Cart Button */}

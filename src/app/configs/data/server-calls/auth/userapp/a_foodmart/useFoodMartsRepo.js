@@ -5,17 +5,23 @@ import {
 	getEligibleTablesForOrderApi,
 	getUserFoodCartApi,
 	getUserFoodInvoicesAndItemsByIdEnpoint,
+	canReviewFoodMenuApi,
+	createFoodMenuReviewApi,
 	getUserFoodInvoicesEnpoint,
+	getUserSealedFoodOrdersEndpoint,
 	payAndPlaceFoodOrderApi,
+	reissueFoodDeliveryCodeApi,
 	updateUserFoodCartApi
 } from 'app/configs/data/client/RepositoryAuthClient';
 import {
 	getAllFoodMarts,
 	getFoodMartMenuApi,
+	getFoodMenuReviews,
 	getFoodMartSingleMenuItemApi,
 	getMyFoodCartpi,
 	getRcsFoodMartMenuItemsApi
 } from 'app/configs/data/client/RepositoryClient';
+import { handleApiError as handleNestJSError } from 'app/configs/data/utils/handleApiError';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router';
 import { toast } from 'react-toastify';
@@ -86,7 +92,7 @@ const handleApiError = (error, options = {}) => {
 
 /** *1) Get All FoodMart/RCS with filters */
 export default function useGetAllFoodMarts(filters = {}) {
-	return useQuery(['__foodmarts', filters], () => getAllFoodMarts(filters));
+	return useQuery(['__foodmarts', filters], () => getAllFoodMarts(filters), { keepPreviousData: true });
 } // (Mcsvs => Done)
 
 /** *2) Get single food-mart-SHOP/RCS */
@@ -204,6 +210,13 @@ export function useUpdateFoodCartItemQty() {
  * #################################################################
  */
 
+/** ***Ask for a NEW food delivery code for my order (the old one stops working). The plaintext comes back once. */
+export function useReissueFoodDeliveryCode() {
+	return useMutation((orderId) => reissueFoodDeliveryCodeApi(orderId), {
+		onError: handleNestJSError
+	});
+}
+
 /** ***Pay and place food order */
 export function usePayAndPlaceFoodOrder() {
 	const navigate = useNavigate();
@@ -217,7 +230,10 @@ export function usePayAndPlaceFoodOrder() {
 					toast.success(data?.data?.message || 'Order placed successfully!');
 					queryClient.invalidateQueries(['__foodcart']);
 					queryClient.refetchQueries('__foodcart', { force: true });
-					navigate(`/foodmarts/${data?.data?.order?.id || data?.data?.order?._id}/payment-success`);
+					// The delivery code is shown once on the success page (and emailed); only a hash is stored.
+					navigate(`/foodmarts/${data?.data?.order?.id || data?.data?.order?._id}/payment-success`, {
+						state: { deliveryCode: data?.data?.deliveryCode ?? null }
+					});
 				}
 			},
 			onError: (error, _variables, rollback) => {
@@ -235,6 +251,11 @@ export function useGetAuthUserFoodOrders() {
 	return useQuery(['__authuser_orders'], () => getUserFoodInvoicesEnpoint());
 } // (Mcsvs => Done)
 
+/** Completed (sealed) food orders of the signed-in customer */
+export function useGetAuthUserSealedFoodOrders() {
+	return useQuery(['__authuser_orders_sealed'], () => getUserSealedFoodOrdersEndpoint());
+}
+
 /** *Get Authenticated user food-orders and ITEMS */
 export function useGetAuthUserFoodOrdersAndItems(foodOrderId) {
 	if (!foodOrderId || foodOrderId === 'new') {
@@ -245,7 +266,12 @@ export function useGetAuthUserFoodOrdersAndItems(foodOrderId) {
 		['__authuser_orders_details', foodOrderId],
 		() => getUserFoodInvoicesAndItemsByIdEnpoint(foodOrderId),
 		{
-			enabled: Boolean(foodOrderId)
+			enabled: Boolean(foodOrderId),
+			// Live tracking: poll while the kitchen is still working on it, stop once it is final.
+			refetchInterval: (data) => {
+				const o = data?.data?.rcs_order;
+				return o && !o.isDelivered && !o.isCancelled && o.kitchenStage !== 'DECLINED' ? 30000 : false;
+			}
 		}
 	);
 } // (Mcsvs => Done)
@@ -286,3 +312,30 @@ export function useCreateTableReservation() {
  * ORDER FOR FOOD MANAGEMENT ENDS HERE
  * #################################################################
  */
+
+
+/** *
+ * FOOD MENU REVIEWS (2026-10-02) — public read; the write is order-gated server-side.
+ */
+export function useGetFoodMenuReviews(menuId) {
+	return useQuery(['__food_menu_reviews', menuId], () => getFoodMenuReviews(menuId), { enabled: Boolean(menuId) });
+}
+
+/** Whether the signed-in customer has ordered this dish (and so may review it). Never fired for guests. */
+export function useCanReviewFoodMenu(menuId, signedIn) {
+	return useQuery(['__food_menu_can_review', menuId], () => canReviewFoodMenuApi(menuId), {
+		enabled: Boolean(menuId) && Boolean(signedIn),
+		retry: false
+	});
+}
+
+export function useCreateFoodMenuReview() {
+	const queryClient = useQueryClient();
+	return useMutation((reviewData) => createFoodMenuReviewApi(reviewData), {
+		onSuccess: (_data, reviewData) => {
+			toast.success('Thanks for your review!');
+			queryClient.invalidateQueries(['__food_menu_reviews', reviewData?.menuId]);
+		},
+		onError: handleNestJSError
+	});
+}
