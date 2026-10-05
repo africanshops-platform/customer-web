@@ -394,7 +394,7 @@ export default function CivicActivationPage({ kycData = {}, onManageBiometrics }
       </Box>
 
       <Typography sx={{ color: 'rgba(255,255,255,0.2)', fontSize: F.sub, textAlign: 'center', mt: 3, pb: 2 }}>
-        256-bit encrypted · Data never sold · ISO 27001 compliant
+        Your information is sent over an encrypted connection.
       </Typography>
     </Box>
   );

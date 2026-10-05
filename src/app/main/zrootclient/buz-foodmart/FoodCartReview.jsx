@@ -966,7 +966,7 @@ function FoodCartReview() {
                   style={{ background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)" }}
                 >
                   <img
-                    src="/assets/images/logo/logo.svg"
+                    src="/assets/images/afslogo/afslogo.png"
                     alt="AfricanShops"
                     className="w-20 h-20"
                     onError={(e) => {

@@ -1,7 +1,5 @@
 import Typography from "@mui/material/Typography";
 import { Link } from "react-router-dom";
-import AvatarGroup from "@mui/material/AvatarGroup";
-import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import { useState } from "react";
@@ -182,60 +180,6 @@ function SignInPage() {
           {selectedTabId === "jwt" && <JwtLoginTab />}
 
           {/* Additional Trust Indicators */}
-          <div className="mt-32 pt-24 border-t border-gray-200">
-            <div className="flex items-center justify-center gap-24 text-xs text-gray-500">
-              <div className="flex items-center gap-6">
-                <svg
-                  className="w-16 h-16 text-green-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                  />
-                </svg>
-                <span className="font-medium">256-bit SSL</span>
-              </div>
-              <div className="w-1 h-12 bg-gray-300" />
-              <div className="flex items-center gap-6">
-                <svg
-                  className="w-16 h-16 text-blue-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                  />
-                </svg>
-                <span className="font-medium">GDPR Compliant</span>
-              </div>
-              <div className="w-1 h-12 bg-gray-300" />
-              <div className="flex items-center gap-6">
-                <svg
-                  className="w-16 h-16 text-orange-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-                <span className="font-medium">99.9% Uptime</span>
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Paper>
       <Box
@@ -437,7 +381,7 @@ function SignInPage() {
             {[
               {
                 icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
-                text: "Bank-Level Security",
+                text: "Secure Sign-in",
               },
               { icon: "M13 10V3L4 14h7v7l9-11h-7z", text: "Lightning Fast" },
               {
@@ -471,35 +415,6 @@ function SignInPage() {
                 <span className="text-sm font-semibold text-gray-700">{feature.text}</span>
               </div>
             ))}
-          </div>
-
-          {/* Social Proof */}
-          <div className="flex items-center justify-center gap-16 bg-white/70 backdrop-blur-sm rounded-2xl p-20 shadow-lg">
-            <AvatarGroup
-              max={4}
-              sx={{
-                "& .MuiAvatar-root": {
-                  borderColor: "white",
-                  width: 48,
-                  height: 48,
-                  border: "3px solid white",
-                },
-              }}
-            >
-              <Avatar src="assets/images/avatars/female-18.jpg" />
-              <Avatar src="assets/images/avatars/female-11.jpg" />
-              <Avatar src="assets/images/avatars/male-09.jpg" />
-              <Avatar src="assets/images/avatars/male-16.jpg" />
-            </AvatarGroup>
-
-            <div className="flex flex-col">
-              <div className="text-2xl font-bold" style={{ color: "#ea580c" }}>
-                5,000+ Happy Customers
-              </div>
-              <div className="text-sm text-gray-600 font-medium">
-                Join Africa's fastest-growing e-commerce platform
-              </div>
-            </div>
           </div>
         </div>
       </Box>

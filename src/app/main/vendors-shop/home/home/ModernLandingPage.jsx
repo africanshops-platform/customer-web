@@ -4,6 +4,7 @@ import { Button, Card, CardContent, Chip } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import CategoryAndTradehub from "src/app/main/zrootclient/buz-marketplace/shops/components/CategoryAndTradehub";
+import PlatformStatsStrip from "src/app/shared-components/platform-stats/PlatformStatsStrip";
 import BookingsHub from "./bookingshub/BookingsHub";
 import RestaurantAndSpotsHub from "./restaurantclubspotshub/RestaurantAndSpotsHub";
 import { Carousel } from "react-responsive-carousel";
@@ -234,41 +235,6 @@ function ModernLandingPage() {
                   Learn More
                 </Button>
               </motion.div>
-
-              {/* Stats */}
-              <motion.div
-                className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-8 mt-8 sm:mt-12 md:mt-16 p-3 sm:p-4 md:p-6 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/20"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1 }}
-              >
-                {[
-                  { num: "1K+", label: "Products" },
-                  { num: "100+", label: "Merchants" },
-                  { num: "5K+", label: "Happy Customers" },
-                ].map((stat, i) => (
-                  <div key={i} className="text-center">
-                    <Typography
-                      sx={{
-                        fontSize: { xs: "1.25rem", sm: "1.75rem", md: "2.5rem" },
-                        fontWeight: 900,
-                        color: "#fde047",
-                      }}
-                    >
-                      {stat.num}
-                    </Typography>
-                    <Typography
-                      sx={{
-                        fontSize: { xs: "0.625rem", sm: "0.875rem", md: "1.475rem" },
-                        color: "rgba(255, 255, 255, 0.9)",
-                        marginTop: "4px",
-                      }}
-                    >
-                      {stat.label}
-                    </Typography>
-                  </div>
-                ))}
-              </motion.div>
             </motion.div>
 
             {/* Right: Illustration-Style Feature Showcase */}
@@ -414,23 +380,16 @@ function ModernLandingPage() {
                   </div>
                 </motion.div>
 
+                {/* Real platform figures - hidden until the counts are available */}
+                <PlatformStatsStrip
+                  keys={["products", "merchants", "customers"]}
+                  className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-8 mt-8 sm:mt-12 p-3 sm:p-4 md:p-6 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/20"
+                  valueSx={{ fontSize: { xs: "1.25rem", sm: "1.75rem", md: "2.5rem" }, fontWeight: 900, color: "#fde047" }}
+                  labelSx={{ fontSize: { xs: "0.625rem", sm: "0.875rem", md: "1.475rem" }, color: "rgba(255, 255, 255, 0.9)", marginTop: "4px" }}
+                />
+
                 {/* Bottom Stats */}
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-white/20">
-                  <div className="flex items-center space-x-2 sm:space-x-3">
-                    <div className="flex -space-x-2">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-orange-400 to-red-500 border-2 border-white"></div>
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-white"></div>
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-green-400 to-teal-500 border-2 border-white"></div>
-                    </div>
-                    <div>
-                      <Typography className="text-white font-bold text-lg sm:text-xl md:text-2xl">
-                        5K+
-                      </Typography>
-                      <Typography className="text-white/70 text-[10px] sm:text-xs">
-                        Happy Customers
-                      </Typography>
-                    </div>
-                  </div>
 
                   <Button
                     variant="contained"

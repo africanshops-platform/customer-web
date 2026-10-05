@@ -95,7 +95,7 @@ function NavbarStyle3Content(props) {
       <Root className={clsx("flex h-full flex-auto", className)}>
         <ThemeProvider theme={contrastTheme}>
           <div id="fuse-navbar-side-panel" className="flex shrink-0 flex-col items-center">
-            <img className="my-32 w-44" src="assets/images/logo/logo.svg" alt="logo" />
+            <img className="my-32 w-44" src="assets/images/afslogo/afslogo.png" alt="logo" />
 
             <FuseScrollbars
               className="flex min-h-0 w-full flex-1 justify-center overflow-y-auto overflow-x-hidden"
