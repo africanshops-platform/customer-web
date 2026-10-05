@@ -4,6 +4,7 @@ import { Button, Card, CardContent, Chip } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import CategoryAndTradehub from "src/app/main/zrootclient/buz-marketplace/shops/components/CategoryAndTradehub";
+import PlatformStatsStrip from "src/app/shared-components/platform-stats/PlatformStatsStrip";
 import BookingsHub from "./bookingshub/BookingsHub";
 import RestaurantAndSpotsHub from "./restaurantclubspotshub/RestaurantAndSpotsHub";
 import { Carousel } from "react-responsive-carousel";
@@ -378,6 +379,14 @@ function ModernLandingPage() {
                     <div className="w-0 h-0 border-l-4 sm:border-l-6 md:border-l-8 border-l-white border-t-2 sm:border-t-3 md:border-t-4 border-t-transparent border-b-2 sm:border-b-3 md:border-b-4 border-b-transparent ml-0.5 sm:ml-0.5 md:ml-1"></div>
                   </div>
                 </motion.div>
+
+                {/* Real platform figures - hidden until the counts are available */}
+                <PlatformStatsStrip
+                  keys={["products", "merchants", "customers"]}
+                  className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-8 mt-8 sm:mt-12 p-3 sm:p-4 md:p-6 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/20"
+                  valueSx={{ fontSize: { xs: "1.25rem", sm: "1.75rem", md: "2.5rem" }, fontWeight: 900, color: "#fde047" }}
+                  labelSx={{ fontSize: { xs: "0.625rem", sm: "0.875rem", md: "1.475rem" }, color: "rgba(255, 255, 255, 0.9)", marginTop: "4px" }}
+                />
 
                 {/* Bottom Stats */}
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-white/20">

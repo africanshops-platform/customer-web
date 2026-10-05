@@ -138,6 +138,9 @@ export const getBlogPostsById = (slug) => Api().get(`/posts/by/${slug}`);
 export const getTradehubs = () => Api().get('/tradehubs');
 export const getTradehubById = (id) => Api().get(`/tradehubs/${id}`);
 
+// Public, cached headline counts (customers, merchants, products)
+export const getPlatformStats = () => Api().get('/platform-stats');
+
 // Country Routes
 export const getCountries = () => Api().get('/buzcountries/operational'); // (Msvs => done)
 export const getCountryDataById = (id) => Api().get(`/buzcountries/${id}`);
