@@ -10,6 +10,7 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import { toast } from 'react-toastify';
 import { useSubmitFace } from 'app/configs/data/server-calls/auth/userapp/a_kyc/useKycRepo';
+import DuplicateFaceDialog, { isDuplicateFaceError } from '../DuplicateFaceDialog';
 
 const F = {
   heading: 'clamp(1.76rem, 2.6vw, 2.2rem)',
@@ -54,6 +55,7 @@ export default function KycFaceCaptureStep() {
   const [preview,     setPreview]     = useState(null);
   const [descriptor,  setDescriptor]  = useState(null);
   const [tipIndex,    setTipIndex]    = useState(0);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
 
   const submitFace = useSubmitFace();
 
@@ -132,8 +134,18 @@ export default function KycFaceCaptureStep() {
     try {
       await submitFace.mutateAsync({ faceDescriptor: descriptor });
     } catch (err) {
+      if (isDuplicateFaceError(err)) {
+        setDuplicateOpen(true);
+        return;
+      }
       toast.error(err?.response?.data?.message || 'Face submission failed. Please retry.');
     }
+  }
+
+  // After a refused duplicate the user must capture again (or sign in to the other account).
+  function handleDuplicateClose() {
+    setDuplicateOpen(false);
+    handleRetry();
   }
 
   const detectionColor = { idle: '#60a5fa', scanning: '#f59e0b', found: '#4ade80', missed: '#ef4444' };
@@ -141,6 +153,7 @@ export default function KycFaceCaptureStep() {
 
   return (
     <Box sx={{ color: '#fff' }}>
+      <DuplicateFaceDialog open={duplicateOpen} onClose={handleDuplicateClose} />
       {/* Step header */}
       <Box sx={{ px: 3.5, pt: 3.5, pb: 2.5, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
