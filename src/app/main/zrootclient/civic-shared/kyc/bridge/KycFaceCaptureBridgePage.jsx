@@ -3,6 +3,7 @@ import * as faceapi from 'face-api.js';
 import axios from 'axios';
 import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import { baseUrl } from 'app/configs/data/client/RepositoryAuthClient';
+import DuplicateFaceDialog, { DUPLICATE_FACE_BODY, isDuplicateFaceError } from '../DuplicateFaceDialog';
 
 // ─── Native <-> WebView bridge ────────────────────────────────────────────────
 //
@@ -57,6 +58,9 @@ export default function KycFaceCaptureBridgePage() {
   const [detection, setDetection] = useState('idle');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+  // Bumped to restart the camera after a failed submission (the stream is stopped once a face is captured).
+  const [cameraAttempt, setCameraAttempt] = useState(0);
 
   useEffect(() => {
     ensureModels()
@@ -78,7 +82,7 @@ export default function KycFaceCaptureBridgePage() {
     return () => {
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, [modelState]);
+  }, [modelState, cameraAttempt]);
 
   useEffect(() => {
     if (cameraState !== 'active' || !videoRef.current || !streamRef.current) return;
@@ -116,6 +120,15 @@ export default function KycFaceCaptureBridgePage() {
     }
   }
 
+  // After a refused/failed submission the camera was already stopped and detection sits on "found" with no button,
+  // which stranded the user. Reset so they can capture again.
+  function resetForRetry() {
+    setDetection('idle');
+    setDuplicateOpen(false);
+    setCameraState('starting');
+    setCameraAttempt((n) => n + 1);
+  }
+
   async function submitDescriptor(descriptor) {
     const token = window.__KYC_BRIDGE_TOKEN__;
     if (!token) {
@@ -132,9 +145,15 @@ export default function KycFaceCaptureBridgePage() {
       );
       postToNative({ type: 'KYC_FACE_CAPTURED' });
     } catch (err) {
-      const message = err?.response?.data?.message || 'Face submission failed. Please retry.';
-      setError(message);
-      postToNative({ type: 'KYC_FACE_ERROR', message });
+      if (isDuplicateFaceError(err)) {
+        // One face, one account: the host app shows its own native pop-up; a plain browser shows the dialog below.
+        postToNative({ type: 'KYC_FACE_DUPLICATE', message: DUPLICATE_FACE_BODY });
+        setDuplicateOpen(true);
+      } else {
+        const message = err?.response?.data?.message || 'Face submission failed. Please retry.';
+        setError(message);
+        postToNative({ type: 'KYC_FACE_ERROR', message });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -167,7 +186,7 @@ export default function KycFaceCaptureBridgePage() {
         </Box>
       )}
 
-      {detection === 'found' && (
+      {detection === 'found' && !error && !duplicateOpen && (
         <Typography sx={{ color: '#4ade80', fontWeight: 700, mb: 2 }}>
           {submitting ? 'Submitting…' : 'Face captured ✓'}
         </Typography>
@@ -176,6 +195,14 @@ export default function KycFaceCaptureBridgePage() {
       {error && (
         <Typography sx={{ color: '#fca5a5', fontSize: '0.85rem', textAlign: 'center', mb: 2 }}>{error}</Typography>
       )}
+
+      {detection === 'found' && error && !submitting && (
+        <Button variant="outlined" onClick={resetForRetry} sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.4)', borderRadius: 2.5, fontWeight: 700 }}>
+          Try Again
+        </Button>
+      )}
+
+      <DuplicateFaceDialog open={duplicateOpen} onClose={resetForRetry} />
 
       {cameraState === 'active' && detection !== 'found' && (
         <Button
