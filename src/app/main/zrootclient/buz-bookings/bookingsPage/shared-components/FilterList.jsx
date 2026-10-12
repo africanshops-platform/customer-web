@@ -25,7 +25,8 @@ import {
   FilterList as FilterListIcon,
 } from "@mui/icons-material";
 import useSellerCountries from "app/configs/data/server-calls/countries/useCountries";
-import { getLgasByStateId, getStateByCountryId } from "app/configs/data/client/RepositoryClient";
+import { getDistrictsByLgaId, getLgasByStateId, getStateByCountryId } from "app/configs/data/client/RepositoryClient";
+import { geoCenter } from "src/app/main/zrootclient/shared-near/nearby";
 
 const PROPERTY_TYPES = [
   "Apartment",
@@ -107,14 +108,25 @@ function FilterList({ onFilterChange, initialFilters = {} }) {
     }
   }, [state]);
 
-  // useEffect(() => {
-  //   if (lga) {
-  //     setAvailableDistricts(DISTRICTS_BY_LGA[lga] || []);
-  //     setDistrict("");
-  //   } else {
-  //     setAvailableDistricts([]);
-  //   }
-  // }, [lga]);
+  // Districts of the chosen LGA (founder 2026-10-13: Country > State > LGA > District is the location filter for near-me).
+  useEffect(() => {
+    let cancelled = false;
+    setDistrict("");
+    if (!lga) {
+      setAvailableDistricts([]);
+      return undefined;
+    }
+    getDistrictsByLgaId(lga)
+      .then((res) => {
+        if (!cancelled) setAvailableDistricts(res?.data?.districts || []);
+      })
+      .catch(() => {
+        if (!cancelled) setAvailableDistricts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lga]);
 
   // Emit filter changes to parent component with debounce for keyword
   useEffect(() => {
@@ -122,7 +134,23 @@ function FilterList({ onFilterChange, initialFilters = {} }) {
     const timeoutId = setTimeout(
       () => {
         if (onFilterChangeRef.current) {
+          // The most specific chosen region that has a centre point; the page uses it to recentre near-me search.
+          const picks = [
+            ["district", availableDistricts.find((d) => d.id === district)],
+            ["lga", availableLgas.find((l) => l.id === lga)],
+            ["state", availableStates.find((st) => st.id === state)],
+            ["country", (COUNTRIES?.data?.countries || []).find((c) => c.id === country)],
+          ];
+          let regionCenter = null;
+          for (const [level, item] of picks) {
+            const point = geoCenter(item);
+            if (item && point) {
+              regionCenter = { point, level, label: item.name };
+              break;
+            }
+          }
           const filters = {
+            regionCenter,
             keyword,
             propertyType,
             country,
@@ -148,6 +176,10 @@ function FilterList({ onFilterChange, initialFilters = {} }) {
     state,
     lga,
     district,
+    availableDistricts,
+    availableLgas,
+    availableStates,
+    COUNTRIES,
     priceRange,
     roomCount,
     bathroomCount,
@@ -395,7 +427,19 @@ function FilterList({ onFilterChange, initialFilters = {} }) {
         </FormControl>
 
         {/* District */}
-        {/* <FormControl fullWidth size="small" disabled={!lga}>
+        <FormControl
+          fullWidth
+          size="small"
+          disabled={!lga}
+          sx={{
+            backgroundColor: "white",
+            borderRadius: "8px",
+            "& .MuiOutlinedInput-root": {
+              "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#f97316" },
+              "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#ea580c" },
+            },
+          }}
+        >
           <InputLabel id="district-label">District</InputLabel>
           <Select
             labelId="district-label"
@@ -412,7 +456,7 @@ function FilterList({ onFilterChange, initialFilters = {} }) {
               </MenuItem>
             ))}
           </Select>
-        </FormControl> */}
+        </FormControl>
 
         <Divider className="my-4" />
 
