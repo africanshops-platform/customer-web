@@ -1,5 +1,6 @@
 import VenueHero from "./VenueHero";
-import { themeFor } from "../venueThemes";
+import { themeFor, isDarkTheme } from "../venueThemes";
+import { dishRating } from "../venueProfile";
 import "../venue-themes.css";
 import FulfillmentBadge from "../../components/FulfillmentBadge";
 import FuseLoading from "@fuse/core/FuseLoading";
@@ -27,6 +28,8 @@ function MenuItemCard({ item, index }) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  // A dish shows stars only when real reviews back them; never a default rating or a made-up count.
+  const { rating: realRating, count: reviewCount } = dishRating(item);
 
   const images = item?.imageSrcs || [];
   const hasImages = images.length > 0;
@@ -202,21 +205,29 @@ function MenuItemCard({ item, index }) {
         )}
 
         {/* Rating */}
-        <div className="flex items-center gap-2 mb-3">
-          <Rating
-            value={item?.rating || 4.5}
-            precision={0.5}
-            size="small"
-            readOnly
-            sx={{
-              "& .MuiRating-iconFilled": {
-                color: "#f59e0b",
-              },
-            }}
-          />
-          <Typography variant="caption" className="text-gray-500">
-            ({item?.reviews || Math.floor(Math.random() * 50) + 10})
-          </Typography>
+        <div className="flex items-center gap-2 mb-3" data-testid="dish-rating">
+          {realRating ? (
+            <>
+              <Rating
+                value={realRating}
+                precision={0.5}
+                size="small"
+                readOnly
+                sx={{
+                  "& .MuiRating-iconFilled": {
+                    color: "#f59e0b",
+                  },
+                }}
+              />
+              <Typography variant="caption" className="text-gray-500">
+                ({reviewCount})
+              </Typography>
+            </>
+          ) : (
+            <Typography variant="caption" className="text-gray-400">
+              No reviews yet
+            </Typography>
+          )}
         </div>
 
         {/* Price Section */}
@@ -277,7 +288,6 @@ function DemoContent(props) {
   const venue = themeFor(rcsFoodMart?.operationMode);
 
   const { data: RcsMenu, isLoading: menuLoading, isError: menuError } = useGetRCSMenuItems(rcsId);
-  console.log("RcsMenu data:", RcsMenu);
 
   if (menuLoading) {
     return <FuseLoading />;
@@ -296,16 +306,20 @@ function DemoContent(props) {
   }
 
   if (!RcsMenu?.data?.menus || RcsMenu.data.menus.length === 0) {
+    // The venue still gets its own look (hero, ground, font) before it has a menu.
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1, transition: { delay: 0.1 } }}
-        className="flex flex-col flex-1 items-center justify-center h-full"
-      >
-        <Typography color="text.secondary" variant="h5">
-          No menu items available!
-        </Typography>
-      </motion.div>
+      <div className={`${venue.className} flex-auto p-0 sm:p-0`} style={{ background: venue.ground, fontFamily: venue.font }}>
+        <VenueHero foodMart={rcsFoodMart} />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: { delay: 0.1 } }}
+          className="flex flex-col items-center justify-center px-8 py-16"
+        >
+          <Typography variant="h5" sx={{ color: isDarkTheme(rcsFoodMart?.operationMode) ? "#fff" : "text.secondary" }}>
+            No menu items available!
+          </Typography>
+        </motion.div>
+      </div>
     );
   }
 
