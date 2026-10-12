@@ -4,8 +4,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Typography, Chip, Divider } from "@mui/material";
 import { LocationOnOutlined, Store, Phone, Verified } from "@mui/icons-material";
-import OffPlatformNotice from "../../shared-contact/OffPlatformNotice";
-import { PLATFORM_ORDER_TEL } from "../../shared-contact/platformContact";
+import OffPlatformNotice from "../../../shared-contact/OffPlatformNotice";
+import { PLATFORM_ORDER_TEL } from "../../../shared-contact/platformContact";
 
 // Fix for default marker icons in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
