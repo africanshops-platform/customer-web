@@ -1,3 +1,4 @@
+import { distanceLabel } from "src/app/main/zrootclient/shared-near/nearby";
 import { useState } from "react";
 import { Typography, IconButton, Button } from "@mui/material";
 import {
@@ -47,6 +48,7 @@ function FoodMartCard({
   busniessOpenPeriod,
   busniessClosePeriod,
   isFeatured,
+  distanceKm,
 }) {
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -151,6 +153,15 @@ function FoodMartCard({
 
       {/* Content Section */}
       <div className="p-5">
+        {distanceLabel(distanceKm) && (
+          <span
+            className="inline-block mb-3 px-3 py-1 rounded-full text-base font-semibold"
+            style={{ background: "#eff6ff", color: "#1d4ed8" }}
+            data-testid="venue-distance"
+          >
+            {distanceLabel(distanceKm)}
+          </span>
+        )}
         {/* Operation Mode + Hours row */}
         <div className="flex items-center justify-between mb-3">
           {operationMode && (

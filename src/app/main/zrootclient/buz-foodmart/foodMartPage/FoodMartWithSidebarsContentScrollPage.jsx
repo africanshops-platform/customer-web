@@ -9,6 +9,8 @@ import FusePageSimpleWithMargin from "@fuse/core/FusePageSimple/FusePageSimpleWi
 import useGetAllFoodMarts from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
 import useGetUserAppSetting from "app/configs/data/server-calls/auth/userapp/a_userapp_settings/useAppSettingDomain";
 import ServiceStatusLandingPage from "../../aapp-settings-from-admin/ServiceStatusLandingPage";
+import NearMeBar from "../../shared-near/NearMeBar";
+import useNearMe from "../../shared-near/useNearMe";
 
 const Root = styled(FusePageSimpleWithMargin)(({ theme }) => ({
   "& .FusePageSimple-header": {
@@ -39,6 +41,10 @@ function ActiveFoodMartPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
 
+  // ── Near me (tracker customer-22; shared with bookings + real estate) ────────────────────────────────────────────
+  const goFirstPage = useCallback(() => setCurrentPage(1), []);
+  const nm = useNearMe(goFirstPage);
+
   useEffect(() => {
     setLeftSidebarOpen(!isMobile);
     setRightSidebarOpen(!isMobile);
@@ -55,16 +61,23 @@ function ActiveFoodMartPage() {
     if (filterInputs.country) f.foodMartCountry = filterInputs.country;
     if (filterInputs.state) f.foodMartState = filterInputs.state;
     if (filterInputs.lga) f.foodMartLga = filterInputs.lga;
+    // Near-me adds lat/lng/radiusKm to the same query, so the other filters and the pagination keep working.
+    if (nm.nearParams) Object.assign(f, nm.nearParams);
     return f;
-  }, [filterInputs, itemsPerPage, currentPage]);
+  }, [filterInputs, itemsPerPage, currentPage, nm.nearParams]);
 
   const { data: AllFoodMarts, isLoading, isError } = useGetAllFoodMarts(filters);
 
   // Stable, so the sidebar is not re-rendered on every page change. A changed filter starts at page 1.
-  const handleFilterChange = useCallback((newFilters) => {
-    setFilterInputs((prev) => (JSON.stringify(prev) === JSON.stringify(newFilters) ? prev : newFilters));
-    setCurrentPage(1);
-  }, []);
+  const handleFilterChange = useCallback(
+    (newFilters) => {
+      // Choosing a Country / State / LGA / District while near-me is on recentres the search on that region's centre.
+      nm.applyRegion(newFilters.regionCenter);
+      setFilterInputs((prev) => (JSON.stringify(prev) === JSON.stringify(newFilters) ? prev : newFilters));
+      setCurrentPage(1);
+    },
+    [nm.applyRegion],
+  );
 
   const handlePageChange = useCallback((newPage) => {
     setCurrentPage(newPage);
@@ -113,18 +126,40 @@ function ActiveFoodMartPage() {
   // Memoize content component
   const contentComponent = useMemo(
     () => (
-      <DemoContent
-        foodMarts={foodMarts}
-        isLoading={isLoading}
-        isError={isError}
-        totalItems={totalItems}
-        currentPage={currentPage}
-        itemsPerPage={itemsPerPage}
-        onPageChange={handlePageChange}
-        onItemsPerPageChange={handleItemsPerPageChange}
-      />
+      <div className="flex flex-col w-full">
+        <div className="px-8 pt-6">
+          <NearMeBar
+            near={nm.near}
+            radiusKm={nm.radiusKm}
+            status={nm.gps.status}
+            total={totalItems}
+            isLoading={isLoading}
+            onUseMyLocation={nm.useMyLocation}
+            onPickPlace={nm.pickPlace}
+            onRadius={nm.changeRadius}
+            onClear={nm.clear}
+          />
+        </div>
+        <DemoContent
+          foodMarts={foodMarts}
+          isLoading={isLoading}
+          isError={isError}
+          totalItems={totalItems}
+          currentPage={currentPage}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      </div>
     ),
     [
+      nm.near,
+      nm.radiusKm,
+      nm.gps.status,
+      nm.useMyLocation,
+      nm.pickPlace,
+      nm.changeRadius,
+      nm.clear,
       foodMarts,
       isLoading,
       isError,
@@ -144,8 +179,8 @@ function ActiveFoodMartPage() {
 
   // Memoize right sidebar content
   const rightSidebarContentComponent = useMemo(
-    () => <DemoSidebarRight listingsData={foodMarts} />,
-    [foodMarts],
+    () => <DemoSidebarRight listingsData={foodMarts} near={nm.near} radiusKm={nm.radiusKm} userPoint={nm.gps.position} />,
+    [foodMarts, nm.near, nm.radiusKm, nm.gps.position],
   );
 
   return (

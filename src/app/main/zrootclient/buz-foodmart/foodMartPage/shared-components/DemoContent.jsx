@@ -140,6 +140,7 @@ function DemoContent({
               busniessOpenPeriod={foodMart?.busniessOpenPeriod}
               busniessClosePeriod={foodMart?.busniessClosePeriod}
               isFeatured={foodMart?.isFeatured}
+              distanceKm={foodMart?.distanceKm}
             />
           ))}
         </div>

@@ -10,14 +10,23 @@ import { distanceLabel, priceChip } from "./nearby";
  * spot, the search-point dot and the radius circle.
  */
 
-/** Orange price-chip marker. The text is a number-derived chip, never raw HTML. */
-export function chipIcon(price) {
-	const chip = priceChip(price);
+/** Escapes text for use inside the marker's HTML (labels can come from listing data). */
+function escapeHtml(text) {
+	return String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+/** Orange chip marker with any short label (a price, or a venue-kind icon). The label is HTML-escaped. */
+export function labelIcon(label) {
 	return L.divIcon({
 		className: "",
-		html: `<div style="display:inline-block;transform:translate(-50%,-100%);background:#f97316;color:#fff;font:700 12px sans-serif;padding:5px 9px;border-radius:999px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);white-space:nowrap">${chip || "•"}</div>`,
+		html: `<div style="display:inline-block;transform:translate(-50%,-100%);background:#f97316;color:#fff;font:700 12px sans-serif;padding:5px 9px;border-radius:999px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);white-space:nowrap">${escapeHtml(label || "•")}</div>`,
 		iconSize: [0, 0]
 	});
+}
+
+/** Orange price-chip marker. */
+export function chipIcon(price) {
+	return labelIcon(priceChip(price));
 }
 
 /** Blue count marker for several listings at one spot. */
