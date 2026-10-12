@@ -1,5 +1,6 @@
 import VenueHero from "./VenueHero";
-import { themeFor, isDarkTheme } from "../venueThemes";
+import { themeFor } from "../venueThemes";
+import MenuEmptyState from "./MenuEmptyState";
 import { dishRating } from "../venueProfile";
 import "../venue-themes.css";
 import FulfillmentBadge from "../../components/FulfillmentBadge";
@@ -310,15 +311,7 @@ function DemoContent(props) {
     return (
       <div className={`${venue.className} flex-auto p-0 sm:p-0`} style={{ background: venue.ground, fontFamily: venue.font }}>
         <VenueHero foodMart={rcsFoodMart} />
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: { delay: 0.1 } }}
-          className="flex flex-col items-center justify-center px-8 py-16"
-        >
-          <Typography variant="h5" sx={{ color: isDarkTheme(rcsFoodMart?.operationMode) ? "#fff" : "text.secondary" }}>
-            No menu items available!
-          </Typography>
-        </motion.div>
+        <MenuEmptyState operationMode={rcsFoodMart?.operationMode} venueName={rcsFoodMart?.title} />
       </div>
     );
   }
