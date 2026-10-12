@@ -21,6 +21,8 @@ import ClienttErrorPage from "src/app/main/zrootclient/components/ClienttErrorPa
 import AddToFoodCartButton from "../../components/AddToFoodCartButton";
 import FoodMartDetailsWithReviews from "./FoodMartDetailsWithReviews";
 import FoodMartImageGalleryView from "./FoodMartImageGalleryView";
+import OffPlatformNotice from "../../../shared-contact/OffPlatformNotice";
+import { PLATFORM_ORDER_PHONE, PLATFORM_ORDER_TEL } from "../../../shared-contact/platformContact";
 
 const PLACEHOLDER_IMG = "https://placehold.co/500x500/fff7ed/ea580c?text=No+Image";
 
@@ -338,6 +340,7 @@ function DemoContent({ isLoading, isError, menuData, onAddToFoodCart, addFoodCar
                 <Button
                   variant="outlined"
                   startIcon={<Phone />}
+                  href={PLATFORM_ORDER_TEL}
                   fullWidth
                   sx={{
                     borderColor: "#10b981",
@@ -349,6 +352,7 @@ function DemoContent({ isLoading, isError, menuData, onAddToFoodCart, addFoodCar
                   Call Seller
                 </Button>
               </div>
+              <OffPlatformNotice className="mt-2" />
 
               {/* Promotions */}
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-200">
@@ -360,7 +364,7 @@ function DemoContent({ isLoading, isError, menuData, onAddToFoodCart, addFoodCar
                 </div>
                 <ul className="space-y-3">
                   {[
-                    { Icon: Phone, text: "Call 07087200297 to place your order directly", color: "#10b981" },
+                    { Icon: Phone, text: `Call ${PLATFORM_ORDER_PHONE} to place your order directly`, color: "#10b981" },
                     { Icon: WhatsApp, text: "Need extra money? Loan up to ₦500,000 on the Africanshops Wallet", color: "#22c55e" },
                     { Icon: LocalShipping, text: "Enjoy cheaper shipping when you select a Pickup Station at checkout", color: "#3b82f6" },
                   ].map(({ Icon, text, color }, index) => (

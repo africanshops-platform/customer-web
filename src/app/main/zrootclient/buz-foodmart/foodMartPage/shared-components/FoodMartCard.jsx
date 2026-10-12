@@ -5,7 +5,6 @@ import {
   FavoriteBorder,
   Favorite,
   LocationOn,
-  Phone,
   AccessTime,
   Star,
 } from "@mui/icons-material";
@@ -40,7 +39,6 @@ function FoodMartCard({
   title,
   description,
   address,
-  phoneNumber,
   rating,
   numReviews,
   foodMartCategory,
@@ -236,16 +234,6 @@ function FoodMartCard({
               }}
             >
               {address}
-            </Typography>
-          </div>
-        )}
-
-        {/* Phone */}
-        {phoneNumber && (
-          <div className="flex items-center gap-1.5 mb-3">
-            <Phone sx={{ fontSize: "1.6rem", color: "#9ca3af", flexShrink: 0 }} />
-            <Typography variant="body2" sx={{ color: "#6b7280", fontSize: "1.4rem" }}>
-              {phoneNumber}
             </Typography>
           </div>
         )}

@@ -132,7 +132,6 @@ function DemoContent({
               title={foodMart?.title}
               description={foodMart?.description}
               address={foodMart?.address}
-              phoneNumber={foodMart?.phoneNumber}
               rating={foodMart?.rating}
               numReviews={foodMart?.numReviews}
               foodMartCategory={foodMart?.foodMartCategory}

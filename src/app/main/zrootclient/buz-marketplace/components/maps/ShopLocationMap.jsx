@@ -4,6 +4,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Typography, Chip, Divider } from "@mui/material";
 import { LocationOnOutlined, Store, Phone, Verified } from "@mui/icons-material";
+import OffPlatformNotice from "../../shared-contact/OffPlatformNotice";
+import { PLATFORM_ORDER_TEL } from "../../shared-contact/platformContact";
 
 // Fix for default marker icons in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -160,7 +162,7 @@ function ShopLocationMap({ shopData }) {
         </Typography>
         <Divider sx={{ marginBottom: "12px" }} />
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <a href={PLATFORM_ORDER_TEL} className="flex items-center gap-2" style={{ textDecoration: "none" }}>
             <Phone sx={{ fontSize: "1.6rem", color: "#10b981" }} />
             <Typography
               sx={{
@@ -171,7 +173,7 @@ function ShopLocationMap({ shopData }) {
             >
               Call Seller
             </Typography>
-          </div>
+          </a>
           <div className="text-right">
             <Typography
               sx={{
@@ -192,6 +194,7 @@ function ShopLocationMap({ shopData }) {
             </Typography>
           </div>
         </div>
+        <OffPlatformNotice className="mt-2" />
       </div>
 
       <MapContainer
@@ -306,19 +309,6 @@ function ShopLocationMap({ shopData }) {
                     {shopLocation.totalSales.toLocaleString()}
                   </Typography>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors">
-                <Phone sx={{ color: "#3b82f6", fontSize: "2rem" }} />
-                <Typography
-                  sx={{
-                    fontSize: "1.5rem",
-                    color: "#1e40af",
-                    fontWeight: 600,
-                  }}
-                >
-                  {shopLocation.phone}
-                </Typography>
               </div>
 
               <Typography
