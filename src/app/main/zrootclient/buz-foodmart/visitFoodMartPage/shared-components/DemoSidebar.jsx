@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Typography, Button, Chip, Divider, IconButton, Avatar } from "@mui/material";
 import {
   LocationOn,
-  Phone,
   AccessTime,
   Star,
   Share,
@@ -99,16 +98,6 @@ function DemoSidebar(props) {
 
           {/* Actions (each one does something real) */}
           <div className="flex flex-wrap items-center justify-center gap-2">
-            {profile.phoneHref && (
-              <Button
-                variant="contained"
-                startIcon={<Phone />}
-                href={profile.phoneHref}
-                sx={{ backgroundColor: "#ea580c", "&:hover": { backgroundColor: "#c2410c" } }}
-              >
-                Call
-              </Button>
-            )}
             {profile.directions && (
               <Button
                 variant="outlined"
@@ -146,7 +135,7 @@ function DemoSidebar(props) {
           )}
 
           {/* Hours & contact: only what is on file */}
-          {(profile.hours || profile.address || profile.phone) && (
+          {(profile.hours || profile.address) && (
             <div className="space-y-3">
               <Divider />
               {profile.hours && (
@@ -162,7 +151,7 @@ function DemoSidebar(props) {
                   </div>
                 </div>
               )}
-              {(profile.address || profile.phone) && (
+              {profile.address && (
                 <div className="space-y-2">
                   <Typography variant="caption" className="text-gray-500 font-semibold block">
                     CONTACT
@@ -172,14 +161,6 @@ function DemoSidebar(props) {
                       <LocationOn className="text-orange-600 mt-1" fontSize="small" />
                       <Typography variant="body2" className="text-gray-600 flex-1">
                         {profile.address}
-                      </Typography>
-                    </div>
-                  )}
-                  {profile.phone && (
-                    <div className="flex items-center gap-3">
-                      <Phone className="text-orange-600" fontSize="small" />
-                      <Typography variant="body2" className="text-gray-600">
-                        {profile.phone}
                       </Typography>
                     </div>
                   )}

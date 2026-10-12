@@ -33,6 +33,7 @@ import { selectUser } from "src/app/auth/user/store/userSlice";
 import FoodMenuReviewsPanel from "./FoodMenuReviewsPanel";
 import { useGetFoodMenuReviews } from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
 import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
+import { PLATFORM_ORDER_PHONE } from "../../../shared-contact/platformContact";
 
 function TabButton({ active, onClick, icon, label, isMobile }) {
   return (
@@ -254,7 +255,7 @@ const FoodMartDetailsWithReviews = ({ menuData }) => {
                   </Typography>
                   <Typography variant="body2" className="text-purple-700 leading-relaxed">
                     Freshly prepared by our kitchen team. Best enjoyed immediately after serving.
-                    Call <span className="font-bold">07087200297</span> to customise your order or make special dietary requests.
+                    Call <span className="font-bold">{PLATFORM_ORDER_PHONE}</span> to customise your order or make special dietary requests.
                   </Typography>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 import { Suspense, lazy } from "react";
 import { Typography } from "@mui/material";
-import { DeliveryDining, LocationOn, Phone, Store } from "@mui/icons-material";
+import { DeliveryDining, LocationOn, Store } from "@mui/icons-material";
 
 const DeliveryRouteMap = lazy(() =>
   import("../../components/maps/DeliveryRouteMap")
@@ -99,14 +99,6 @@ function DemoSidebarRight({ orderData }) {
                   <LocationOn sx={{ fontSize: "0.95rem", color: "#9ca3af", mt: 0.15, flexShrink: 0 }} />
                   <Typography variant="body2" sx={{ color: "#6b7280", fontSize: "0.8rem" }}>
                     {[restaurant?.address, restaurant?.lga, restaurant?.state].filter(Boolean).join(", ")}
-                  </Typography>
-                </div>
-              )}
-              {restaurant?.phone && (
-                <div className="flex items-center gap-1 mt-1">
-                  <Phone sx={{ fontSize: "0.9rem", color: "#9ca3af", flexShrink: 0 }} />
-                  <Typography variant="body2" sx={{ color: "#6b7280", fontSize: "0.8rem" }}>
-                    {restaurant.phone}
                   </Typography>
                 </div>
               )}

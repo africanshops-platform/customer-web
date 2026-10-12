@@ -42,7 +42,8 @@ describe("DemoSidebar", () => {
     expect(screen.getByTestId("venue-kind")).toHaveTextContent("Club / Lounge");
     expect(screen.getByText("A real Nigerian club.")).toBeInTheDocument();
     expect(screen.getByText("Garki Suya Club Complex")).toBeInTheDocument();
-    expect(screen.getByText("+2347300337426")).toBeInTheDocument();
+    // The venue's own phone is never shown to buyers (off-platform trade risk, tracker customer-20).
+    expect(screen.queryByText("+2347300337426")).not.toBeInTheDocument();
     expect(screen.getByTestId("venue-hours")).toBeInTheDocument();
     expect(screen.getByTestId("venue-rating")).toHaveTextContent("4");
     expect(screen.getByTestId("venue-rating")).toHaveTextContent("(3 reviews)");
@@ -75,9 +76,10 @@ describe("DemoSidebar", () => {
     expect(screen.queryByTestId("VerifiedIcon")).not.toBeInTheDocument();
   });
 
-  it("offers Call and Directions links only when the data exists, and they go to the right place", () => {
-    render(<DemoSidebar martMenu={REAL} />);
-    expect(screen.getByRole("link", { name: /call/i })).toHaveAttribute("href", "tel:+2347300337426");
+  it("offers a Directions link, but never a Call link to the venue's own number", () => {
+    const { container } = render(<DemoSidebar martMenu={REAL} />);
+    expect(screen.queryByRole("link", { name: /call/i })).not.toBeInTheDocument();
+    expect(container.innerHTML).not.toContain("2347300337426");
     expect(screen.getByRole("link", { name: /directions/i })).toHaveAttribute(
       "href",
       "https://www.google.com/maps/dir/?api=1&destination=9.0765,7.3986",
