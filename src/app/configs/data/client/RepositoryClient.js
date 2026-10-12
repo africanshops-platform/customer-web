@@ -120,6 +120,7 @@ export const getMarketsByLgaId = (id) => Api().get(`/markets/in-state/${id}/oper
 // ###############################################################################
 //= =======================================L.G.As  Routes starts
 export const getLgasByStateId = (sid) => Api().get(`/buz-lgas/in-state/${sid}/operational`); // (Mcsvs => Done)
+export const getDistrictsByLgaId = (lid) => Api().get(`/buz-districts/in-lga/${lid}/operational`);
 
 // ###############################################################################
 //= =======================================States Toutes

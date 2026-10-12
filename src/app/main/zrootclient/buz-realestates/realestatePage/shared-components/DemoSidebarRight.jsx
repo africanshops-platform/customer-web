@@ -9,9 +9,10 @@ import MapLoadingPlaceholder from "./MapLoadingPlaceholder";
  * so both verticals share the same left-filter/center-list/right-map layout.
  */
 function DemoSidebarRight(props) {
-  const { propertyListings } = props;
+  const { propertyListings, near, radiusKm, userPoint } = props;
 
-  const isLoading = !propertyListings || propertyListings.length === 0;
+  // With near-me on, "no results" is a real answer (the map still shows the search point and radius), not a load state.
+  const isLoading = !propertyListings || (propertyListings.length === 0 && !near);
 
   if (isLoading) {
     return <MapLoadingPlaceholder />;
@@ -46,7 +47,7 @@ function DemoSidebarRight(props) {
 
       {/* Map Container */}
       <div className="flex-1 rounded-2xl overflow-hidden shadow-2xl">
-        <ImprovedRealEstateMap items={propertyListings} />
+        <ImprovedRealEstateMap items={propertyListings} near={near} radiusKm={radiusKm} userPoint={userPoint} />
       </div>
 
       {/* Info Footer */}

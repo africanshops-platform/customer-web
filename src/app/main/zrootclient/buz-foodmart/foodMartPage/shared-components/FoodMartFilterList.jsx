@@ -13,7 +13,8 @@ import {
 } from "@mui/material";
 import { Search, Clear, FilterList as FilterListIcon } from "@mui/icons-material";
 import useSellerCountries from "app/configs/data/server-calls/countries/useCountries";
-import { getLgasByStateId, getStateByCountryId } from "app/configs/data/client/RepositoryClient";
+import { getDistrictsByLgaId, getLgasByStateId, getStateByCountryId } from "app/configs/data/client/RepositoryClient";
+import { pickRegionCenter } from "src/app/main/zrootclient/shared-near/regionCenter";
 
 const FOODMART_CATEGORIES = [
   { value: "restaurant", label: "🍽️ Restaurant" },
@@ -62,9 +63,11 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
   const [country, setCountry] = useState(initialFilters.country || "");
   const [state, setState] = useState(initialFilters.state || "");
   const [lga, setLga] = useState(initialFilters.lga || "");
+  const [district, setDistrict] = useState(initialFilters.district || "");
 
   const [availableStates, setAvailableStates] = useState([]);
   const [availableLgas, setAvailableLgas] = useState([]);
+  const [availableDistricts, setAvailableDistricts] = useState([]);
   const [statesLoading, setStatesLoading] = useState(false);
   const [lgasLoading, setLgasLoading] = useState(false);
 
@@ -84,11 +87,37 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
     }
   }, [state]);
 
+  // Districts of the chosen LGA (founder 2026-10-13: Country > State > LGA > District is the location filter for near-me).
+  useEffect(() => {
+    let cancelled = false;
+    setDistrict("");
+    if (!lga) {
+      setAvailableDistricts([]);
+      return undefined;
+    }
+    getDistrictsByLgaId(lga)
+      .then((res) => {
+        if (!cancelled) setAvailableDistricts(res?.data?.districts || []);
+      })
+      .catch(() => {
+        if (!cancelled) setAvailableDistricts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lga]);
+
   useEffect(() => {
     const timeoutId = setTimeout(
       () => {
         if (onFilterChangeRef.current) {
+          // The most specific chosen region that has a centre point; the page uses it to recentre near-me search.
+          const regionCenter = pickRegionCenter(
+            { district, lga, state, country },
+            { districts: availableDistricts, lgas: availableLgas, states: availableStates, countries: COUNTRIES?.data?.countries || [] },
+          );
           onFilterChangeRef.current({
+            regionCenter,
             keyword,
             title,
             address,
@@ -103,7 +132,7 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
       keyword || title || address ? 500 : 0,
     );
     return () => clearTimeout(timeoutId);
-  }, [keyword, title, address, category, operationMode, country, state, lga]);
+  }, [keyword, title, address, category, operationMode, country, state, lga, district, availableDistricts, availableLgas, availableStates, COUNTRIES]);
 
   async function fetchStatesByCountry(countryId) {
     setStatesLoading(true);
@@ -135,6 +164,7 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
     setCountry("");
     setState("");
     setLga("");
+    setDistrict("");
   };
 
   return (
@@ -341,6 +371,21 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
             {availableLgas?.map((l) => (
               <MenuItem sx={{ fontSize: "1.5rem" }} key={l.id} value={l.id}>
                 {l.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        {/* District */}
+        <FormControl fullWidth size="small" disabled={!lga} sx={{ backgroundColor: "white", borderRadius: "8px" }}>
+          <InputLabel id="district-label">District</InputLabel>
+          <Select labelId="district-label" value={district} label="District" onChange={(e) => setDistrict(e.target.value)}>
+            <MenuItem sx={{ fontSize: "1.5rem" }} value="">
+              <em>All Districts</em>
+            </MenuItem>
+            {availableDistricts.map((d) => (
+              <MenuItem sx={{ fontSize: "1.5rem" }} key={d.id} value={d.id}>
+                {d.name}
               </MenuItem>
             ))}
           </Select>

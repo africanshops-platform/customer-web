@@ -5,6 +5,8 @@ import L from "leaflet";
 import NavLinkAdapter from "@fuse/core/NavLinkAdapter";
 import { Typography, Chip } from "@mui/material";
 import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
+import { groupByLocation } from "src/app/main/zrootclient/shared-near/nearby";
+import { NearbyOverlays, StackMarkers, chipIcon } from "src/app/main/zrootclient/shared-near/NearbyMapLayers";
 
 // Fix for default marker icons in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -44,16 +46,16 @@ function MapBounds({ positions }) {
  * ImprovedBookingsMap Component
  * Enhanced map with better UX using Leaflet with custom tile layers
  */
-function ImprovedBookingsMap({ items }) {
+function ImprovedBookingsMap({ items, near = null, radiusKm = null, userPoint = null }) {
   const [selectedProperty, setSelectedProperty] = useState(null);
 
   // Calculate center and bounds from items
   const { center, positions } = useMemo(() => {
     if (!items || items.length === 0) {
-      // Default center (Africa - Nigeria Lagos coordinates)
+      // Default center (Africa - Nigeria Lagos coordinates); with near-me on, centre on the search point instead
       return {
-        center: [6.5244, 3.3792],
-        positions: [],
+        center: near?.point ? [near.point.lat, near.point.lng] : [6.5244, 3.3792],
+        positions: near?.point ? [[near.point.lat, near.point.lng]] : [],
       };
     }
 
@@ -73,6 +75,8 @@ function ImprovedBookingsMap({ items }) {
       parseFloat(item.latitude),
       parseFloat(item.longitude),
     ]);
+    // Always frame the search point together with the results, so a listing a few km away is never off-screen.
+    if (near?.point) positions.push([near.point.lat, near.point.lng]);
 
     // Calculate center as average of all positions
     const avgLat = positions.reduce((sum, pos) => sum + pos[0], 0) / positions.length;
@@ -82,7 +86,12 @@ function ImprovedBookingsMap({ items }) {
       center: [avgLat, avgLng],
       positions,
     };
-  }, [items]);
+  }, [items, near]);
+
+  // Listings at one spot are merged into a single count marker; lone listings keep their own marker and popup.
+  const groups = useMemo(() => groupByLocation(items), [items]);
+  const singles = groups.filter((g) => g.items.length === 1).map((g) => g.items[0]);
+  const stacks = groups.filter((g) => g.items.length > 1);
 
   return (
     <div className="w-full h-full relative rounded-2xl overflow-hidden shadow-lg">
@@ -153,17 +162,20 @@ function ImprovedBookingsMap({ items }) {
         {/* Auto-fit bounds */}
         <MapBounds positions={positions} />
 
+        {/* Near-me: radius circle + search-point dot; several listings at one spot become one count marker */}
+        <NearbyOverlays near={near} radiusKm={radiusKm} userPoint={userPoint} />
+        <StackMarkers
+          stacks={stacks}
+          linkFor={(it) => `/bookings/listings/${it?.slug}/view`}
+          priceText={(it) => (it?.price ? `₦${formatCurrency(it.price)}` : "")}
+        />
+
         {/* Markers */}
-        {items
-          ?.filter(
-            (item) =>
-              item?.latitude && item?.longitude && !isNaN(item.latitude) && !isNaN(item.longitude),
-          )
-          .map((item) => (
+        {singles.map((item) => (
             <Marker
               key={item?._id || item?.id}
               position={[parseFloat(item.latitude), parseFloat(item.longitude)]}
-              icon={customIcon}
+              icon={chipIcon(item?.price)}
               eventHandlers={{
                 click: () => setSelectedProperty(item?._id || item?.id),
               }}
