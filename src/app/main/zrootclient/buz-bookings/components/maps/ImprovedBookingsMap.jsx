@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import "leaflet/dist/leaflet.css";
-import { MapContainer, TileLayer, Marker, Popup, Circle, CircleMarker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import NavLinkAdapter from "@fuse/core/NavLinkAdapter";
 import { Typography, Chip } from "@mui/material";
 import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
-import { distanceLabel, groupByLocation, priceChip } from "src/app/main/zrootclient/shared-near/nearby";
+import { groupByLocation } from "src/app/main/zrootclient/shared-near/nearby";
+import { NearbyOverlays, StackMarkers, chipIcon } from "src/app/main/zrootclient/shared-near/NearbyMapLayers";
 
 // Fix for default marker icons in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -23,25 +24,6 @@ const customIcon = new L.Icon({
   iconAnchor: [16, 48],
   popupAnchor: [0, -48],
 });
-
-/** Orange price-chip marker (mirrors customer-mobile's Nearby map). The text is a number-derived chip, never raw HTML. */
-function chipIcon(item) {
-  const chip = priceChip(item?.price);
-  return L.divIcon({
-    className: "",
-    html: `<div style="display:inline-block;transform:translate(-50%,-100%);background:#f97316;color:#fff;font:700 12px sans-serif;padding:5px 9px;border-radius:999px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);white-space:nowrap">${chip || "•"}</div>`,
-    iconSize: [0, 0],
-  });
-}
-
-/** Blue count marker for several listings at one spot. */
-function stackIcon(count) {
-  return L.divIcon({
-    className: "",
-    html: `<div style="display:inline-block;transform:translate(-50%,-100%);min-width:24px;text-align:center;background:#2563eb;color:#fff;font:700 12px sans-serif;padding:5px 9px;border-radius:999px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)">${Number(count)}</div>`,
-    iconSize: [0, 0],
-  });
-}
 
 /**
  * MapBounds Component
@@ -180,67 +162,20 @@ function ImprovedBookingsMap({ items, near = null, radiusKm = null, userPoint = 
         {/* Auto-fit bounds */}
         <MapBounds positions={positions} />
 
-        {/* Near-me: radius circle, search-point dot and (when different) the visitor's own position */}
-        {near?.point && radiusKm ? (
-          <Circle
-            center={[near.point.lat, near.point.lng]}
-            radius={radiusKm * 1000}
-            pathOptions={{ color: "#f97316", weight: 1, fillColor: "#f97316", fillOpacity: 0.05 }}
-            interactive={false}
-          />
-        ) : null}
-        {near?.point ? (
-          <CircleMarker
-            center={[near.point.lat, near.point.lng]}
-            radius={7}
-            pathOptions={{ color: "#fff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }}
-            interactive={false}
-          />
-        ) : null}
-        {userPoint && near?.source === "place" ? (
-          <CircleMarker
-            center={[userPoint.lat, userPoint.lng]}
-            radius={5}
-            pathOptions={{ color: "#fff", weight: 2, fillColor: "#16a34a", fillOpacity: 1 }}
-            interactive={false}
-          />
-        ) : null}
-
-        {/* Several listings at one spot -> one count marker listing them */}
-        {stacks.map((g) => (
-          <Marker key={`stack-${g.lat}-${g.lng}`} position={[g.lat, g.lng]} icon={stackIcon(g.items.length)}>
-            <Popup maxWidth={340} className="custom-popup">
-              <div className="flex flex-col gap-2 p-4">
-                <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", color: "#111827" }}>
-                  {g.items.length} stays at this spot
-                </Typography>
-                {g.items.slice(0, 6).map((it) => (
-                  <Typography
-                    key={it?._id || it?.id}
-                    component={NavLinkAdapter}
-                    to={`/bookings/listings/${it?.slug}/view`}
-                    sx={{ fontSize: "0.95rem", color: "#ea580c", fontWeight: 600 }}
-                  >
-                    {it?.title} · ₦{formatCurrency(it?.price)}
-                    {distanceLabel(it?.distanceKm) ? ` · ${distanceLabel(it.distanceKm)}` : ""}
-                  </Typography>
-                ))}
-                {g.items.length > 6 && (
-                  <Typography sx={{ fontSize: "0.85rem", color: "#6b7280" }}>
-                    + {g.items.length - 6} more — see the list
-                  </Typography>
-                )}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {/* Near-me: radius circle + search-point dot; several listings at one spot become one count marker */}
+        <NearbyOverlays near={near} radiusKm={radiusKm} userPoint={userPoint} />
+        <StackMarkers
+          stacks={stacks}
+          linkFor={(it) => `/bookings/listings/${it?.slug}/view`}
+          priceText={(it) => (it?.price ? `₦${formatCurrency(it.price)}` : "")}
+        />
 
         {/* Markers */}
         {singles.map((item) => (
             <Marker
               key={item?._id || item?.id}
               position={[parseFloat(item.latitude), parseFloat(item.longitude)]}
-              icon={chipIcon(item)}
+              icon={chipIcon(item?.price)}
               eventHandlers={{
                 click: () => setSelectedProperty(item?._id || item?.id),
               }}

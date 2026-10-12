@@ -1,5 +1,5 @@
 import { styled } from "@mui/material/styles";
-import { useEffect, useState, useCallback, useMemo, memo } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo, memo } from "react";
 import { useSearchParams } from "react-router-dom";
 import FusePageSimpleWithMargin from "@fuse/core/FusePageSimple/FusePageSimpleWithMargin";
 import useThemeMediaQuery from "@fuse/hooks/useThemeMediaQuery";
@@ -11,8 +11,7 @@ import DemoSidebar from "./shared-components/DemoSidebar";
 import DemoSidebarRight from "./shared-components/DemoSidebarRight";
 import ServiceStatusLandingPage from "../../aapp-settings-from-admin/ServiceStatusLandingPage";
 import NearMeBar from "../../shared-near/NearMeBar";
-import useUserLocation from "../../shared-near/useUserLocation";
-import { DEFAULT_RADIUS_KM } from "../../shared-near/nearby";
+import useNearMe from "../../shared-near/useNearMe";
 
 const Root = styled(FusePageSimpleWithMargin)(({ theme }) => ({
   "& .FusePageSimple-header": {
@@ -59,12 +58,10 @@ function ActiveBookingsPage() {
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [itemsPerPage, setItemsPerPage] = useState(initialItemsPerPage);
 
-  // ── Near me (tracker customer-22; mirrors customer-mobile's Nearby screen) ────────────────────────────────────────
-  // near = null (off: the ordinary newest-first list) or { point, label, source: "me" | "place" }. When on, the same list is
-  // ranked nearest-first by the backend, every card shows its distance, and the map frames the results.
-  const gps = useUserLocation(false);
-  const [near, setNear] = useState(null);
-  const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM);
+  // ── Near me (tracker customer-22; shared with real estate + food venues) ───────────────────────────────────────────
+  // goFirstPage is declared below; the hook only calls it from event handlers, so the late binding is safe.
+  const goFirstPageRef = useRef(() => {});
+  const nm = useNearMe(useCallback(() => goFirstPageRef.current(), []));
 
   useEffect(() => {
     setLeftSidebarOpen(!isMobile);
@@ -73,10 +70,7 @@ function ActiveBookingsPage() {
 
   // Fetch booking properties with filters
   // Near-me adds lat/lng/radiusKm to the very same query, so every other filter and the pagination keep working.
-  const queryFilters = useMemo(
-    () => (near ? { ...filters, lat: near.point.lat, lng: near.point.lng, radiusKm } : filters),
-    [filters, near, radiusKm],
-  );
+  const queryFilters = useMemo(() => (nm.nearParams ? { ...filters, ...nm.nearParams } : filters), [filters, nm.nearParams]);
   const { data: bookingprops, isLoading, isError } = useGetAllBookingProperties(queryFilters);
 
   // Handle filter changes from FilterList component
@@ -132,19 +126,12 @@ function ActiveBookingsPage() {
       }
 
       // Choosing a Country / State / LGA / District while near-me is on recentres the search on that region's centre.
-      // (A region that is not chosen leaves near-me where it was.)
-      if (newFilters.regionCenter) {
-        setNear((prev) => {
-          const c = newFilters.regionCenter;
-          if (prev?.source === "place" && prev.label === c.label && prev.point.lat === c.point.lat) return prev;
-          return prev ? { point: c.point, label: c.label, source: "place" } : prev;
-        });
-      }
+      nm.applyRegion(newFilters.regionCenter);
 
       // Update filters state (this will trigger useGetAllBookingProperties to refetch)
       setFilters(apiFilters);
     },
-    [itemsPerPage, currentPage],
+    [itemsPerPage, currentPage, nm.applyRegion],
   );
 
   // Sync pagination changes with filters
@@ -223,36 +210,7 @@ function ActiveBookingsPage() {
     });
   }, [setSearchParams]);
 
-  const handleUseMyLocation = useCallback(async () => {
-    const point = await gps.refresh();
-    if (point) {
-      setNear({ point, label: "your location", source: "me" });
-      setRadiusKm(DEFAULT_RADIUS_KM);
-      goFirstPage();
-    }
-  }, [gps, goFirstPage]);
-
-  const handlePickPlace = useCallback(
-    ({ point, label, radiusKm: km }) => {
-      setNear({ point, label, source: "place" });
-      setRadiusKm(km);
-      goFirstPage();
-    },
-    [goFirstPage],
-  );
-
-  const handleRadius = useCallback(
-    (km) => {
-      setRadiusKm(km);
-      goFirstPage();
-    },
-    [goFirstPage],
-  );
-
-  const handleClearNear = useCallback(() => {
-    setNear(null);
-    goFirstPage();
-  }, [goFirstPage]);
+  goFirstPageRef.current = goFirstPage;
 
   // Memoize header component
   const headerComponent = useMemo(
@@ -272,15 +230,15 @@ function ActiveBookingsPage() {
       <div className="flex flex-col w-full">
         <div className="px-8 pt-6">
           <NearMeBar
-            near={near}
-            radiusKm={radiusKm}
-            status={gps.status}
+            near={nm.near}
+            radiusKm={nm.radiusKm}
+            status={nm.gps.status}
             total={totalItems}
             isLoading={isLoading}
-            onUseMyLocation={handleUseMyLocation}
-            onPickPlace={handlePickPlace}
-            onRadius={handleRadius}
-            onClear={handleClearNear}
+            onUseMyLocation={nm.useMyLocation}
+            onPickPlace={nm.pickPlace}
+            onRadius={nm.changeRadius}
+            onClear={nm.clear}
           />
         </div>
         <DemoContent
@@ -296,13 +254,13 @@ function ActiveBookingsPage() {
       </div>
     ),
     [
-      near,
-      radiusKm,
-      gps.status,
-      handleUseMyLocation,
-      handlePickPlace,
-      handleRadius,
-      handleClearNear,
+      nm.near,
+      nm.radiusKm,
+      nm.gps.status,
+      nm.useMyLocation,
+      nm.pickPlace,
+      nm.changeRadius,
+      nm.clear,
       bookingLists,
       isLoading,
       isError,
@@ -322,8 +280,8 @@ function ActiveBookingsPage() {
 
   // Memoize right sidebar content
   const rightSidebarContentComponent = useMemo(
-    () => <DemoSidebarRight bookingsData={bookingLists} near={near} radiusKm={radiusKm} userPoint={gps.position} />,
-    [bookingLists, near, radiusKm, gps.position],
+    () => <DemoSidebarRight bookingsData={bookingLists} near={nm.near} radiusKm={nm.radiusKm} userPoint={nm.gps.position} />,
+    [bookingLists, nm.near, nm.radiusKm, nm.gps.position],
   );
 
   return (

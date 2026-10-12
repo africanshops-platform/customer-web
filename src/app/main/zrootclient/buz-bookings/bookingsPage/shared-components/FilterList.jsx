@@ -26,7 +26,7 @@ import {
 } from "@mui/icons-material";
 import useSellerCountries from "app/configs/data/server-calls/countries/useCountries";
 import { getDistrictsByLgaId, getLgasByStateId, getStateByCountryId } from "app/configs/data/client/RepositoryClient";
-import { geoCenter } from "src/app/main/zrootclient/shared-near/nearby";
+import { pickRegionCenter } from "src/app/main/zrootclient/shared-near/regionCenter";
 
 const PROPERTY_TYPES = [
   "Apartment",
@@ -135,20 +135,10 @@ function FilterList({ onFilterChange, initialFilters = {} }) {
       () => {
         if (onFilterChangeRef.current) {
           // The most specific chosen region that has a centre point; the page uses it to recentre near-me search.
-          const picks = [
-            ["district", availableDistricts.find((d) => d.id === district)],
-            ["lga", availableLgas.find((l) => l.id === lga)],
-            ["state", availableStates.find((st) => st.id === state)],
-            ["country", (COUNTRIES?.data?.countries || []).find((c) => c.id === country)],
-          ];
-          let regionCenter = null;
-          for (const [level, item] of picks) {
-            const point = geoCenter(item);
-            if (item && point) {
-              regionCenter = { point, level, label: item.name };
-              break;
-            }
-          }
+          const regionCenter = pickRegionCenter(
+            { district, lga, state, country },
+            { districts: availableDistricts, lgas: availableLgas, states: availableStates, countries: COUNTRIES?.data?.countries || [] },
+          );
           const filters = {
             regionCenter,
             keyword,
