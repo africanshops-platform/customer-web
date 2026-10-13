@@ -1112,7 +1112,7 @@ function ReviewReservation() {
                   }}
                 >
                   <img
-                    src="/assets/images/logo/logo.svg"
+                    src="/assets/images/afslogo/afslogo.png"
                     alt="AfricanShops"
                     className="w-20 h-20"
                     onError={(e) => {

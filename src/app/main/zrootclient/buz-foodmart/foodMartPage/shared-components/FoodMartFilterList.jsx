@@ -13,7 +13,8 @@ import {
 } from "@mui/material";
 import { Search, Clear, FilterList as FilterListIcon } from "@mui/icons-material";
 import useSellerCountries from "app/configs/data/server-calls/countries/useCountries";
-import { getLgasByStateId, getStateByCountryId } from "app/configs/data/client/RepositoryClient";
+import { getDistrictsByLgaId, getLgasByStateId, getStateByCountryId } from "app/configs/data/client/RepositoryClient";
+import { pickRegionCenter } from "src/app/main/zrootclient/shared-near/regionCenter";
 
 const FOODMART_CATEGORIES = [
   { value: "restaurant", label: "🍽️ Restaurant" },
@@ -27,16 +28,19 @@ const FOODMART_CATEGORIES = [
 ];
 
 const OPERATION_MODES = [
-  { value: "RESTAURANT", label: "Dine-in Restaurant" },
-  { value: "TAKE_OUT", label: "Take Out" },
-  { value: "DELIVERY", label: "Delivery" },
-  { value: "BAR", label: "Bar" },
-  { value: "CLUB", label: "Club" },
+  { value: "RESTAURANT", label: "Restaurant" },
+  { value: "CAFE", label: "Café" },
+  { value: "CLUB", label: "Club / Lounge" },
+  { value: "SPOT", label: "Spot" },
 ];
 
 const inputSx = {
   backgroundColor: "white",
   borderRadius: "8px",
+  "& .MuiInputBase-root": { fontSize: "1.5rem" },
+  "& .MuiInputBase-input": { fontSize: "1.5rem" },
+  "& .MuiInputLabel-root": { fontSize: "1.4rem" },
+  "& .MuiSelect-select": { fontSize: "1.5rem" },
   "& .MuiOutlinedInput-root": {
     "&:hover fieldset": { borderColor: "#f97316" },
     "&.Mui-focused fieldset": { borderColor: "#ea580c" },
@@ -59,9 +63,11 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
   const [country, setCountry] = useState(initialFilters.country || "");
   const [state, setState] = useState(initialFilters.state || "");
   const [lga, setLga] = useState(initialFilters.lga || "");
+  const [district, setDistrict] = useState(initialFilters.district || "");
 
   const [availableStates, setAvailableStates] = useState([]);
   const [availableLgas, setAvailableLgas] = useState([]);
+  const [availableDistricts, setAvailableDistricts] = useState([]);
   const [statesLoading, setStatesLoading] = useState(false);
   const [lgasLoading, setLgasLoading] = useState(false);
 
@@ -81,11 +87,37 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
     }
   }, [state]);
 
+  // Districts of the chosen LGA (founder 2026-10-13: Country > State > LGA > District is the location filter for near-me).
+  useEffect(() => {
+    let cancelled = false;
+    setDistrict("");
+    if (!lga) {
+      setAvailableDistricts([]);
+      return undefined;
+    }
+    getDistrictsByLgaId(lga)
+      .then((res) => {
+        if (!cancelled) setAvailableDistricts(res?.data?.districts || []);
+      })
+      .catch(() => {
+        if (!cancelled) setAvailableDistricts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lga]);
+
   useEffect(() => {
     const timeoutId = setTimeout(
       () => {
         if (onFilterChangeRef.current) {
+          // The most specific chosen region that has a centre point; the page uses it to recentre near-me search.
+          const regionCenter = pickRegionCenter(
+            { district, lga, state, country },
+            { districts: availableDistricts, lgas: availableLgas, states: availableStates, countries: COUNTRIES?.data?.countries || [] },
+          );
           onFilterChangeRef.current({
+            regionCenter,
             keyword,
             title,
             address,
@@ -100,7 +132,7 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
       keyword || title || address ? 500 : 0,
     );
     return () => clearTimeout(timeoutId);
-  }, [keyword, title, address, category, operationMode, country, state, lga]);
+  }, [keyword, title, address, category, operationMode, country, state, lga, district, availableDistricts, availableLgas, availableStates, COUNTRIES]);
 
   async function fetchStatesByCountry(countryId) {
     setStatesLoading(true);
@@ -132,6 +164,7 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
     setCountry("");
     setState("");
     setLga("");
+    setDistrict("");
   };
 
   return (
@@ -149,8 +182,8 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
           boxShadow: "0 4px 15px rgba(249, 115, 22, 0.3)",
         }}
       >
-        <FilterListIcon sx={{ color: "white", fontSize: "1.75rem" }} />
-        <Typography variant="h6" sx={{ fontWeight: 700, color: "white", fontSize: "1.25rem" }}>
+        <FilterListIcon sx={{ color: "white", fontSize: "2.8rem" }} />
+        <Typography variant="h6" sx={{ fontWeight: 700, color: "white", fontSize: "2.0rem" }}>
           Filter Restaurants
         </Typography>
       </div>
@@ -223,7 +256,7 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
         <Divider className="my-2" />
 
         {/* Category */}
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151", paddingTop: "4px" }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#374151", paddingTop: "4px", fontSize: "1.6rem" }}>
           Establishment Type
         </Typography>
 
@@ -235,11 +268,11 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
             label="Category"
             onChange={(e) => setCategory(e.target.value)}
           >
-            <MenuItem value="">
+            <MenuItem sx={{ fontSize: "1.5rem" }} value="">
               <em>All Categories</em>
             </MenuItem>
             {FOODMART_CATEGORIES.map((c) => (
-              <MenuItem key={c.value} value={c.value}>
+              <MenuItem sx={{ fontSize: "1.5rem" }} key={c.value} value={c.value}>
                 {c.label}
               </MenuItem>
             ))}
@@ -255,11 +288,11 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
             label="Operation Mode"
             onChange={(e) => setOperationMode(e.target.value)}
           >
-            <MenuItem value="">
+            <MenuItem sx={{ fontSize: "1.5rem" }} value="">
               <em>All Modes</em>
             </MenuItem>
             {OPERATION_MODES.map((m) => (
-              <MenuItem key={m.value} value={m.value}>
+              <MenuItem sx={{ fontSize: "1.5rem" }} key={m.value} value={m.value}>
                 {m.label}
               </MenuItem>
             ))}
@@ -269,7 +302,7 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
         <Divider className="my-2" />
 
         {/* Location Section */}
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#374151", paddingTop: "4px" }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#374151", paddingTop: "4px", fontSize: "1.6rem" }}>
           Location
         </Typography>
 
@@ -282,11 +315,11 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
             label="Country"
             onChange={(e) => setCountry(e.target.value)}
           >
-            <MenuItem value="">
+            <MenuItem sx={{ fontSize: "1.5rem" }} value="">
               <em>All Countries</em>
             </MenuItem>
             {COUNTRIES?.data?.countries?.map((c) => (
-              <MenuItem key={c.id} value={c.id}>
+              <MenuItem sx={{ fontSize: "1.5rem" }} key={c.id} value={c.id}>
                 {c.name}
               </MenuItem>
             ))}
@@ -302,16 +335,16 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
             label="State"
             onChange={(e) => setState(e.target.value)}
           >
-            <MenuItem value="">
+            <MenuItem sx={{ fontSize: "1.5rem" }} value="">
               <em>All States</em>
             </MenuItem>
             {statesLoading && (
-              <MenuItem disabled>
+              <MenuItem sx={{ fontSize: "1.5rem" }} disabled>
                 <em>Loading...</em>
               </MenuItem>
             )}
             {availableStates?.map((s) => (
-              <MenuItem key={s.id} value={s.id}>
+              <MenuItem sx={{ fontSize: "1.5rem" }} key={s.id} value={s.id}>
                 {s.name}
               </MenuItem>
             ))}
@@ -327,17 +360,32 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
             label="LGA"
             onChange={(e) => setLga(e.target.value)}
           >
-            <MenuItem value="">
+            <MenuItem sx={{ fontSize: "1.5rem" }} value="">
               <em>All LGAs</em>
             </MenuItem>
             {lgasLoading && (
-              <MenuItem disabled>
+              <MenuItem sx={{ fontSize: "1.5rem" }} disabled>
                 <em>Loading...</em>
               </MenuItem>
             )}
             {availableLgas?.map((l) => (
-              <MenuItem key={l.id} value={l.id}>
+              <MenuItem sx={{ fontSize: "1.5rem" }} key={l.id} value={l.id}>
                 {l.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        {/* District */}
+        <FormControl fullWidth size="small" disabled={!lga} sx={{ backgroundColor: "white", borderRadius: "8px" }}>
+          <InputLabel id="district-label">District</InputLabel>
+          <Select labelId="district-label" value={district} label="District" onChange={(e) => setDistrict(e.target.value)}>
+            <MenuItem sx={{ fontSize: "1.5rem" }} value="">
+              <em>All Districts</em>
+            </MenuItem>
+            {availableDistricts.map((d) => (
+              <MenuItem sx={{ fontSize: "1.5rem" }} key={d.id} value={d.id}>
+                {d.name}
               </MenuItem>
             ))}
           </Select>
@@ -349,6 +397,7 @@ function FoodMartFilterList({ onFilterChange, initialFilters = {} }) {
           variant="outlined"
           onClick={handleClearFilters}
           sx={{
+            fontSize: "1.4rem",
             borderColor: "#ea580c",
             color: "#ea580c",
             marginTop: "8px",

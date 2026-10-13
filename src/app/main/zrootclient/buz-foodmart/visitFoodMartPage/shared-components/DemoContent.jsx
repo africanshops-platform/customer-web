@@ -1,3 +1,9 @@
+import VenueHero from "./VenueHero";
+import { themeFor } from "../venueThemes";
+import MenuEmptyState from "./MenuEmptyState";
+import { dishRating } from "../venueProfile";
+import "../venue-themes.css";
+import FulfillmentBadge from "../../components/FulfillmentBadge";
 import FuseLoading from "@fuse/core/FuseLoading";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -23,6 +29,8 @@ function MenuItemCard({ item, index }) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  // A dish shows stars only when real reviews back them; never a default rating or a made-up count.
+  const { rating: realRating, count: reviewCount } = dishRating(item);
 
   const images = item?.imageSrcs || [];
   const hasImages = images.length > 0;
@@ -52,7 +60,7 @@ function MenuItemCard({ item, index }) {
       transition={{ delay: index * 0.05 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="group bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer flex flex-col"
+      className="menu-card group bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer flex flex-col"
     >
       {/* Image Section */}
       <div className="relative h-100 overflow-hidden bg-gray-100">
@@ -198,21 +206,29 @@ function MenuItemCard({ item, index }) {
         )}
 
         {/* Rating */}
-        <div className="flex items-center gap-2 mb-3">
-          <Rating
-            value={item?.rating || 4.5}
-            precision={0.5}
-            size="small"
-            readOnly
-            sx={{
-              "& .MuiRating-iconFilled": {
-                color: "#f59e0b",
-              },
-            }}
-          />
-          <Typography variant="caption" className="text-gray-500">
-            ({item?.reviews || Math.floor(Math.random() * 50) + 10})
-          </Typography>
+        <div className="flex items-center gap-2 mb-3" data-testid="dish-rating">
+          {realRating ? (
+            <>
+              <Rating
+                value={realRating}
+                precision={0.5}
+                size="small"
+                readOnly
+                sx={{
+                  "& .MuiRating-iconFilled": {
+                    color: "#f59e0b",
+                  },
+                }}
+              />
+              <Typography variant="caption" className="text-gray-500">
+                ({reviewCount})
+              </Typography>
+            </>
+          ) : (
+            <Typography variant="caption" className="text-gray-400">
+              No reviews yet
+            </Typography>
+          )}
         </div>
 
         {/* Price Section */}
@@ -236,6 +252,9 @@ function MenuItemCard({ item, index }) {
               per {item?.unitPerQuantity || "serving"}
             </Typography>
           </div>
+        </div>
+        <div className="mb-3">
+          <FulfillmentBadge item={item} withDetail />
         </div>
 
         {/* Action Buttons */}
@@ -266,10 +285,10 @@ function MenuItemCard({ item, index }) {
  * Demo Content
  */
 function DemoContent(props) {
-  const { rcsId } = props;
+  const { rcsId, rcsFoodMart } = props;
+  const venue = themeFor(rcsFoodMart?.operationMode);
 
   const { data: RcsMenu, isLoading: menuLoading, isError: menuError } = useGetRCSMenuItems(rcsId);
-  console.log("RcsMenu data:", RcsMenu);
 
   if (menuLoading) {
     return <FuseLoading />;
@@ -288,21 +307,18 @@ function DemoContent(props) {
   }
 
   if (!RcsMenu?.data?.menus || RcsMenu.data.menus.length === 0) {
+    // The venue still gets its own look (hero, ground, font) before it has a menu.
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1, transition: { delay: 0.1 } }}
-        className="flex flex-col flex-1 items-center justify-center h-full"
-      >
-        <Typography color="text.secondary" variant="h5">
-          No menu items available!
-        </Typography>
-      </motion.div>
+      <div className={`${venue.className} flex-auto p-0 sm:p-0`} style={{ background: venue.ground, fontFamily: venue.font }}>
+        <VenueHero foodMart={rcsFoodMart} />
+        <MenuEmptyState operationMode={rcsFoodMart?.operationMode} venueName={rcsFoodMart?.title} />
+      </div>
     );
   }
 
   return (
-    <div className="flex-auto p-0 sm:p-0 bg-gradient-to-b from-gray-50 to-white">
+    <div className={`${venue.className} flex-auto p-0 sm:p-0`} style={{ background: venue.ground, fontFamily: venue.font }}>
+      <VenueHero foodMart={rcsFoodMart} />
       {/* Header Section */}
       <div className="px-8 py-6 bg-white border-b border-gray-200">
         <div className="flex items-center justify-between">

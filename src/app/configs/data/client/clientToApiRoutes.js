@@ -138,6 +138,9 @@ export const getBlogPostsById = (slug) => Api().get(`/posts/by/${slug}`);
 export const getTradehubs = () => Api().get('/tradehubs');
 export const getTradehubById = (id) => Api().get(`/tradehubs/${id}`);
 
+// Public, cached headline counts (customers, merchants, products)
+export const getPlatformStats = () => Api().get('/platform-stats');
+
 // Country Routes
 export const getCountries = () => Api().get('/buzcountries/operational'); // (Msvs => done)
 export const getCountryDataById = (id) => Api().get(`/buzcountries/${id}`);
@@ -485,3 +488,9 @@ export const merchantLogOutCall = () => {
 		}
 	}
 };
+
+/** A pinned point -> its nearest LGA/state/country (public): fills the delivery form and prices the fee. */
+export const locateDestinationApi = (lat, lng) => Api().get(`/buzshipping/locate?lat=${lat}&lng=${lng}`);
+
+/** Operational markets nearest to a coordinate, closest first (public) — "use my nearest pickup point". */
+export const getNearestMarketsApi = (lat, lng, limit = 3) => Api().get(`/markets/nearest?lat=${lat}&lng=${lng}&limit=${limit}`);

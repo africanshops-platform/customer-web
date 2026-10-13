@@ -8,10 +8,11 @@ import { MapOutlined } from "@mui/icons-material";
  * Enhanced with improved map and modern styling
  */
 function DemoSidebarRight(props) {
-  const { bookingsData } = props;
+  const { bookingsData, near, radiusKm, userPoint } = props;
 
   // Show loading placeholder while data is being fetched
-  const isLoading = !bookingsData || bookingsData.length === 0;
+  // With near-me on, "no results" is a real answer (the map still shows the search point and radius), not a load state.
+  const isLoading = !bookingsData || (bookingsData.length === 0 && !near);
 
   if (isLoading) {
     return <MapLoadingPlaceholder />;
@@ -46,7 +47,7 @@ function DemoSidebarRight(props) {
 
       {/* Map Container */}
       <div className="flex-1 rounded-2xl overflow-hidden shadow-2xl">
-        <ImprovedBookingsMap items={bookingsData} />
+        <ImprovedBookingsMap items={bookingsData} near={near} radiusKm={radiusKm} userPoint={userPoint} />
       </div>
 
       {/* Info Footer */}

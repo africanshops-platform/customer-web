@@ -176,7 +176,7 @@ export default function KycWizardPage({ kycData, onBack }) {
           )}
 
           <Typography variant="caption" color="text.secondary" className="text-center">
-            256-bit encrypted · Data never sold · ISO 27001 compliant
+            Your information is sent over an encrypted connection.
           </Typography>
         </div>
       }

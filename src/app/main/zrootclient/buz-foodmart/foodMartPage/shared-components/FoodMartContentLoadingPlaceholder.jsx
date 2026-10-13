@@ -48,7 +48,7 @@ function FoodMartContentLoadingPlaceholder() {
                   style={{ background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)" }}
                 >
                   <img
-                    src="/assets/images/logo/logo.svg"
+                    src="/assets/images/afslogo/afslogo.png"
                     alt="AfricanShops"
                     className="w-16 h-16"
                     onError={(e) => {

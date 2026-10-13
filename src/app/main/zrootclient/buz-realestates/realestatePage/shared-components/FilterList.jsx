@@ -15,7 +15,8 @@ import {
 } from "@mui/material";
 import { Search, Clear, FilterList as FilterListIcon } from "@mui/icons-material";
 import useSellerCountries from "app/configs/data/server-calls/countries/useCountries";
-import { getLgasByStateId, getStateByCountryId } from "app/configs/data/client/RepositoryClient";
+import { getDistrictsByLgaId, getLgasByStateId, getStateByCountryId } from "app/configs/data/client/RepositoryClient";
+import { pickRegionCenter } from "src/app/main/zrootclient/shared-near/regionCenter";
 
 const inputSx = {
   backgroundColor: "white",
@@ -53,12 +54,14 @@ function FilterList({ onFilterChange, initialFilters = {} }) {
   const [country, setCountry] = useState(initialFilters.country || "");
   const [state, setState] = useState(initialFilters.state || "");
   const [lga, setLga] = useState(initialFilters.lga || "");
+  const [district, setDistrict] = useState(initialFilters.district || "");
   const [priceRange, setPriceRange] = useState(initialFilters.priceRange || [0, 1000000000]);
   const [roomCount, setRoomCount] = useState(initialFilters.roomCount || "");
   const [sittingroomCount, setSittingroomCount] = useState(initialFilters.sittingroomCount || "");
 
   const [availableStates, setAvailableStates] = useState([]);
   const [availableLgas, setAvailableLgas] = useState([]);
+  const [availableDistricts, setAvailableDistricts] = useState([]);
   const [statesLoading, setStatesLoading] = useState(false);
   const [lgasLoading, setLgasLoading] = useState(false);
 
@@ -78,11 +81,37 @@ function FilterList({ onFilterChange, initialFilters = {} }) {
     }
   }, [state]);
 
+  // Districts of the chosen LGA (founder 2026-10-13: Country > State > LGA > District is the location filter for near-me).
+  useEffect(() => {
+    let cancelled = false;
+    setDistrict("");
+    if (!lga) {
+      setAvailableDistricts([]);
+      return undefined;
+    }
+    getDistrictsByLgaId(lga)
+      .then((res) => {
+        if (!cancelled) setAvailableDistricts(res?.data?.districts || []);
+      })
+      .catch(() => {
+        if (!cancelled) setAvailableDistricts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lga]);
+
   // Emit filter changes to parent with a debounce for the keyword field
   useEffect(() => {
     const timeoutId = setTimeout(
       () => {
+        // The most specific chosen region that has a centre point; the page uses it to recentre near-me search.
+        const regionCenter = pickRegionCenter(
+          { district, lga, state, country },
+          { districts: availableDistricts, lgas: availableLgas, states: availableStates, countries: COUNTRIES?.data?.countries || [] },
+        );
         onFilterChangeRef.current?.({
+          regionCenter,
           keyword,
           propertyUseCase,
           country,
@@ -97,7 +126,7 @@ function FilterList({ onFilterChange, initialFilters = {} }) {
     );
 
     return () => clearTimeout(timeoutId);
-  }, [keyword, propertyUseCase, country, state, lga, priceRange, roomCount, sittingroomCount]);
+  }, [keyword, propertyUseCase, country, state, lga, district, availableDistricts, availableLgas, availableStates, COUNTRIES, priceRange, roomCount, sittingroomCount]);
 
   async function findStatesByCountry(countryId) {
     setStatesLoading(true);
@@ -126,6 +155,7 @@ function FilterList({ onFilterChange, initialFilters = {} }) {
     setCountry("");
     setState("");
     setLga("");
+    setDistrict("");
     setPriceRange([0, 1000000000]);
     setRoomCount("");
     setSittingroomCount("");
@@ -256,6 +286,20 @@ function FilterList({ onFilterChange, initialFilters = {} }) {
             {availableLgas?.map((l) => (
               <MenuItem key={l.id} value={l.id}>
                 {l.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <FormControl fullWidth size="small" disabled={!lga} sx={inputSx}>
+          <InputLabel id="district-label">District</InputLabel>
+          <Select labelId="district-label" value={district} label="District" onChange={(e) => setDistrict(e.target.value)}>
+            <MenuItem value="">
+              <em>All Districts</em>
+            </MenuItem>
+            {availableDistricts.map((d) => (
+              <MenuItem key={d.id} value={d.id}>
+                {d.name}
               </MenuItem>
             ))}
           </Select>

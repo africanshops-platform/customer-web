@@ -20,8 +20,11 @@ import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
 import ClienttErrorPage from "src/app/main/zrootclient/components/ClienttErrorPage";
 import AddToProductCartButton from "../../components/AddToProductCartButton";
 import ProductDetailsWithReviews from "./ProductDetailsWithReviews";
+import ProductShippingEstimate from "./ProductShippingEstimate";
 import ProductImageGalleryView from "./ProductImageGalleryView";
 import SingleProductLoadingPlaceholder from "./SingleProductLoadingPlaceholder";
+import OffPlatformNotice from "../../../../shared-contact/OffPlatformNotice";
+import { PLATFORM_ORDER_PHONE, PLATFORM_ORDER_TEL } from "../../../../shared-contact/platformContact";
 
 /**
  * Demo Content - Single Product Page
@@ -338,12 +341,7 @@ function DemoContentSingleProduct(props) {
                     </span>
                   </Typography>
                 </div>
-                <div className="flex items-center gap-3">
-                  <LocalShipping sx={{ color: "#3b82f6", fontSize: "1.5rem" }} />
-                  <Typography variant="body2" className="text-gray-600">
-                    Shipping from ₦1,080 to your location
-                  </Typography>
-                </div>
+                <ProductShippingEstimate productData={productData} />
               </div>
 
               {/* Add to Cart Button */}
@@ -378,6 +376,7 @@ function DemoContentSingleProduct(props) {
                 <Button
                   variant="outlined"
                   startIcon={<Phone />}
+                  href={PLATFORM_ORDER_TEL}
                   fullWidth
                   sx={{
                     borderColor: "#10b981",
@@ -392,6 +391,7 @@ function DemoContentSingleProduct(props) {
                   Call Seller
                 </Button>
               </div>
+              <OffPlatformNotice className="mt-2" />
 
               {/* Promotions Section */}
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-200">
@@ -403,7 +403,7 @@ function DemoContentSingleProduct(props) {
                 </div>
                 <ul className="space-y-3">
                   {[
-                    { icon: Phone, text: "Call 07087200297 to place your order", color: "#10b981" },
+                    { icon: Phone, text: `Call ${PLATFORM_ORDER_PHONE} to place your order`, color: "#10b981" },
                     {
                       icon: WhatsApp,
                       text: "Need extra money? Loan up to ₦500,000 on your Africanshops Wallet",

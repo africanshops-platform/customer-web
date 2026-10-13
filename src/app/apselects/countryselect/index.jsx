@@ -16,6 +16,10 @@ const CountrySelect = ({ value, onChange }) => {
         options={countries?.data?.countries}
         value={value}
         onChange={(value) => onChange(value)}
+        // Options are API records ({ id, name, ... }), not { label, value }. Without these, react-select filters
+        // on undefined fields, so typing in the box matched nothing ("No options") even though the list was full.
+        getOptionLabel={(option) => option?.name ?? ""}
+        getOptionValue={(option) => option?.id ?? option?.name ?? ""}
         formatOptionLabel={(option) => (
           <div className="flex flex-row items-center gap-3">
             <image src={option?.flag} className="height-[10px] width-[14px]" />

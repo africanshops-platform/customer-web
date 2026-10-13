@@ -75,7 +75,7 @@ function ContentLoadingPlaceholder() {
                   }}
                 >
                   <img
-                    src="/assets/images/logo/logo.svg"
+                    src="/assets/images/afslogo/afslogo.png"
                     alt="AfricanShops"
                     className="w-16 h-16"
                     onError={(e) => {

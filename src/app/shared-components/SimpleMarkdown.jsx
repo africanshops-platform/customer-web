@@ -22,25 +22,29 @@ export function slugify(text) {
 		.replace(/\s+/g, '-');
 }
 
+/** Text with **bold** runs turned into <strong> — used by paragraphs, list items and notes alike. */
+function boldRuns(text) {
+	return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+		part.startsWith('**') && part.endsWith('**') ? (
+			<strong
+				key={i}
+				className="text-gray-900 font-semibold"
+			>
+				{part.slice(2, -2)}
+			</strong>
+		) : (
+			<Fragment key={i}>{part}</Fragment>
+		)
+	);
+}
+
 function renderInline(text, key) {
-	const parts = text.split(/(\*\*[^*]+\*\*)/g);
 	return (
 		<p
 			key={key}
 			className="text-gray-700 leading-relaxed mb-4"
 		>
-			{parts.map((part, i) =>
-				part.startsWith('**') && part.endsWith('**') ? (
-					<strong
-						key={i}
-						className="text-gray-900 font-semibold"
-					>
-						{part.slice(2, -2)}
-					</strong>
-				) : (
-					<Fragment key={i}>{part}</Fragment>
-				)
-			)}
+			{boldRuns(text)}
 		</p>
 	);
 }
@@ -64,7 +68,7 @@ function SimpleMarkdown({ content }) {
 							key={i}
 							className="text-gray-700 leading-relaxed"
 						>
-							{item}
+							{boldRuns(item)}
 						</li>
 					))}
 				</ul>
@@ -116,7 +120,7 @@ function SimpleMarkdown({ content }) {
 					key={`bq-${index}`}
 					className="border-l-4 border-orange-300 bg-orange-50 text-orange-900 rounded-r-lg px-4 py-3 mb-4 text-[13.5px] leading-relaxed"
 				>
-					{line.slice(2)}
+					{boldRuns(line.slice(2))}
 				</blockquote>
 			);
 		} else if (line.startsWith('- ')) {

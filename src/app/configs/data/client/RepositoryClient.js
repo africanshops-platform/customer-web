@@ -120,6 +120,7 @@ export const getMarketsByLgaId = (id) => Api().get(`/markets/in-state/${id}/oper
 // ###############################################################################
 //= =======================================L.G.As  Routes starts
 export const getLgasByStateId = (sid) => Api().get(`/buz-lgas/in-state/${sid}/operational`); // (Mcsvs => Done)
+export const getDistrictsByLgaId = (lid) => Api().get(`/buz-districts/in-lga/${lid}/operational`);
 
 // ###############################################################################
 //= =======================================States Toutes
@@ -183,6 +184,9 @@ export const getAllProducts = (filters = {}) => {
 export const getProductById = (id) => Api().get(`/products/${id}/view`);
 export const getProductByCategory = (category) => Api().get(`/clientusersproducts/category/${category}`);
 export const getUserCartProductsById = (payload) => Api().get(`/clientusersproducts/cart?${payload}`);
+
+/** Food menu reviews -- public read (2026-10-02) */
+export const getFoodMenuReviews = (menuId) => Api().get(`/food-menu-reviews/${menuId}`);
 
 /** Product reviews -- public read, no auth needed (2026-09-27, customer-9) */
 export const getProductReviews = (productId) => Api().get(`/reviews/${productId}`);
@@ -357,3 +361,6 @@ export const getUserAppSettingApi = () => Api().get(`/application-settings/publi
 /** =====================================================================================================
  * APPLICATION SETTINGS ROUTES LISTED BELOW ENDS
  ===================================================================================================== */
+
+/** Public single-shop shipping estimate (server prices it: route table + distance) — used on the product page. */
+export const getProductShippingEstimateApi = (body) => Api().post('/buzshipping/calculate', body);

@@ -17,8 +17,9 @@ import { handleApiError } from 'app/configs/data/utils/handleApiError';
  */
 
 /** ** 1) Get All User Addresses */
-export function useGetUserAddresses() {
+export function useGetUserAddresses({ enabled = true } = {}) {
 	return useQuery(['__userAddresses'], () => getUserAddressesApi(), {
+		enabled, // pass false for guests: an unauthenticated call 401s and trips the auth-refresh/logout handler
 		staleTime: 5 * 60 * 1000, // 5 minutes
 		select: (data) => data?.data?.addresses || []
 	});

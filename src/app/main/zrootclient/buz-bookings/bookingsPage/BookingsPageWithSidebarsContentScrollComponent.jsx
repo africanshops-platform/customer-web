@@ -1,5 +1,5 @@
 import { styled } from "@mui/material/styles";
-import { useEffect, useState, useCallback, useMemo, memo } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo, memo } from "react";
 import { useSearchParams } from "react-router-dom";
 import FusePageSimpleWithMargin from "@fuse/core/FusePageSimple/FusePageSimpleWithMargin";
 import useThemeMediaQuery from "@fuse/hooks/useThemeMediaQuery";
@@ -10,6 +10,8 @@ import DemoContent from "./shared-components/DemoContent";
 import DemoSidebar from "./shared-components/DemoSidebar";
 import DemoSidebarRight from "./shared-components/DemoSidebarRight";
 import ServiceStatusLandingPage from "../../aapp-settings-from-admin/ServiceStatusLandingPage";
+import NearMeBar from "../../shared-near/NearMeBar";
+import useNearMe from "../../shared-near/useNearMe";
 
 const Root = styled(FusePageSimpleWithMargin)(({ theme }) => ({
   "& .FusePageSimple-header": {
@@ -56,13 +58,20 @@ function ActiveBookingsPage() {
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [itemsPerPage, setItemsPerPage] = useState(initialItemsPerPage);
 
+  // ── Near me (tracker customer-22; shared with real estate + food venues) ───────────────────────────────────────────
+  // goFirstPage is declared below; the hook only calls it from event handlers, so the late binding is safe.
+  const goFirstPageRef = useRef(() => {});
+  const nm = useNearMe(useCallback(() => goFirstPageRef.current(), []));
+
   useEffect(() => {
     setLeftSidebarOpen(!isMobile);
     setRightSidebarOpen(!isMobile);
   }, [isMobile]);
 
   // Fetch booking properties with filters
-  const { data: bookingprops, isLoading, isError } = useGetAllBookingProperties(filters);
+  // Near-me adds lat/lng/radiusKm to the very same query, so every other filter and the pagination keep working.
+  const queryFilters = useMemo(() => (nm.nearParams ? { ...filters, ...nm.nearParams } : filters), [filters, nm.nearParams]);
+  const { data: bookingprops, isLoading, isError } = useGetAllBookingProperties(queryFilters);
 
   // Handle filter changes from FilterList component
   const handleFilterChange = useCallback(
@@ -116,10 +125,13 @@ function ActiveBookingsPage() {
         apiFilters.checkedAmenities = newFilters.amenities.join(",");
       }
 
+      // Choosing a Country / State / LGA / District while near-me is on recentres the search on that region's centre.
+      nm.applyRegion(newFilters.regionCenter);
+
       // Update filters state (this will trigger useGetAllBookingProperties to refetch)
       setFilters(apiFilters);
     },
-    [itemsPerPage, currentPage],
+    [itemsPerPage, currentPage, nm.applyRegion],
   );
 
   // Sync pagination changes with filters
@@ -189,6 +201,17 @@ function ActiveBookingsPage() {
     [bookingprops?.data?.pagination?.total],
   );
 
+  const goFirstPage = useCallback(() => {
+    setCurrentPage(1);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("page", "1");
+      return next;
+    });
+  }, [setSearchParams]);
+
+  goFirstPageRef.current = goFirstPage;
+
   // Memoize header component
   const headerComponent = useMemo(
     () => (
@@ -204,18 +227,40 @@ function ActiveBookingsPage() {
   // Memoize content component
   const contentComponent = useMemo(
     () => (
-      <DemoContent
-        listings={bookingLists}
-        isLoading={isLoading}
-        isError={isError}
-        totalItems={totalItems}
-        currentPage={currentPage}
-        itemsPerPage={itemsPerPage}
-        onPageChange={handlePageChange}
-        onItemsPerPageChange={handleItemsPerPageChange}
-      />
+      <div className="flex flex-col w-full">
+        <div className="px-8 pt-6">
+          <NearMeBar
+            near={nm.near}
+            radiusKm={nm.radiusKm}
+            status={nm.gps.status}
+            total={totalItems}
+            isLoading={isLoading}
+            onUseMyLocation={nm.useMyLocation}
+            onPickPlace={nm.pickPlace}
+            onRadius={nm.changeRadius}
+            onClear={nm.clear}
+          />
+        </div>
+        <DemoContent
+          listings={bookingLists}
+          isLoading={isLoading}
+          isError={isError}
+          totalItems={totalItems}
+          currentPage={currentPage}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      </div>
     ),
     [
+      nm.near,
+      nm.radiusKm,
+      nm.gps.status,
+      nm.useMyLocation,
+      nm.pickPlace,
+      nm.changeRadius,
+      nm.clear,
       bookingLists,
       isLoading,
       isError,
@@ -235,8 +280,8 @@ function ActiveBookingsPage() {
 
   // Memoize right sidebar content
   const rightSidebarContentComponent = useMemo(
-    () => <DemoSidebarRight bookingsData={bookingLists} />,
-    [bookingLists],
+    () => <DemoSidebarRight bookingsData={bookingLists} near={nm.near} radiusKm={nm.radiusKm} userPoint={nm.gps.position} />,
+    [bookingLists, nm.near, nm.radiusKm, nm.gps.position],
   );
 
   return (

@@ -3,6 +3,7 @@ import { Typography, IconButton, Button } from "@mui/material";
 import { FavoriteBorder, Favorite, NavigateBefore, NavigateNext } from "@mui/icons-material";
 import NavLinkAdapter from "@fuse/core/NavLinkAdapter";
 import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
+import { distanceLabel } from "src/app/main/zrootclient/shared-near/nearby";
 
 /**
  * BookingCard Component
@@ -20,6 +21,7 @@ function BookingCard({
   reviewCount = 0,
   category,
   bookingPeriod,
+  distanceKm,
 }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -193,6 +195,15 @@ function BookingCard({
           >
             {address}
           </Typography>
+          {distanceLabel(distanceKm) && (
+            <span
+              className="inline-block mb-4 px-3 py-1 rounded-full text-sm font-semibold"
+              style={{ background: "#eff6ff", color: "#1d4ed8" }}
+              data-testid="booking-distance"
+            >
+              {distanceLabel(distanceKm)}
+            </span>
+          )}
 
           {/* Price and Rating Row */}
           <div className="flex justify-between mb-4">
@@ -215,22 +226,24 @@ function BookingCard({
                   color: "#6b7280",
                 }}
               >
-                /{bookingPeriod}
+                /{String(bookingPeriod || "").toLowerCase()}
               </Typography>
             </div>
 
-            {/* Rating */}
+            {/* Rating: only when real reviews exist (it used to default every listing to 4.5 stars / 9 reviews) */}
             <div className="flex items-center gap-2">
-              <div className="flex text-sm">{renderStars()}</div>
-              <Typography
-                variant="body1"
-                sx={{
-                  fontSize: "0.95rem",
-                  color: "#6b7280",
-                }}
-              >
-                ({reviewCount.toString().padStart(2, "0")})
-              </Typography>
+              {reviewCount > 0 && rating > 0 ? (
+                <>
+                  <div className="flex text-sm">{renderStars()}</div>
+                  <Typography variant="body1" sx={{ fontSize: "0.95rem", color: "#6b7280" }}>
+                    ({reviewCount.toString().padStart(2, "0")})
+                  </Typography>
+                </>
+              ) : (
+                <Typography variant="body1" sx={{ fontSize: "0.95rem", color: "#9ca3af" }}>
+                  No reviews yet
+                </Typography>
+              )}
             </div>
           </div>
 

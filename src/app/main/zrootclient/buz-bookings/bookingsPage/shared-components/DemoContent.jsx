@@ -200,11 +200,12 @@ function DemoContent(props) {
               slug={property?.slug}
               images={property?.listingImages || []}
               title={property?.title}
-              address={property?.address}
+              address={property?.propertyAddress ?? property?.address}
               price={property?.price}
               roomCount={property?.roomCount}
-              rating={property?.rating || 4.5}
-              reviewCount={property?.reviewCount || 9}
+              rating={Number(property?.rating) || 0}
+              reviewCount={Number(property?.numReviews ?? property?.reviewCount) || 0}
+              distanceKm={property?.distanceKm}
               category={property?.category}
               bookingPeriod={property?.bookingPeriod}
             />

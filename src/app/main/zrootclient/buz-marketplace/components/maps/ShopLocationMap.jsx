@@ -4,6 +4,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Typography, Chip, Divider } from "@mui/material";
 import { LocationOnOutlined, Store, Phone, Verified } from "@mui/icons-material";
+import OffPlatformNotice from "../../../shared-contact/OffPlatformNotice";
+import { PLATFORM_ORDER_TEL } from "../../../shared-contact/platformContact";
 
 // Fix for default marker icons in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -78,10 +80,10 @@ function ShopLocationMap({ shopData }) {
       >
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
-            <Store sx={{ color: "white", fontSize: "1.5rem" }} />
+            <Store sx={{ color: "white", fontSize: "2.4rem" }} />
             <Typography
               sx={{
-                fontSize: "1.125rem",
+                fontSize: "1.8rem",
                 fontWeight: 700,
                 color: "white",
                 textShadow: "0 2px 4px rgba(0,0,0,0.4)",
@@ -98,7 +100,7 @@ function ShopLocationMap({ shopData }) {
                 backgroundColor: "rgba(234, 88, 12, 0.95)",
                 color: "white",
                 fontWeight: "bold",
-                fontSize: "0.875rem",
+                fontSize: "1.4rem",
                 backdropFilter: "blur(10px)",
                 maxWidth: "fit-content",
                 "& .MuiChip-icon": {
@@ -115,7 +117,7 @@ function ShopLocationMap({ shopData }) {
                   backgroundColor: "rgba(16, 185, 129, 0.95)",
                   color: "white",
                   fontWeight: "bold",
-                  fontSize: "0.75rem",
+                  fontSize: "1.2rem",
                   backdropFilter: "blur(10px)",
                   "& .MuiChip-icon": {
                     color: "white",
@@ -140,7 +142,7 @@ function ShopLocationMap({ shopData }) {
       >
         <Typography
           sx={{
-            fontSize: "1rem",
+            fontSize: "1.6rem",
             fontWeight: 700,
             color: "#111827",
             marginBottom: "8px",
@@ -150,7 +152,7 @@ function ShopLocationMap({ shopData }) {
         </Typography>
         <Typography
           sx={{
-            fontSize: "0.875rem",
+            fontSize: "1.4rem",
             color: "#6b7280",
             marginBottom: "12px",
             lineHeight: 1.5,
@@ -160,22 +162,22 @@ function ShopLocationMap({ shopData }) {
         </Typography>
         <Divider sx={{ marginBottom: "12px" }} />
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Phone sx={{ fontSize: "1rem", color: "#10b981" }} />
+          <a href={PLATFORM_ORDER_TEL} className="flex items-center gap-2" style={{ textDecoration: "none" }}>
+            <Phone sx={{ fontSize: "1.6rem", color: "#10b981" }} />
             <Typography
               sx={{
-                fontSize: "0.8rem",
+                fontSize: "1.3rem",
                 fontWeight: 600,
                 color: "#10b981",
               }}
             >
               Call Seller
             </Typography>
-          </div>
+          </a>
           <div className="text-right">
             <Typography
               sx={{
-                fontSize: "0.75rem",
+                fontSize: "1.2rem",
                 color: "#6b7280",
               }}
             >
@@ -183,7 +185,7 @@ function ShopLocationMap({ shopData }) {
             </Typography>
             <Typography
               sx={{
-                fontSize: "0.875rem",
+                fontSize: "1.4rem",
                 fontWeight: 700,
                 color: "#f59e0b",
               }}
@@ -192,6 +194,7 @@ function ShopLocationMap({ shopData }) {
             </Typography>
           </div>
         </div>
+        <OffPlatformNotice className="mt-2" />
       </div>
 
       <MapContainer
@@ -224,11 +227,11 @@ function ShopLocationMap({ shopData }) {
           <Popup maxWidth={320} className="shop-popup">
             <div className="flex flex-col gap-3 p-3">
               <div className="flex items-center gap-2">
-                <Store sx={{ color: "#ea580c", fontSize: "1.75rem" }} />
+                <Store sx={{ color: "#ea580c", fontSize: "2.8rem" }} />
                 <Typography
                   sx={{
                     fontWeight: 700,
-                    fontSize: "1.125rem",
+                    fontSize: "1.8rem",
                     color: "#111827",
                   }}
                 >
@@ -238,10 +241,10 @@ function ShopLocationMap({ shopData }) {
 
               {shopLocation.isVerified && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-green-50 rounded-lg">
-                  <Verified sx={{ color: "#10b981", fontSize: "1.25rem" }} />
+                  <Verified sx={{ color: "#10b981", fontSize: "2rem" }} />
                   <Typography
                     sx={{
-                      fontSize: "0.875rem",
+                      fontSize: "1.4rem",
                       color: "#065f46",
                       fontWeight: 600,
                     }}
@@ -253,10 +256,10 @@ function ShopLocationMap({ shopData }) {
 
               <div className="p-3 bg-orange-50 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
-                  <LocationOnOutlined sx={{ color: "#ea580c", fontSize: "1.25rem" }} />
+                  <LocationOnOutlined sx={{ color: "#ea580c", fontSize: "2rem" }} />
                   <Typography
                     sx={{
-                      fontSize: "0.95rem",
+                      fontSize: "1.5rem",
                       color: "#c2410c",
                       fontWeight: 600,
                     }}
@@ -266,7 +269,7 @@ function ShopLocationMap({ shopData }) {
                 </div>
                 <Typography
                   sx={{
-                    fontSize: "0.875rem",
+                    fontSize: "1.4rem",
                     color: "#6b7280",
                     lineHeight: 1.6,
                   }}
@@ -281,10 +284,10 @@ function ShopLocationMap({ shopData }) {
 
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
-                  <Typography sx={{ fontSize: "0.75rem", color: "#6b7280" }}>Rating</Typography>
+                  <Typography sx={{ fontSize: "1.2rem", color: "#6b7280" }}>Rating</Typography>
                   <Typography
                     sx={{
-                      fontSize: "1.25rem",
+                      fontSize: "2rem",
                       fontWeight: 800,
                       color: "#f59e0b",
                     }}
@@ -293,12 +296,12 @@ function ShopLocationMap({ shopData }) {
                   </Typography>
                 </div>
                 <div className="text-right">
-                  <Typography sx={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                  <Typography sx={{ fontSize: "1.2rem", color: "#6b7280" }}>
                     Total Sales
                   </Typography>
                   <Typography
                     sx={{
-                      fontSize: "1.25rem",
+                      fontSize: "2rem",
                       fontWeight: 800,
                       color: "#10b981",
                     }}
@@ -308,22 +311,9 @@ function ShopLocationMap({ shopData }) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors">
-                <Phone sx={{ color: "#3b82f6", fontSize: "1.25rem" }} />
-                <Typography
-                  sx={{
-                    fontSize: "0.95rem",
-                    color: "#1e40af",
-                    fontWeight: 600,
-                  }}
-                >
-                  {shopLocation.phone}
-                </Typography>
-              </div>
-
               <Typography
                 sx={{
-                  fontSize: "0.75rem",
+                  fontSize: "1.2rem",
                   color: "#9ca3af",
                   fontStyle: "italic",
                   textAlign: "center",

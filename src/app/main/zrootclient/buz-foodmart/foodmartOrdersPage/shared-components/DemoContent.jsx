@@ -6,7 +6,7 @@ import FoodOrderCard from "../../components/FoodOrderCard";
 
 function isCancelledOrder(o) {
   const s = o?.status?.toLowerCase();
-  return s === "cancelled" || s === "refunded" || s === "failed";
+  return o?.isCancelled === true || o?.kitchenStage === "DECLINED" || s === "cancelled" || s === "refunded" || s === "failed";
 }
 
 function isUnpaidOrder(o) {
@@ -95,7 +95,7 @@ function LoadingState() {
   );
 }
 
-function DemoContent({ isLoading, isError, userCreatedOrders }) {
+function DemoContent({ isLoading, isError, userCreatedOrders, completedOrders = [] }) {
   const [activeTab, setActiveTab] = useState("active");
 
   const activeOrders    = useMemo(() => userCreatedOrders?.filter((o) => !isCancelledOrder(o)) || [], [userCreatedOrders]);
@@ -106,8 +106,9 @@ function DemoContent({ isLoading, isError, userCreatedOrders }) {
     if (activeTab === "active")    return activeOrders.filter((o) => o?.isPaid);
     if (activeTab === "unpaid")    return unpaidOrders;
     if (activeTab === "cancelled") return cancelledOrders;
+    if (activeTab === "completed") return completedOrders || [];
     return [];
-  }, [activeTab, activeOrders, unpaidOrders, cancelledOrders]);
+  }, [activeTab, activeOrders, unpaidOrders, cancelledOrders, completedOrders]);
 
   if (isLoading) return <LoadingState />;
 
@@ -123,7 +124,7 @@ function DemoContent({ isLoading, isError, userCreatedOrders }) {
     );
   }
 
-  if (!(userCreatedOrders?.length > 0)) {
+  if (!(userCreatedOrders?.length > 0) && !(completedOrders?.length > 0)) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -165,6 +166,7 @@ function DemoContent({ isLoading, isError, userCreatedOrders }) {
   const tabs = [
     { key: "active",    label: "Confirmed",       count: activeOrders.filter((o) => o?.isPaid).length },
     { key: "unpaid",    label: "Pending Payment",  count: unpaidOrders.length },
+    { key: "completed", label: "Completed",        count: completedOrders?.length || 0 },
     { key: "cancelled", label: "Cancelled",        count: cancelledOrders.length },
   ];
 
@@ -336,17 +338,19 @@ function DemoContent({ isLoading, isError, userCreatedOrders }) {
                 className="w-24 h-24 rounded-full flex items-center justify-center mb-6 text-4xl"
                 style={{ background: "linear-gradient(135deg, rgba(249,115,22,0.1) 0%, rgba(234,88,12,0.05) 100%)" }}
               >
-                {activeTab === "cancelled" ? "🚫" : activeTab === "unpaid" ? "⏳" : "🍽️"}
+                {activeTab === "cancelled" ? "🚫" : activeTab === "unpaid" ? "⏳" : activeTab === "completed" ? "✅" : "🍽️"}
               </div>
               <Typography variant="h5" className="font-bold text-gray-800 mb-3 text-center">
                 {activeTab === "active"    && "No Confirmed Orders"}
                 {activeTab === "unpaid"    && "No Pending Payments"}
                 {activeTab === "cancelled" && "No Cancelled Orders"}
+                {activeTab === "completed" && "No Completed Orders Yet"}
               </Typography>
               <Typography variant="body1" className="text-gray-600 text-center max-w-sm leading-relaxed">
                 {activeTab === "active"    && "You don't have any confirmed food orders yet. Browse restaurants and place an order!"}
                 {activeTab === "unpaid"    && "All your food orders are paid — great job!"}
                 {activeTab === "cancelled" && "You have no cancelled food orders."}
+                {activeTab === "completed" && "Orders appear here once they are delivered and settled with the restaurant."}
               </Typography>
               {activeTab === "active" && (
                 <motion.button

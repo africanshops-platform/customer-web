@@ -182,6 +182,11 @@ export const createApiOrder = (FormData) => AuthApi().post('/userorders', FormDa
 
 export const getPlacedOrders = (id) => AuthApi().get(`/user-orders/order-item/${id}/view`); // (Done => Msvs)
 
+/** Delivery code (2026-10-01): a NEW code for this order — the old one stops working. The plaintext is returned once. */
+/** Food order delivery code (2026-10-02): same idea, food-order-service owns it. */
+export const reissueFoodDeliveryCodeApi = (orderId) => AuthApi().put(`/rcs-food-orders/${orderId}/delivery-code/reissue`);
+export const reissueDeliveryCodeApi = (orderId) => AuthApi().put(`/user-orders/${orderId}/delivery-code/reissue`);
+
 export const onSuccessPlacedOrders = (id) => AuthApi().put(`/userorders/${id}`);
 
 export const onENairaPlacedOrders = (id, shopFormData) => AuthApi().put(`/userorders/enairapay/${id}`, shopFormData);
@@ -272,6 +277,15 @@ export const getMarketplaceCheckoutReadiness = () => {
 
 export const getFoodCheckoutReadiness = () => {
 	return AuthApi().get(`checkout-readiness/food`);
+};
+
+/** E7 (2026-10-01) — Engineering Services service-booking invoice payment. */
+export const getEngineeringCheckoutReadiness = () => {
+	return AuthApi().get(`checkout-readiness/engineering`);
+};
+
+export const verifyEngineeringBookingPaymentApi = (formData) => {
+	return AuthApi().post(`paystack-payment/verify-and-pay-engineering-booking`, formData);
 };
 
 /** *****
@@ -371,6 +385,9 @@ export const payAndPlaceFoodOrderApi = (formData) => {
 
 export const getUserFoodInvoicesEnpoint = () => AuthApi().get(`${API_ENDPOINTS.GET_USER_FOOD_ORDER_LIST}`); // (Mcsvs => Done)
 
+/** Completed (sealed) food orders — finished orders live here, never in the active list */
+export const getUserSealedFoodOrdersEndpoint = () => AuthApi().get('/rcs-food-orders/sealed');
+
 export const getUserFoodInvoicesAndItemsByIdEnpoint = (foodOrderId) => {
 	return AuthApi().get(`/rcs-food-orders/${foodOrderId}/view`);
 };
@@ -436,6 +453,10 @@ export const getWishlistItemStatusApi = (productId) => AuthApi().get(`/wishlist/
  * Create a product review (2026-09-27, customer-9) -- purchase-gated
  * server-side; a 403 here means the caller hasn't bought this product.
  */
+/** Food menu reviews: may this customer review the dish, and post the review (order-gated server-side) */
+export const canReviewFoodMenuApi = (menuId) => AuthApi().get(`/food-menu-reviews/${menuId}/can-review`);
+export const createFoodMenuReviewApi = (reviewData) => AuthApi().post('/food-menu-reviews', reviewData);
+
 export const createProductReviewApi = (reviewData) =>
 	AuthApi().post(`${API_ENDPOINTS.CREATE_PRODUCT_REVIEW}`, reviewData);
 
