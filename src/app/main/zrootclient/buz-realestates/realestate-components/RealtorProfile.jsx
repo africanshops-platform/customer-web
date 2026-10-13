@@ -1,5 +1,7 @@
 import { Box, Paper, Avatar, Typography, Chip } from "@mui/material";
-import { Verified, Email, Phone } from "@mui/icons-material";
+import { Verified, Phone } from "@mui/icons-material";
+import { PLATFORM_ORDER_PHONE, PLATFORM_ORDER_TEL } from "../../shared-contact/platformContact";
+import OffPlatformNotice from "../../shared-contact/OffPlatformNotice";
 
 /**
  * RealtorProfile — shows the real listing shop (merchant) fetched via the
@@ -78,22 +80,14 @@ const RealtorProfile = ({ realtor }) => {
             </Typography>
           )}
 
-          {(realtor.shopemail || realtor.shopphone) && (
-            <Box className="mt-4 space-y-2">
-              {realtor.shopemail && (
-                <Box className="flex items-center justify-center gap-2 text-gray-700">
-                  <Email sx={{ fontSize: 18, color: "#ea580c" }} />
-                  <Typography variant="body2">{realtor.shopemail}</Typography>
-                </Box>
-              )}
-              {realtor.shopphone && (
-                <Box className="flex items-center justify-center gap-2 text-gray-700">
-                  <Phone sx={{ fontSize: 18, color: "#ea580c" }} />
-                  <Typography variant="body2">{realtor.shopphone}</Typography>
-                </Box>
-              )}
-            </Box>
-          )}
+          {/* Buyers never see a shop's own phone/email (customer-20): the platform line, with the off-platform warning. */}
+          <Box className="mt-4 space-y-2">
+            <a href={PLATFORM_ORDER_TEL} className="flex items-center justify-center gap-2 text-gray-700">
+              <Phone sx={{ fontSize: 18, color: "#ea580c" }} />
+              <Typography variant="body2">Call AfricanShops {PLATFORM_ORDER_PHONE}</Typography>
+            </a>
+            <OffPlatformNotice className="text-center" />
+          </Box>
         </Box>
       </Paper>
     </Box>
