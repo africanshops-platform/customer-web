@@ -23,6 +23,8 @@ import {
   useCreatePropertyOffer,
   useUploadOfferAttachment,
 } from "app/configs/data/server-calls/auth/userapp/a_estates/useOffersRepo";
+import { PLATFORM_ORDER_PHONE, PLATFORM_ORDER_TEL } from "../../shared-contact/platformContact";
+import OffPlatformNotice from "../../shared-contact/OffPlatformNotice";
 
 const FINANCING_TYPES = ["Cash", "Mortgage", "Installment"];
 
@@ -347,20 +349,15 @@ function PropertyInteractionCard({ propertyData, realtorInfo }) {
           <div className="mt-3 pt-3 border-t">
             <Typography className="text-sm font-semibold text-gray-900 mb-2">Need Help?</Typography>
             <div className="space-y-1.5">
+              {/* The shop's own phone/email are never shown to buyers (customer-20), and no placeholder contact is invented. */}
               <a
-                href={`tel:${realtorInfo?.phone || "+234-XXX-XXX-XXXX"}`}
+                href={PLATFORM_ORDER_TEL}
                 className="flex items-center gap-2 text-gray-700 hover:text-orange-600 transition-colors"
               >
                 <i className="fas fa-phone text-orange-500 text-sm" />
-                <span className="text-sm">{realtorInfo?.phone || "+234-XXX-XXX-XXXX"}</span>
+                <span className="text-sm">Call AfricanShops {PLATFORM_ORDER_PHONE}</span>
               </a>
-              <a
-                href={`mailto:${realtorInfo?.email || "info@realestate.com"}`}
-                className="flex items-center gap-2 text-gray-700 hover:text-orange-600 transition-colors"
-              >
-                <i className="fas fa-envelope text-orange-500 text-sm" />
-                <span className="text-sm">{realtorInfo?.email || "info@realestate.com"}</span>
-              </a>
+              <OffPlatformNotice />
             </div>
           </div>
         </div>
