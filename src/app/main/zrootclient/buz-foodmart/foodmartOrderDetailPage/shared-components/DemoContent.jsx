@@ -13,6 +13,7 @@ import NavLinkAdapter from "@fuse/core/NavLinkAdapter";
 import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
 import ClienttErrorPage from "src/app/main/zrootclient/components/ClienttErrorPage";
 import FoodOrderTracker from "../../components/FoodOrderTracker";
+import DeliveryPartnerCard from "../../components/DeliveryPartnerCard";
 import { DeliveryCodePanel } from "../../../buz-marketplace/components/DeliveryCodeCard";
 import { useReissueFoodDeliveryCode } from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
 import RaiseDisputeDialog from "src/app/main/zrootclient/buz-disputes/RaiseDisputeDialog";
@@ -599,6 +600,9 @@ function DemoContent({ isLoading, isError, orderData, orderId }) {
             who="the restaurant's rider"
           />
         )}
+
+        {/* Who is delivering, and where they are (merchant-32 L4) */}
+        <DeliveryPartnerCard order={orderData} />
 
         {/* Kitchen-aware tracker for orders that carry a kitchen stage */}
         {orderData?.isPaid && orderData?.kitchenStage && <FoodOrderTracker order={orderData} />}
