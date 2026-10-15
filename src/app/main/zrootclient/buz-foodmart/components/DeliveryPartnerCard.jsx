@@ -1,5 +1,8 @@
 import { motion } from 'framer-motion';
+import { useFoodDeliveryLive } from 'app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo';
 import { deliveryStatus } from './deliveryStatus';
+import { riderEtaLabel, riderTelUrl, toPoint } from './deliveryLive';
+import RiderMap from './RiderMap';
 
 const PALETTE = {
 	ARRIVED: { bg: 'linear-gradient(135deg,#dcfce7,#bbf7d0)', border: '#4ade80', accent: '#15803d' },
@@ -15,8 +18,17 @@ const PALETTE = {
  */
 export default function DeliveryPartnerCard({ order }) {
 	const status = deliveryStatus(order);
+	const watching = status && ['ASSIGNED', 'ON_THE_WAY', 'ARRIVED'].includes(status.state);
+	// Phone and rider position come from the live view (never cached); it only returns data while the delivery is active.
+	const liveRes = useFoodDeliveryLive(order?.id || order?._id, watching);
 	if (!status) return null;
 	const c = PALETTE[status.state];
+	const live = liveRes.data?.data?.live;
+	const tel = riderTelUrl(live?.partnerPhone);
+	const rider = toPoint(live?.rider?.lat, live?.rider?.lng);
+	const destination = toPoint(live?.destination?.lat, live?.destination?.lng);
+	const eta = riderEtaLabel(rider, destination);
+	const showMap = Boolean(rider);
 
 	return (
 		<motion.section
@@ -25,9 +37,10 @@ export default function DeliveryPartnerCard({ order }) {
 			aria-live="polite"
 			aria-label="Delivery partner"
 			data-testid={`delivery-${status.state.toLowerCase()}`}
-			className="mb-6 flex items-center gap-4 rounded-2xl px-6 py-5 shadow-md"
+			className="mb-6 overflow-hidden rounded-2xl shadow-md"
 			style={{ background: c.bg, border: `${status.urgent ? 2 : 1}px solid ${c.border}` }}
 		>
+			<div className="flex items-center gap-4 px-6 py-5">
 			<motion.span
 				className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-3xl shadow"
 				animate={status.urgent ? { scale: [1, 1.12, 1] } : {}}
@@ -35,12 +48,33 @@ export default function DeliveryPartnerCard({ order }) {
 			>
 				{status.icon}
 			</motion.span>
-			<div>
+			<div className="flex-1">
 				<h2 className="text-lg font-extrabold" style={{ color: c.accent }}>
 					{status.title}
 				</h2>
 				<p className="mt-1 text-base text-gray-700">{status.text}</p>
+				{eta && showMap && status.state !== 'ARRIVED' && (
+					<p className="mt-1 text-base font-bold" style={{ color: c.accent }} data-testid="rider-eta">
+						{eta}
+					</p>
+				)}
 			</div>
+			{tel && (
+				<a
+					href={tel}
+					data-testid="call-rider"
+					className="shrink-0 rounded-full px-5 py-3 text-base font-bold text-white shadow"
+					style={{ background: 'linear-gradient(135deg,#f97316,#c2410c)' }}
+				>
+					📞 Call rider
+				</a>
+			)}
+			</div>
+			{showMap && (
+				<div className="px-6 pb-5">
+					<RiderMap destination={destination} rider={rider} />
+				</div>
+			)}
 		</motion.section>
 	);
 }
