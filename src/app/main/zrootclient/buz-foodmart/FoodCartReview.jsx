@@ -67,7 +67,8 @@ const schema = z.object({
   orderCountryDestination: z.string().min(1, "You must select a country for this order"),
   orderStateProvinceDestination: z.string().min(1, "You must select a state for this order"),
   orderLgaDestination: z.string().min(1, "You must select an L.G.A / County for this order"),
-  district: z.string().min(1, "You must enter a district for this order"),
+  // Optional: the exact map pin prices the delivery; the landmark only helps the rider find the door.
+  district: z.string().optional(),
 });
 
 const payments = [
@@ -612,14 +613,13 @@ function FoodCartReview() {
                         </div>
 
                         <div>
-                          <Typography className="mb-2 text-sm font-semibold text-gray-700">District / Nearest Landmark</Typography>
+                          <Typography className="mb-2 text-sm font-semibold text-gray-700">Nearest landmark (optional)</Typography>
                           <Controller
                             name="district"
                             control={control}
                             render={({ field }) => (
                               <TextField
                                 {...field}
-                                required
                                 variant="outlined"
                                 fullWidth
                                 placeholder="e.g. Garki Area 11, near GTBank"

@@ -186,7 +186,6 @@ function FoodCartSummaryAndPay({
     !orderCountryDestination ||
     !orderStateProvinceDestination ||
     !orderLgaDestination ||
-    !district ||
     deliveryLoading ||
     !!deliveryError ||
     paymentFailedPermanently ||
