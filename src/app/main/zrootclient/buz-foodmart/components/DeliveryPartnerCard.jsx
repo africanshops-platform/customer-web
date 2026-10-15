@@ -40,9 +40,9 @@ export default function DeliveryPartnerCard({ order }) {
 			className="mb-6 overflow-hidden rounded-2xl shadow-md"
 			style={{ background: c.bg, border: `${status.urgent ? 2 : 1}px solid ${c.border}` }}
 		>
-			<div className="flex items-center gap-4 px-6 py-5">
+			<div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '20px 24px' }}>
 			<motion.span
-				className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-3xl shadow"
+				style={{ width: 56, height: 56, minWidth: 56, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}
 				animate={status.urgent ? { scale: [1, 1.12, 1] } : {}}
 				transition={status.urgent ? { repeat: Infinity, duration: 1.6 } : {}}
 			>
@@ -63,15 +63,14 @@ export default function DeliveryPartnerCard({ order }) {
 				<a
 					href={tel}
 					data-testid="call-rider"
-					className="shrink-0 rounded-full px-5 py-3 text-base font-bold text-white shadow"
-					style={{ background: 'linear-gradient(135deg,#f97316,#c2410c)' }}
+					style={{ background: 'linear-gradient(135deg,#f97316,#c2410c)', color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 16, padding: '12px 20px', borderRadius: 999, whiteSpace: 'nowrap', flexShrink: 0, boxShadow: '0 2px 8px rgba(194,65,12,0.35)' }}
 				>
 					📞 Call rider
 				</a>
 			)}
 			</div>
 			{showMap && (
-				<div className="px-6 pb-5">
+				<div style={{ padding: '0 24px 20px' }}>
 					<RiderMap destination={destination} rider={rider} />
 				</div>
 			)}
