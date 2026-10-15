@@ -9,6 +9,7 @@ const PALETTE = {
 	ON_THE_WAY: { bg: 'linear-gradient(135deg,#fff7ed,#ffedd5)', border: '#fdba74', accent: '#c2410c' },
 	ASSIGNED: { bg: 'linear-gradient(135deg,#eff6ff,#dbeafe)', border: '#93c5fd', accent: '#1d4ed8' },
 	SELF: { bg: 'linear-gradient(135deg,#f9fafb,#f3f4f6)', border: '#e5e7eb', accent: '#374151' },
+	FAILED: { bg: 'linear-gradient(135deg,#fef2f2,#fee2e2)', border: '#fca5a5', accent: '#b91c1c' },
 	FINDING: { bg: 'linear-gradient(135deg,#fffbeb,#fef3c7)', border: '#fcd34d', accent: '#92400e' }
 };
 

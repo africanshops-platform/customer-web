@@ -58,4 +58,11 @@ describe('deliveryStatus', () => {
 		];
 		expect(states.every((s) => !s.urgent)).toBe(true);
 	});
+
+	it('tells the customer when the delivery failed at the door, even though the order is closed', () => {
+		const s = deliveryStatus({ ...base, isDelivered: true, deliveryFailedAt: '2026-10-15T10:00:00Z' });
+		expect(s).toMatchObject({ state: 'FAILED' });
+		expect(s.text).toContain('not refunded');
+		expect(deliveryStatus({ ...base, isDelivered: true, isCancelled: true, deliveryFailedAt: 'x' })).toBeNull();
+	});
 });

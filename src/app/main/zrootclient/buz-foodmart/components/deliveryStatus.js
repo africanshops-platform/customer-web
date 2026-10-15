@@ -5,6 +5,16 @@
  * Returns null when there is nothing to say (not a delivery order, not paid, finished, or still being cooked).
  */
 export function deliveryStatus(order) {
+	// merchant-32 L5b: the partner waited at the door and could not hand the order over. The order is closed (delivered flag set
+	// for the restaurant's settlement), so this is the one finished state the customer is still told about.
+	if (order?.deliveryFailedAt && order.isPaid && !order.isCancelled && !order.isWalkIn) {
+		return {
+			state: 'FAILED',
+			icon: '⚠️',
+			title: 'We could not deliver your order',
+			text: 'Your delivery partner waited at your door and could not reach you, so the order was closed. The delivery fee is not refunded. Contact support if this was a mistake.'
+		};
+	}
 	if (!order || !order.isPaid || order.isCancelled || order.isDelivered || order.isWalkIn) return null;
 	if ((order.orderType ?? 'DELIVERY') !== 'DELIVERY') return null;
 
