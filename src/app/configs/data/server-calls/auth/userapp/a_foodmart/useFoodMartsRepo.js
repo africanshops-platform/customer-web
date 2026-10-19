@@ -10,6 +10,7 @@ import {
 	getUserFoodInvoicesEnpoint,
 	getUserSealedFoodOrdersEndpoint,
 	payAndPlaceFoodOrderApi,
+	getFoodDeliveryLiveApi,
 	reissueFoodDeliveryCodeApi,
 	updateUserFoodCartApi
 } from 'app/configs/data/client/RepositoryAuthClient';
@@ -209,6 +210,15 @@ export function useUpdateFoodCartItemQty() {
  * ORDER FOR FOOD MANAGEMENT STARTS HERE
  * #################################################################
  */
+
+/** ***The customer's live delivery view of their own order (partner, phone, rider position): polled while it is active. */
+export function useFoodDeliveryLive(orderId, enabled) {
+	return useQuery(['__food_delivery_live', orderId], () => getFoodDeliveryLiveApi(orderId), {
+		enabled: Boolean(orderId) && Boolean(enabled),
+		refetchInterval: 10000,
+		staleTime: 5000
+	});
+}
 
 /** ***Ask for a NEW food delivery code for my order (the old one stops working). The plaintext comes back once. */
 export function useReissueFoodDeliveryCode() {

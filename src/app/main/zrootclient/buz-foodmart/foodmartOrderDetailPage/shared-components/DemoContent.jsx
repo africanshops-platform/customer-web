@@ -13,8 +13,9 @@ import NavLinkAdapter from "@fuse/core/NavLinkAdapter";
 import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
 import ClienttErrorPage from "src/app/main/zrootclient/components/ClienttErrorPage";
 import FoodOrderTracker from "../../components/FoodOrderTracker";
+import DeliveryPartnerCard from "../../components/DeliveryPartnerCard";
 import { DeliveryCodePanel } from "../../../buz-marketplace/components/DeliveryCodeCard";
-import { useReissueFoodDeliveryCode } from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
+import { useReissueFoodDeliveryCode, useGetMartMenu } from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
 import RaiseDisputeDialog from "src/app/main/zrootclient/buz-disputes/RaiseDisputeDialog";
 
 const FOOD_STEPS = [
@@ -360,6 +361,8 @@ function ChatWidget({ restaurantName, orderRef }) {
 
 /* ─── Main Content ─── */
 function DemoContent({ isLoading, isError, orderData, orderId }) {
+  // The order only carries the restaurant's id, so its name is looked up (cached) instead of falling back to the word "Restaurant".
+  const { data: martRes } = useGetMartMenu(typeof orderData?.foodMart === "string" ? orderData.foodMart : "");
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
   const [selectedItemId, setSelectedItemId]     = useState(null);
@@ -520,7 +523,7 @@ function DemoContent({ isLoading, isError, orderData, orderId }) {
 
   const statusBadge     = getStatusBadge(orderData);
   const activeStep      = resolveActiveStep(orderData);
-  const restaurantName  = orderData?.foodMart?.title || orderData?.rcsVendor?.title || "Restaurant";
+  const restaurantName  = orderData?.foodMart?.title || martRes?.data?.foodMart?.title || orderData?.rcsVendor?.title || "Restaurant";
   const reference       = orderData?.paymentResult?.reference || orderData?.id?.slice(0, 12);
   const totalPrice      = orderData?.grandTotal ?? orderData?.totalPrice ?? 0;
   const isCancelled     = ["cancelled", "refunded"].includes(orderData?.status?.toLowerCase());
@@ -599,6 +602,9 @@ function DemoContent({ isLoading, isError, orderData, orderId }) {
             who="the restaurant's rider"
           />
         )}
+
+        {/* Who is delivering, and where they are (merchant-32 L4) */}
+        <DeliveryPartnerCard order={orderData} />
 
         {/* Kitchen-aware tracker for orders that carry a kitchen stage */}
         {orderData?.isPaid && orderData?.kitchenStage && <FoodOrderTracker order={orderData} />}

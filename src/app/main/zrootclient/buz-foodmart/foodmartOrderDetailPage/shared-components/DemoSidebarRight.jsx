@@ -1,6 +1,7 @@
 import { Suspense, lazy } from "react";
 import { Typography } from "@mui/material";
 import { DeliveryDining, LocationOn, Store } from "@mui/icons-material";
+import { useGetMartMenu } from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
 
 const DeliveryRouteMap = lazy(() =>
   import("../../components/maps/DeliveryRouteMap")
@@ -24,8 +25,13 @@ function MapLoadingPlaceholder() {
 }
 
 function DemoSidebarRight({ orderData }) {
-  const restaurant  = orderData?.foodMart;
+  // The order only carries the restaurant's id, so the record (with its pin) is looked up, cached.
+  const { data: martRes } = useGetMartMenu(typeof orderData?.foodMart === "string" ? orderData.foodMart : "");
+  const restaurant  = typeof orderData?.foodMart === "object" && orderData?.foodMart ? orderData.foodMart : martRes?.data?.foodMart;
   const hasRestaurant = !!restaurant;
+  const destination = orderData?.destinationLat != null && orderData?.destinationLng != null
+    ? { lat: Number(orderData.destinationLat), lng: Number(orderData.destinationLng) }
+    : null;
 
   return (
     <div
@@ -55,7 +61,7 @@ function DemoSidebarRight({ orderData }) {
       <div className="mx-4 rounded-2xl overflow-hidden shadow-xl flex-1 min-h-0">
         <Suspense fallback={<MapLoadingPlaceholder />}>
           {hasRestaurant ? (
-            <DeliveryRouteMap restaurant={restaurant} />
+            <DeliveryRouteMap restaurant={restaurant} destination={destination} />
           ) : (
             <div
               className="w-full h-full flex flex-col items-center justify-center gap-3 p-6 text-center rounded-2xl"

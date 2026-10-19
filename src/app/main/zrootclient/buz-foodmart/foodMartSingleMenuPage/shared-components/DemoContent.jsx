@@ -366,7 +366,7 @@ function DemoContent({ isLoading, isError, menuData, onAddToFoodCart, addFoodCar
                   {[
                     { Icon: Phone, text: `Call ${PLATFORM_ORDER_PHONE} to place your order directly`, color: "#10b981" },
                     { Icon: WhatsApp, text: "Need extra money? Loan up to ₦500,000 on the Africanshops Wallet", color: "#22c55e" },
-                    { Icon: LocalShipping, text: "Enjoy cheaper shipping when you select a Pickup Station at checkout", color: "#3b82f6" },
+                    { Icon: LocalShipping, text: "Delivery is priced by the distance from the restaurant to your door", color: "#3b82f6" },
                   ].map(({ Icon, text, color }, index) => (
                     <motion.li
                       key={index}
