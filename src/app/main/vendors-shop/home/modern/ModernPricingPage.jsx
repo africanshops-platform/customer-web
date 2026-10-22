@@ -236,7 +236,7 @@ function ModernPricingPage() {
             />
             <ModernPricingFeatureItem
               icon="heroicons-outline:tag"
-              title="24/7 Support and Information Sharing"
+              title="Support and Information Sharing"
               subtitle="Get in touch with our support desk anywhere along the line, wherever you feel stocked."
             />
             {/* <ModernPricingFeatureItem

@@ -113,7 +113,6 @@ function NavbarStyle1Content(props) {
         <div className="flex-0 flex items-center justify-center py-48 opacity-20">
           <img
             className="w-full max-w-64"
-            // src="assets/images/logo/logo.svg"
             // src="assets/images/afslogo/afLogo.svg"
             src="assets/images/afslogo/afslogo.png"
             alt="footer logo"

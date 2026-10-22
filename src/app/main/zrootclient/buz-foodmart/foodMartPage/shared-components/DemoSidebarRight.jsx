@@ -3,8 +3,9 @@ import FoodMartMapLoadingPlaceholder from "./FoodMartMapLoadingPlaceholder";
 import { Typography } from "@mui/material";
 import { MapOutlined } from "@mui/icons-material";
 
-function DemoSidebarRight({ listingsData }) {
-  const isLoading = !listingsData || listingsData.length === 0;
+function DemoSidebarRight({ listingsData, near, radiusKm, userPoint }) {
+  // With near-me on, "no results" is a real answer (the map still shows the search point and radius), not a load state.
+  const isLoading = !listingsData || (listingsData.length === 0 && !near);
 
   if (isLoading) {
     return <FoodMartMapLoadingPlaceholder />;
@@ -33,7 +34,7 @@ function DemoSidebarRight({ listingsData }) {
 
       {/* Map Container */}
       <div className="flex-1 rounded-2xl overflow-hidden shadow-2xl">
-        <ImprovedFoodMartMap items={listingsData} />
+        <ImprovedFoodMartMap items={listingsData} near={near} radiusKm={radiusKm} userPoint={userPoint} />
       </div>
 
       {/* Info Footer */}

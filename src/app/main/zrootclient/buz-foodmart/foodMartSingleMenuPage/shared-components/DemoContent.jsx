@@ -1,5 +1,7 @@
+import FulfillmentBadge from "../../components/FulfillmentBadge";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { useGetFoodMenuReviews } from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
 import { Button, Typography, Chip, Rating, IconButton, Divider } from "@mui/material";
 import {
   LocalOffer,
@@ -19,6 +21,8 @@ import ClienttErrorPage from "src/app/main/zrootclient/components/ClienttErrorPa
 import AddToFoodCartButton from "../../components/AddToFoodCartButton";
 import FoodMartDetailsWithReviews from "./FoodMartDetailsWithReviews";
 import FoodMartImageGalleryView from "./FoodMartImageGalleryView";
+import OffPlatformNotice from "../../../shared-contact/OffPlatformNotice";
+import { PLATFORM_ORDER_PHONE, PLATFORM_ORDER_TEL } from "../../../shared-contact/platformContact";
 
 const PLACEHOLDER_IMG = "https://placehold.co/500x500/fff7ed/ea580c?text=No+Image";
 
@@ -27,6 +31,9 @@ const PLACEHOLDER_IMG = "https://placehold.co/500x500/fff7ed/ea580c?text=No+Imag
  * Modelled after buz-marketplace/shops/singleProductPage/DemoContentSingleProduct.jsx
  */
 function DemoContent({ isLoading, isError, menuData, onAddToFoodCart, addFoodCartLoading, foodCart }) {
+  const { data: reviewsRes } = useGetFoodMenuReviews(menuData?.id);
+  const reviewCount = reviewsRes?.data?.count ?? 0;
+  const averageRating = reviewsRes?.data?.averageRating ?? 0;
   const [select, setSelect] = useState(0);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -233,17 +240,17 @@ function DemoContent({ isLoading, isError, menuData, onAddToFoodCart, addFoodCar
               {/* Rating */}
               <div className="flex items-center gap-3 mb-6 p-4 bg-orange-50 rounded-xl">
                 <Rating
-                  value={4.5}
-                  precision={0.5}
+                  value={averageRating}
+                  precision={0.1}
                   size="large"
                   readOnly
                   sx={{ "& .MuiRating-iconFilled": { color: "#f59e0b" } }}
                 />
                 <Typography variant="body1" className="text-gray-700 font-medium">
-                  4.5 out of 5
+                  {reviewCount ? `${averageRating.toFixed(1)} out of 5` : "No ratings yet"}
                 </Typography>
                 <Typography variant="body2" className="text-gray-500">
-                  (24 reviews)
+                  ({reviewCount} review{reviewCount === 1 ? "" : "s"})
                 </Typography>
               </div>
 
@@ -265,6 +272,10 @@ function DemoContent({ isLoading, isError, menuData, onAddToFoodCart, addFoodCar
                   <Typography variant="h6" className="text-gray-600 font-medium">
                     per {menuData?.unitPerQuantity || "serving"}
                   </Typography>
+                </div>
+
+                <div className="mt-3">
+                  <FulfillmentBadge item={menuData} withDetail large />
                 </div>
 
                 {hasDiscount && (
@@ -329,6 +340,7 @@ function DemoContent({ isLoading, isError, menuData, onAddToFoodCart, addFoodCar
                 <Button
                   variant="outlined"
                   startIcon={<Phone />}
+                  href={PLATFORM_ORDER_TEL}
                   fullWidth
                   sx={{
                     borderColor: "#10b981",
@@ -340,6 +352,7 @@ function DemoContent({ isLoading, isError, menuData, onAddToFoodCart, addFoodCar
                   Call Seller
                 </Button>
               </div>
+              <OffPlatformNotice className="mt-2" />
 
               {/* Promotions */}
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-200">
@@ -351,9 +364,9 @@ function DemoContent({ isLoading, isError, menuData, onAddToFoodCart, addFoodCar
                 </div>
                 <ul className="space-y-3">
                   {[
-                    { Icon: Phone, text: "Call 07087200297 to place your order directly", color: "#10b981" },
+                    { Icon: Phone, text: `Call ${PLATFORM_ORDER_PHONE} to place your order directly`, color: "#10b981" },
                     { Icon: WhatsApp, text: "Need extra money? Loan up to ₦500,000 on the Africanshops Wallet", color: "#22c55e" },
-                    { Icon: LocalShipping, text: "Enjoy cheaper shipping when you select a Pickup Station at checkout", color: "#3b82f6" },
+                    { Icon: LocalShipping, text: "Delivery is priced by the distance from the restaurant to your door", color: "#3b82f6" },
                   ].map(({ Icon, text, color }, index) => (
                     <motion.li
                       key={index}
@@ -393,8 +406,8 @@ function DemoContent({ isLoading, isError, menuData, onAddToFoodCart, addFoodCar
           description: menuData?.description,
           price: menuData?.price,
           listprice: menuData?.listprice,
-          rating: 4.5,
-          reviewCount: 24,
+          rating: averageRating,
+          reviewCount,
         }}
         onAddToCart={onAddToFoodCart}
       />

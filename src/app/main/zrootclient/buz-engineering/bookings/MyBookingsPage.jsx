@@ -65,7 +65,14 @@ function BookingCard({ booking, shop, machine, onClick }) {
           </Typography>
           <p className="text-sm text-gray-500 mt-0.5">{machine?.nickname || "Unnamed machine"}</p>
         </div>
-        <Chip label={meta.label} size="small" sx={{ backgroundColor: meta.bg, color: meta.fg, fontWeight: 700, flexShrink: 0 }} />
+        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+          <Chip label={meta.label} size="small" sx={{ backgroundColor: meta.bg, color: meta.fg, fontWeight: 700 }} />
+          {/* E7 (2026-10-01) — a CONFIRMED booking with a logged-but-unpaid
+           * quote needs the customer's attention before the shop can start. */}
+          {booking.status === "CONFIRMED" && !booking.isPaid && (
+            <Chip label="Action needed" size="small" sx={{ backgroundColor: "#fef2f2", color: "#dc2626", fontWeight: 700, fontSize: "0.65rem" }} />
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">

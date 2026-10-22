@@ -4,6 +4,9 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import NavLinkAdapter from "@fuse/core/NavLinkAdapter";
 import { Typography, Chip } from "@mui/material";
+import { groupByLocation } from "src/app/main/zrootclient/shared-near/nearby";
+import { NearbyOverlays, StackMarkers, labelIcon } from "src/app/main/zrootclient/shared-near/NearbyMapLayers";
+import { themeFor } from "../../visitFoodMartPage/venueThemes";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -12,13 +15,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
-const restaurantMarkerIcon = new L.Icon({
-  iconUrl:
-    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCAzMiA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE2IDQ4QzE2IDQ4IDMyIDI5LjMzMzMgMzIgMTZDMzIgNy4xNjM0NCAyNC44MzY2IDAgMTYgMEM3LjE2MzQ0IDAgMCA3LjE2MzQ0IDAgMTZDMCAyOS4zMzMzIDE2IDQ4IDE2IDQ4WiIgZmlsbD0iI0VBNTgwQyIvPgo8Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSI4IiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K",
-  iconSize: [32, 48],
-  iconAnchor: [16, 48],
-  popupAnchor: [0, -48],
-});
 
 function MapBounds({ positions }) {
   const map = useMap();
@@ -42,12 +38,15 @@ function formatBusinessHours(openPeriod, closePeriod) {
   }
 }
 
-function ImprovedFoodMartMap({ items }) {
+function ImprovedFoodMartMap({ items, near = null, radiusKm = null, userPoint = null }) {
   const [selectedMart, setSelectedMart] = useState(null);
 
   const { center, positions } = useMemo(() => {
     if (!items || items.length === 0) {
-      return { center: [9.0765, 7.3986], positions: [] };
+      // With near-me on, centre on the search point instead of the default
+      return near?.point
+        ? { center: [near.point.lat, near.point.lng], positions: [[near.point.lat, near.point.lng]] }
+        : { center: [9.0765, 7.3986], positions: [] };
     }
     const validItems = items.filter(
       (item) =>
@@ -60,10 +59,17 @@ function ImprovedFoodMartMap({ items }) {
       parseFloat(item.latitude),
       parseFloat(item.longitude),
     ]);
+    // Always frame the search point together with the results, so a venue a few km away is never off-screen.
+    if (near?.point) positions.push([near.point.lat, near.point.lng]);
     const avgLat = positions.reduce((sum, pos) => sum + pos[0], 0) / positions.length;
     const avgLng = positions.reduce((sum, pos) => sum + pos[1], 0) / positions.length;
     return { center: [avgLat, avgLng], positions };
-  }, [items]);
+  }, [items, near]);
+
+  // Venues at one spot are merged into a single count marker; lone venues keep their own marker and popup.
+  const groups = useMemo(() => groupByLocation(items), [items]);
+  const singles = groups.filter((g) => g.items.length === 1).map((g) => g.items[0]);
+  const stacks = groups.filter((g) => g.items.length > 1);
 
   const visibleCount = items?.filter(
     (item) =>
@@ -114,19 +120,19 @@ function ImprovedFoodMartMap({ items }) {
 
         <MapBounds positions={positions} />
 
-        {items
-          ?.filter(
-            (item) =>
-              item?.latitude &&
-              item?.longitude &&
-              !isNaN(item.latitude) &&
-              !isNaN(item.longitude),
-          )
-          .map((item) => (
+        {/* Near-me: radius circle + search-point dot; several venues at one spot become one count marker */}
+        <NearbyOverlays near={near} radiusKm={radiusKm} userPoint={userPoint} />
+        <StackMarkers
+          stacks={stacks}
+          linkFor={(it) => `/foodmarts/${it?.slug}/visit-mart/${it?.slug}`}
+          priceText={(it) => themeFor(it?.operationMode).label}
+        />
+
+        {singles.map((item) => (
             <Marker
               key={item?._id || item?.id}
               position={[parseFloat(item.latitude), parseFloat(item.longitude)]}
-              icon={restaurantMarkerIcon}
+              icon={labelIcon(themeFor(item?.operationMode).icon)}
               eventHandlers={{
                 click: () => setSelectedMart(item?._id || item?.id),
               }}
@@ -200,13 +206,6 @@ function ImprovedFoodMartMap({ items }) {
                     {item?.address && (
                       <Typography sx={{ fontSize: "0.95rem", color: "#6b7280", lineHeight: 1.5 }}>
                         📍 {item.address}
-                      </Typography>
-                    )}
-
-                    {/* Phone */}
-                    {item?.phoneNumber && (
-                      <Typography sx={{ fontSize: "0.95rem", color: "#6b7280" }}>
-                        📞 {item.phoneNumber}
                       </Typography>
                     )}
 

@@ -3,7 +3,9 @@ import {
 	getMyServiceBookingsApi,
 	getServiceBookingByIdApi,
 	getRepairJobForBookingApi,
-	cancelServiceBookingApi
+	cancelServiceBookingApi,
+	verifyEngineeringBookingPaymentApi,
+	getEngineeringCheckoutReadiness
 } from 'app/configs/data/client/RepositoryAuthClient';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { toast } from 'react-toastify';
@@ -78,4 +80,35 @@ export function useCancelServiceBooking() {
 			onError: (error) => reportEngineeringApiError(error, 'Failed to cancel booking')
 		}
 	);
+}
+
+/**
+ * E7 (2026-10-01) — pay the quoted repair invoice once a shop has logged a
+ * RepairJob against a CONFIRMED booking. Mirrors useVerifyPaystackPaymentMutation
+ * (hotel bookings) exactly, just invalidating this vertical's own query keys.
+ */
+export function useVerifyEngineeringBookingPayment() {
+	const queryClient = useQueryClient();
+
+	return useMutation((formData) => verifyEngineeringBookingPaymentApi(formData), {
+		onSuccess: (_response, variables) => {
+			queryClient.invalidateQueries(['__myBooking', variables.bookingId]);
+			queryClient.invalidateQueries('__myBookings');
+			toast.success('Payment confirmed — the shop can now start work.');
+		},
+		onError: (error) => reportEngineeringApiError(error, 'Payment verification failed')
+	});
+}
+
+/** Pre-flight check — call right before enabling "Pay Invoice". Same
+ * cache/poll shape as useBookingsCheckoutReadiness. */
+export function useEngineeringCheckoutReadiness(enabled = true) {
+	return useQuery(['__checkoutReadiness', 'engineering'], () => getEngineeringCheckoutReadiness(), {
+		refetchInterval: 15000,
+		refetchOnWindowFocus: true,
+		retry: 1,
+		staleTime: 5000,
+		enabled,
+		select: (res) => res?.data
+	});
 }

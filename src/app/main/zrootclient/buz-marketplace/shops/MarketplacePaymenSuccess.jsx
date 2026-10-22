@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Button } from "@mui/material";
 import FuseLoading from "@fuse/core/FuseLoading";
 import NavLinkAdapter from "@fuse/core/NavLinkAdapter";
-import { useParams } from "react-router";
+import { useLocation, useParams } from "react-router";
 import { selectUser } from "src/app/auth/user/store/userSlice";
 import { useAppSelector } from "app/store/hooks";
 import { formatDateUtil } from "src/app/main/vendors-shop/PosUtils";
@@ -17,6 +17,8 @@ function MarketplacePaymenSuccess() {
 
   const routeParams = useParams();
   const { orderId } = routeParams;
+  // Shown ONCE: handed over by checkout in route state (never in the URL, never stored).
+  const deliveryCode = useLocation().state?.deliveryCode ?? null;
 
   // TODO: Replace with actual API call to fetch order details
   // For now, using mock data structure
@@ -85,9 +87,10 @@ function MarketplacePaymenSuccess() {
           userName={user?.name}
           orderId={successPaidOrder?.data?.order?.id}
           orderDate={formatDateUtil(successPaidOrder?.data?.order?.createdAt)}
-          totalAmount={successPaidOrder?.data?.order?.totalAmount}
-          itemCount={successPaidOrder?.data?.order?.itemCount}
+          totalAmount={successPaidOrder?.data?.order?.totalPrice}
+          itemCount={successPaidOrder?.data?.order?.orderItems?.length}
           userEmail={user?.email}
+          deliveryCode={deliveryCode}
         />
       ) : (
         <motion.div

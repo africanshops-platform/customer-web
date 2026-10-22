@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import { Button } from "@mui/material";
 import FuseLoading from "@fuse/core/FuseLoading";
 import NavLinkAdapter from "@fuse/core/NavLinkAdapter";
-import { useParams } from "react-router";
+import { useLocation, useParams } from "react-router";
+import { DeliveryCodeSuccessCard } from "../buz-marketplace/components/DeliveryCodeCard";
 import { selectUser } from "src/app/auth/user/store/userSlice";
 import { useAppSelector } from "app/store/hooks";
 import { formatCurrency, formatDateUtil } from "src/app/main/vendors-shop/PosUtils";
@@ -181,7 +182,7 @@ function TableReservationOffer({ orderId }) {
 /**
  * Success state — full-screen celebration with food order details
  */
-function FoodOrderSuccess({ userName, orderId, orderDate, totalAmount, itemCount, userEmail, foodMartName }) {
+function FoodOrderSuccess({ userName, orderId, orderDate, totalAmount, itemCount, userEmail, foodMartName, deliveryCode, isDelivery }) {
   return (
     <div className="w-full flex items-center justify-center">
       <motion.div
@@ -319,6 +320,14 @@ function FoodOrderSuccess({ userName, orderId, orderDate, totalAmount, itemCount
                     </p>
                   )}
                 </motion.div>
+              )}
+
+              {isDelivery && (
+                <DeliveryCodeSuccessCard
+                  code={deliveryCode}
+                  orderViewPath={`/foodmarts/user/food-orders/${orderId}/view`}
+                  who="the restaurant's rider"
+                />
               )}
 
               {orderId && <TableReservationOffer orderId={orderId} />}
@@ -658,6 +667,8 @@ function FoodOrderFailed({ userName }) {
 function FoodmartOrderPaymenSucces() {
   const user = useAppSelector(selectUser);
   const { orderId } = useParams();
+  // Passed once from checkout; a refresh loses it on purpose (only a hash is stored) — the order page can issue a new one.
+  const deliveryCode = useLocation().state?.deliveryCode ?? null;
 
   const { data: orderData, isLoading, isError } = useGetAuthUserFoodOrdersAndItems(orderId);
   // The backend returns the order under `rcs_order` (see
@@ -710,6 +721,8 @@ function FoodmartOrderPaymenSucces() {
           itemCount={foodOrder?.foodOrderItems?.length ?? null}
           userEmail={user?.email}
           foodMartName={null}
+          deliveryCode={deliveryCode}
+          isDelivery={(foodOrder?.orderType ?? "DELIVERY") === "DELIVERY"}
         />
       ) : (
         <FoodOrderFailed userName={user?.name} />

@@ -1,3 +1,4 @@
+import { distanceLabel } from "src/app/main/zrootclient/shared-near/nearby";
 import { useState } from "react";
 import { Typography, IconButton, Button, Chip } from "@mui/material";
 import { FavoriteBorder, Favorite, NavigateBefore, NavigateNext } from "@mui/icons-material";
@@ -40,6 +41,7 @@ function BookingCard({
   propertyCountryName,
   propertyStateName,
   propertyLgaName,
+  distanceKm,
 }) {
   const location = locationLabel(propertyLgaName, propertyStateName, propertyCountryName);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -205,6 +207,15 @@ function BookingCard({
           <Typography variant="body2" className="text-gray-500 mb-2 text-[12px]">
             📍 {location}
           </Typography>
+        )}
+        {distanceLabel(distanceKm) && (
+          <span
+            className="inline-block mb-2 px-3 py-1 rounded-full text-xs font-semibold"
+            style={{ background: "#eff6ff", color: "#1d4ed8" }}
+            data-testid="property-distance"
+          >
+            {distanceLabel(distanceKm)}
+          </span>
         )}
 
         {/* Price and Rating Row */}

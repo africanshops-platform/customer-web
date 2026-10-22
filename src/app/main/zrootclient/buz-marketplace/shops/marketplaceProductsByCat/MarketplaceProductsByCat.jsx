@@ -186,7 +186,7 @@ function MarketplaceProductsByCat() {
               <main className="mt-10 flex-1 p-4 rounded-md">
                 <div className=" bg-white flex flex-col md:flex-row justify-between items-center mb-4 p-4">
                   <h1 className="text-xl font-bold">
-                    Shop Online in Nigeria (8908 products found)
+                    Shop Online in Nigeria ({allProductsByCategory?.data?.length ?? 0} products found)
                   </h1>
                   <div className="flex space-x-4 mt-4 md:mt-0">
                     <select className="border rounded px-4 py-2">

@@ -151,12 +151,6 @@ function ImprovedFoodMartMapSingle({ item }) {
                     </Typography>
                   )}
 
-                  {item?.phoneNumber && (
-                    <Typography sx={{ fontSize: "0.95rem", color: "#6b7280" }}>
-                      📞 {item.phoneNumber}
-                    </Typography>
-                  )}
-
                   {formatBusinessHours(item?.busniessOpenPeriod, item?.busniessClosePeriod) && (
                     <Typography sx={{ fontSize: "0.95rem", color: "#6b7280", fontWeight: 500 }}>
                       🕐 {formatBusinessHours(item.busniessOpenPeriod, item.busniessClosePeriod)}

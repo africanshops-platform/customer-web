@@ -23,6 +23,7 @@ import NotesIcon from "@mui/icons-material/Notes";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import { PaystackButton } from "react-paystack";
 import FuseSvgIcon from "@fuse/core/FuseSvgIcon";
 import FusePageSimpleWithMargin from "@fuse/core/FusePageSimple/FusePageSimpleWithMargin";
 import useThemeMediaQuery from "@fuse/hooks/useThemeMediaQuery";
@@ -32,6 +33,8 @@ import {
   useGetServiceBooking,
   useGetRepairJobForBooking,
   useCancelServiceBooking,
+  useVerifyEngineeringBookingPayment,
+  useEngineeringCheckoutReadiness,
 } from "app/configs/data/server-calls/engineering/useServiceBookingRepo";
 import { useGetRegisteredMachine } from "app/configs/data/server-calls/engineering/useMyMachinesRepo";
 import useGetEngineeringShop from "app/configs/data/server-calls/engineering/useEngineeringShopRepo";
@@ -211,6 +214,77 @@ function RepairJobSection({ repairJob }) {
   );
 }
 
+/**
+ * E7 (2026-10-01) — pays the quoted RepairJob invoice. Only ever shown once
+ * a shop has logged a quote against a still-CONFIRMED booking — payment is
+ * what unlocks the shop moving to IN_PROGRESS (backend-enforced 402
+ * otherwise). Mirrors ReviewReservation.jsx's PaystackButton wiring exactly,
+ * including the mandatory payment-readiness poll-and-disable gate
+ * (CLAUDE.md standing rule, 2026-09-25).
+ */
+function PayInvoiceSection({ booking, repairJob, user }) {
+  const verifyPayment = useVerifyEngineeringBookingPayment();
+  const readiness = useEngineeringCheckoutReadiness();
+  const { VITE_PAYSTACK_PUBLIC_KEY } = import.meta.env;
+
+  if (booking.status !== "CONFIRMED" || !repairJob) return null;
+
+  if (booking.isPaid) {
+    return (
+      <div className="bg-green-50 border border-green-100 rounded-2xl p-5 flex items-center gap-3">
+        <FuseSvgIcon size={24} className="text-green-600">heroicons-outline:check-circle</FuseSvgIcon>
+        <p className="text-sm font-semibold text-green-800">
+          Invoice paid — waiting for the shop to start work.
+        </p>
+      </div>
+    );
+  }
+
+  const amountKobo = repairJob.totalCostKobo || 0;
+  const notReady = readiness.data?.healthy === false;
+
+  const onSuccess = (paystackResponse) => {
+    verifyPayment.mutate({
+      bookingId: booking.id,
+      reference: paystackResponse?.reference,
+      paymentResult: paystackResponse,
+    });
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm p-5">
+      <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+        <ReceiptLongIcon sx={{ fontSize: "1.15rem", color: "#ea580c" }} /> Pay this invoice to start work
+      </h3>
+      <PaystackButton
+        text={`🔒 Pay ${formatNaira(amountKobo)}`}
+        className="w-full py-3 sm:py-4 rounded-xl font-bold text-sm sm:text-base transition-all duration-300"
+        style={{
+          background: notReady || verifyPayment.isLoading
+            ? "linear-gradient(135deg, #fed7aa 0%, #fdba74 100%)"
+            : "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+          color: notReady || verifyPayment.isLoading ? "#9ca3af" : "white",
+          border: "none",
+          cursor: notReady || verifyPayment.isLoading ? "not-allowed" : "pointer",
+        }}
+        reference={`EB${booking.id}`}
+        email={user?.email}
+        amount={amountKobo}
+        metadata={{ userId: user?.id, bookingId: booking.id }}
+        publicKey={VITE_PAYSTACK_PUBLIC_KEY}
+        onSuccess={onSuccess}
+        onClose={() => {}}
+        disabled={notReady || verifyPayment.isLoading}
+      />
+      {notReady && (
+        <Typography variant="body2" className="mt-3 text-center" sx={{ color: "#dc2626", fontWeight: 600 }}>
+          We can't confirm payment services are ready right now. Please try again shortly.
+        </Typography>
+      )}
+    </div>
+  );
+}
+
 function BookingDetailMapSidebar({ pin, label }) {
   return (
     <div
@@ -275,7 +349,10 @@ function BookingDetailPage() {
   const { data: bookingResp, isLoading, isError } = useGetServiceBooking(isAuthed ? id : undefined);
   const booking = bookingResp?.data;
 
-  const { data: repairJobResp } = useGetRepairJobForBooking(booking?.status === "COMPLETED" ? id : undefined);
+  // E7 (2026-10-01) — a quote can now exist from CONFIRMED onward (the shop
+  // logs it before the customer pays), not only once COMPLETED.
+  const repairJobEligible = ["CONFIRMED", "IN_PROGRESS", "COMPLETED"].includes(booking?.status);
+  const { data: repairJobResp } = useGetRepairJobForBooking(repairJobEligible ? id : undefined);
   const repairJob = repairJobResp?.data;
 
   const { data: machineResp } = useGetRegisteredMachine(booking?.machineId);
@@ -345,6 +422,8 @@ function BookingDetailPage() {
             )}
 
             <RepairJobSection repairJob={repairJob} />
+
+            <PayInvoiceSection booking={booking} repairJob={repairJob} user={currentUser} />
 
             {!booking.customerNotes && !repairJob && !canCancel && (
               <div className="text-center py-12 px-6 bg-white rounded-2xl border border-dashed border-gray-200">

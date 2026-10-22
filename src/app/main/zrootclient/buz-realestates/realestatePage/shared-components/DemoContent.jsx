@@ -169,6 +169,7 @@ function DemoContent(props) {
               propertyCountryName={property?.propertyCountryName}
               propertyStateName={property?.propertyStateName}
               propertyLgaName={property?.propertyLgaName}
+              distanceKm={property?.distanceKm}
             />
           ))}
         </div>

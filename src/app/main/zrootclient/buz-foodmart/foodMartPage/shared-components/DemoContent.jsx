@@ -112,11 +112,11 @@ function DemoContent({
         <div className="mb-8">
           <Typography
             variant="h4"
-            sx={{ fontWeight: 800, color: "#1f2937", marginBottom: "8px", fontSize: "2rem" }}
+            sx={{ fontWeight: 800, color: "#1f2937", marginBottom: "8px", fontSize: "3.2rem" }}
           >
             Available Restaurants
           </Typography>
-          <Typography variant="body1" sx={{ color: "#6b7280", fontSize: "1.125rem" }}>
+          <Typography variant="body1" sx={{ color: "#6b7280", fontSize: "1.8rem" }}>
             Discover great dining spots, bars, and food experiences near you
           </Typography>
         </div>
@@ -132,7 +132,6 @@ function DemoContent({
               title={foodMart?.title}
               description={foodMart?.description}
               address={foodMart?.address}
-              phoneNumber={foodMart?.phoneNumber}
               rating={foodMart?.rating}
               numReviews={foodMart?.numReviews}
               foodMartCategory={foodMart?.foodMartCategory}
@@ -140,6 +139,7 @@ function DemoContent({
               busniessOpenPeriod={foodMart?.busniessOpenPeriod}
               busniessClosePeriod={foodMart?.busniessClosePeriod}
               isFeatured={foodMart?.isFeatured}
+              distanceKm={foodMart?.distanceKm}
             />
           ))}
         </div>

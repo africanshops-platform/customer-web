@@ -422,7 +422,7 @@ function Courses() {
 
                 <div className="w-full px-16 py-32 ltr:border-l-1 rtl:border-r-1 sm:w-auto sm:p-48 md:p-64">
                   <div className="mx-auto w-full max-w-320 sm:mx-0 sm:w-320">
-                    <img className="w-48" src="assets/images/logo/logo.svg" alt="logo" />
+                    <img className="w-48" src="assets/images/afslogo/afslogo.png" alt="logo" />
 
                     <Typography className="mt-32 text-4xl font-extrabold leading-tight tracking-tight">
                       Unlock your session
@@ -640,7 +640,7 @@ function Courses() {
 
                 <div className="w-full px-16 py-32 ltr:border-l-1 rtl:border-r-1 sm:w-auto sm:p-48 md:p-64">
                   <div className="mx-auto w-full max-w-320 sm:mx-0 sm:w-320">
-                    <img className="w-48" src="assets/images/logo/logo.svg" alt="logo" />
+                    <img className="w-48" src="assets/images/afslogo/afslogo.png" alt="logo" />
 
                     <Typography className="mt-32 text-4xl font-extrabold leading-tight tracking-tight">
                       Unlock your session
