@@ -70,9 +70,10 @@ function FoodCartSummaryAndPay({
   const subtotal = calculateCartTotalAmount(checkItemsArray);
 
   // Live shipping estimate — recalculated whenever the customer picks/changes their
-  // destination (market pickup point, or a raw LGA for home delivery). Real cost from
-  // places-service's rate tables via the food cart's actual vendor, resolved server-side
-  // — not a client-side guess. This is the ONLY place the calculation runs pre-payment;
+  // delivery address (their LGA and exact pin). FoodMart goes restaurant -> the customer's door:
+  // priced by real distance from the restaurant's pin, with no warehouse, pickup market or
+  // freight route (those are marketplace). Resolved server-side via the food cart's actual
+  // vendor — not a client-side guess. This is the ONLY place the calculation runs pre-payment;
   // onSuccess below just carries the already-computed deliveryFee into the order payload,
   // it never recalculates (the backend re-runs the same calculation itself, authoritatively,
   // at verify time — that's a separate concern from what the customer sees before paying).
@@ -185,7 +186,6 @@ function FoodCartSummaryAndPay({
     !orderCountryDestination ||
     !orderStateProvinceDestination ||
     !orderLgaDestination ||
-    !district ||
     deliveryLoading ||
     !!deliveryError ||
     paymentFailedPermanently ||
