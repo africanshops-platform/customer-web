@@ -887,8 +887,6 @@ function FoodCartReview() {
                                 zoom: 14,
                                 phone: phone || "",
                                 isVerified: true,
-                                rating: 4.8,
-                                totalSales: 1234,
                               }}
                             />
                           </Suspense>

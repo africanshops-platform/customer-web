@@ -34,6 +34,7 @@ import { useAppSelector } from "app/store/hooks";
 // import { selectFuseCurrentLayoutConfig } from "@fuse/core/FuseSettings/fuseSettingsSlice";
 import { useMyCart } from "app/configs/data/server-calls/auth/userapp/a_marketplace/useProductsRepo";
 
+import { useGetMerchantPreview } from "app/configs/data/server-calls/auth/userapp/a_merchants/useMerchantRepo";
 import useSellerCountries from "app/configs/data/server-calls/countries/useCountries";
 import {
   getMarketsByLgaId,
@@ -1060,7 +1061,7 @@ function CartReview() {
                               id={cartItem?.id}
                               title={cartItem?.product?.name}
                               image={cartItem?.product?.imageLinks[0]?.url}
-                              seller="Apple Authorized Reseller"
+                              sellerId={cartItem?.seller || cartItem?.product?.shop}
                               unitsLeft={cartItem?.product?.quantityInStock}
                               cartQuantity={cartItem?.quantity}
                               price={cartItem?.product?.price}
@@ -1439,8 +1440,6 @@ function CartReview() {
                                 zoom: 14,
                                 phone: selectedMarketData?.phone || "+234 800 000 0000",
                                 isVerified: true,
-                                rating: 4.8,
-                                totalSales: 1234,
                               }}
                             />
                           </Suspense>
@@ -1919,7 +1918,7 @@ const ReviewCartItem = ({
   id,
   image,
   title,
-  seller,
+  sellerId,
   unitsLeft,
   price,
   oldPrice,
@@ -1927,6 +1926,9 @@ const ReviewCartItem = ({
   cartQuantity,
   cartItem, // full cart item object to check for bulk order
 }) => {
+  const { data: sellerPreview } = useGetMerchantPreview(sellerId);
+  const sellerName = sellerPreview?.data?.merchant?.shopname;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -1946,7 +1948,7 @@ const ReviewCartItem = ({
       />
       <div className="flex-1">
         <h3 className="text-base font-semibold text-gray-800 mb-1">{title}</h3>
-        <p className="text-sm text-gray-500 mb-1">Seller: {seller}</p>
+        {sellerName && <p className="text-sm text-gray-500 mb-1">Seller: {sellerName}</p>}
         <p className="text-sm text-red-500 font-medium">{unitsLeft} units left</p>
         <p className="text-sm text-gray-600 mt-1">Quantity: {cartQuantity}</p>
       </div>

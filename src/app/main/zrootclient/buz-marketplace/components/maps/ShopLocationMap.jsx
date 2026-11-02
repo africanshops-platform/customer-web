@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -42,32 +42,11 @@ function MapBounds({ center, zoom }) {
 
 /**
  * ShopLocationMap Component
- * Shows the exact location of the product shop
- * Uses dummy data for demonstration - will be replaced with API data
+ * Shows the shop's market on the map. shopData comes from the seller preview and the shop's market
+ * (shopName, address, marketName, coordinates, zoom, isVerified); the caller renders it only with coordinates.
  */
 function ShopLocationMap({ shopData }) {
-  // Dummy data for shop location
-  // This will be replaced with actual shop data from API
-  const shopLocation = useMemo(() => {
-    // Use provided shopData or fallback to dummy data
-    return (
-      shopData || {
-        id: "shop-123",
-        shopName: "Premium Electronics Store",
-        address: "123 Marina Road, Lagos Island",
-        city: "Lagos",
-        state: "Lagos State",
-        country: "Nigeria",
-        coordinates: [6.4541, 3.3947], // Lagos Island coordinates
-        zoom: 14,
-        phone: "+234 803 123 4567",
-        isVerified: true,
-        rating: 4.8,
-        totalSales: 1234,
-      }
-    );
-  }, [shopData]);
-  
+  const shopLocation = shopData;
 
   return (
     <div className="w-full h-full relative rounded-2xl overflow-hidden shadow-lg">
@@ -93,21 +72,23 @@ function ShopLocationMap({ shopData }) {
             </Typography>
           </div>
           <div className="flex items-center gap-2">
-            <Chip
-              label={shopLocation.state}
-              icon={<LocationOnOutlined />}
-              sx={{
-                backgroundColor: "rgba(234, 88, 12, 0.95)",
-                color: "white",
-                fontWeight: "bold",
-                fontSize: "1.4rem",
-                backdropFilter: "blur(10px)",
-                maxWidth: "fit-content",
-                "& .MuiChip-icon": {
+            {(shopLocation.marketName || shopLocation.state) && (
+              <Chip
+                label={shopLocation.marketName || shopLocation.state}
+                icon={<LocationOnOutlined />}
+                sx={{
+                  backgroundColor: "rgba(234, 88, 12, 0.95)",
                   color: "white",
-                },
-              }}
-            />
+                  fontWeight: "bold",
+                  fontSize: "1.4rem",
+                  backdropFilter: "blur(10px)",
+                  maxWidth: "fit-content",
+                  "& .MuiChip-icon": {
+                    color: "white",
+                  },
+                }}
+              />
+            )}
             {shopLocation.isVerified && (
               <Chip
                 label="Verified"
@@ -162,7 +143,11 @@ function ShopLocationMap({ shopData }) {
         </Typography>
         <Divider sx={{ marginBottom: "12px" }} />
         <div className="flex items-center justify-between">
-          <a href={PLATFORM_ORDER_TEL} className="flex items-center gap-2" style={{ textDecoration: "none" }}>
+          <a
+            href={PLATFORM_ORDER_TEL}
+            className="flex items-center gap-2"
+            style={{ textDecoration: "none" }}
+          >
             <Phone sx={{ fontSize: "1.6rem", color: "#10b981" }} />
             <Typography
               sx={{
@@ -174,25 +159,6 @@ function ShopLocationMap({ shopData }) {
               Call Seller
             </Typography>
           </a>
-          <div className="text-right">
-            <Typography
-              sx={{
-                fontSize: "1.2rem",
-                color: "#6b7280",
-              }}
-            >
-              {shopLocation.totalSales.toLocaleString()} sales
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: "1.4rem",
-                fontWeight: 700,
-                color: "#f59e0b",
-              }}
-            >
-              ⭐ {shopLocation.rating}
-            </Typography>
-          </div>
         </div>
         <OffPlatformNotice className="mt-2" />
       </div>
@@ -275,40 +241,7 @@ function ShopLocationMap({ shopData }) {
                   }}
                 >
                   {shopLocation.address}
-                  <br />
-                  {shopLocation.city}, {shopLocation.state}
-                  <br />
-                  {shopLocation.country}
                 </Typography>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <Typography sx={{ fontSize: "1.2rem", color: "#6b7280" }}>Rating</Typography>
-                  <Typography
-                    sx={{
-                      fontSize: "2rem",
-                      fontWeight: 800,
-                      color: "#f59e0b",
-                    }}
-                  >
-                    ⭐ {shopLocation.rating}
-                  </Typography>
-                </div>
-                <div className="text-right">
-                  <Typography sx={{ fontSize: "1.2rem", color: "#6b7280" }}>
-                    Total Sales
-                  </Typography>
-                  <Typography
-                    sx={{
-                      fontSize: "2rem",
-                      fontWeight: 800,
-                      color: "#10b981",
-                    }}
-                  >
-                    {shopLocation.totalSales.toLocaleString()}
-                  </Typography>
-                </div>
               </div>
 
               <Typography
