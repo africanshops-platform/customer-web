@@ -1,12 +1,17 @@
 import { styled } from "@mui/material/styles";
 import FusePageSimpleWithMargin from "@fuse/core/FusePageSimple/FusePageSimpleWithMargin";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { Navigate, useParams, useSearchParams } from "react-router-dom";
+import { useQueries } from "react-query";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import useThemeMediaQuery from "@fuse/hooks/useThemeMediaQuery";
-import useGetAllProducts from "app/configs/data/server-calls/auth/userapp/a_marketplace/useProductsRepo";
+import { useAddToCart } from "app/configs/data/server-calls/auth/userapp/a_marketplace/useProductsRepo";
+import { getAllProducts } from "app/configs/data/client/RepositoryClient";
+import { useAppSelector } from "app/store/hooks";
+import { selectUser } from "src/app/auth/user/store/userSlice";
 import { useShopSellerInfo } from "app/configs/data/server-calls/auth/userapp/a_merchants/useMerchantRepo";
 import useGetUserAppSetting from "app/configs/data/server-calls/auth/userapp/a_userapp_settings/useAppSettingDomain";
 import { PageSkeleton } from "src/app/shared-components/loading";
+import "./store.css";
 import ServiceStatusLandingPage from "../../../aapp-settings-from-admin/ServiceStatusLandingPage";
 import DemoHeader from "../singleProductPage/shared-components/DemoHeader";
 import DemoSidebar from "../singleProductPage/shared-components/DemoSidebar";
@@ -23,13 +28,27 @@ const Root = styled(FusePageSimpleWithMargin)(({ theme }) => ({
   },
 }));
 
-const DEFAULT_LIMIT = 20; // the pager offers 20, 30, 40 and 50
-const MAX_LIMIT = 50; // list requests never ask the backend for more than 50 rows
+const PAGE_SIZE = 8; // listings per "Load more" step; never close to the 50-row request ceiling
+const MAX_PAGES = 12;
+const FONT_LINK_ID = "store-page-fonts";
 
 const toInt = (v, fallback) => {
   const n = parseInt(v, 10);
   return Number.isFinite(n) && n > 0 ? n : fallback;
 };
+
+/** The design's two typefaces, loaded once when a store page opens. */
+function useStoreFonts() {
+  useEffect(() => {
+    if (document.getElementById(FONT_LINK_ID)) return;
+    const link = document.createElement("link");
+    link.id = FONT_LINK_ID;
+    link.rel = "stylesheet";
+    link.href =
+      "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap";
+    document.head.appendChild(link);
+  }, []);
+}
 
 /** One merchant's store: the shop's map on the left, its listings in the middle, its updates on the right. */
 function ActiveStorePage() {
@@ -41,21 +60,62 @@ function ActiveStorePage() {
     setRightSidebarOpen(!isMobile);
   }, [isMobile]);
 
+  useStoreFonts();
   const { shopId } = useParams();
+  const navigate = useNavigate();
+  const user = useAppSelector(selectUser);
   const [searchParams, setSearchParams] = useSearchParams();
-  const page = toInt(searchParams.get("page"), 1);
-  const limit = Math.min(toInt(searchParams.get("limit"), DEFAULT_LIMIT), MAX_LIMIT);
+  // `page` is how many "Load more" steps are showing; it lives in the URL so a refresh or a shared link keeps the view.
+  const pagesShown = Math.min(toInt(searchParams.get("page"), 1), MAX_PAGES);
 
   const { merchant, market, isLoading: shopLoading } = useShopSellerInfo(shopId);
-  const {
-    data: productsRes,
-    isLoading: productsLoading,
-    isError: productsError,
-    refetch,
-  } = useGetAllProducts({ shop: shopId, limit, offset: (page - 1) * limit });
 
-  const products = productsRes?.data?.products ?? [];
-  const total = productsRes?.data?.pagination?.total ?? 0;
+  const pageQueries = useQueries(
+    Array.from({ length: pagesShown }, (_, i) => ({
+      queryKey: ["__store_products", shopId, PAGE_SIZE, i * PAGE_SIZE],
+      queryFn: () => getAllProducts({ shop: shopId, limit: PAGE_SIZE, offset: i * PAGE_SIZE }),
+      enabled: Boolean(shopId),
+      keepPreviousData: true,
+      staleTime: 20000,
+    })),
+  );
+  const firstPage = pageQueries[0];
+  const productsLoading = Boolean(firstPage?.isLoading);
+  const productsError = Boolean(firstPage?.isError);
+  const loadingMore = pageQueries.slice(1).some((q) => q.isFetching && !q.data);
+  const products = pageQueries.flatMap((q) => q.data?.data?.products ?? []);
+  const total = firstPage?.data?.data?.pagination?.total ?? 0;
+  const hasMore = products.length < total && pagesShown < MAX_PAGES;
+  const refetch = useCallback(() => pageQueries.forEach((q) => q.refetch()), [pageQueries]);
+
+  const { mutate: addToCart, isLoading: addingToCart, variables: addingVars } = useAddToCart();
+  const onAdd = useCallback(
+    (product) => {
+      if (!user?.email) {
+        navigate("/sign-in");
+        return;
+      }
+      // Same payload as the product page's Add to cart; the backend enforces the one-market-per-cart rule.
+      addToCart({
+        user: user?.id,
+        quantity: 1,
+        product: product.id,
+        seller: product.shop,
+        shopID: product.shop,
+        shopCountryOrigin: product.productCountry,
+        shopStateProvinceOrigin: product.productState,
+        shopLgaProvinceOrigin: product.productLga,
+        shopMarketId: product.market,
+      });
+    },
+    [user, navigate, addToCart],
+  );
+
+  const loadMore = useCallback(() => {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", String(pagesShown + 1));
+    setSearchParams(params);
+  }, [searchParams, setSearchParams, pagesShown]);
 
   const shopData = useMemo(() => {
     if (!merchant) return null;
@@ -74,16 +134,6 @@ function ActiveStorePage() {
     };
   }, [merchant, market]);
 
-  const setPaging = useCallback(
-    (next) => {
-      const params = new URLSearchParams(searchParams);
-      params.set("page", String(next.page ?? page));
-      params.set("limit", String(next.limit ?? limit));
-      setSearchParams(params, { replace: false });
-    },
-    [searchParams, setSearchParams, page, limit],
-  );
-
   const header = useMemo(
     () => (
       <DemoHeader
@@ -96,7 +146,7 @@ function ActiveStorePage() {
 
   const content = useMemo(
     () => (
-      <div className="p-4 sm:p-6 max-w-6xl mx-auto w-full">
+      <div className="sp sp-center">
         {shopLoading && !shopData ? (
           <PageSkeleton />
         ) : (
@@ -108,10 +158,11 @@ function ActiveStorePage() {
               isError={productsError}
               onRetry={refetch}
               total={total}
-              page={page}
-              limit={limit}
-              onPageChange={(p) => setPaging({ page: p })}
-              onLimitChange={(l) => setPaging({ page: 1, limit: Math.min(l, MAX_LIMIT) })}
+              hasMore={hasMore}
+              onLoadMore={loadMore}
+              loadingMore={loadingMore}
+              onAdd={onAdd}
+              addingId={addingToCart ? addingVars?.product : null}
             />
           </>
         )}
@@ -121,13 +172,16 @@ function ActiveStorePage() {
       shopLoading,
       shopData,
       productsLoading,
+      productsError,
       total,
       products,
-      productsError,
+      hasMore,
+      loadMore,
+      loadingMore,
+      onAdd,
       refetch,
-      page,
-      limit,
-      setPaging,
+      addingToCart,
+      addingVars,
     ],
   );
 

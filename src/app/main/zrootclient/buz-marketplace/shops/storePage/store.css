@@ -1,0 +1,383 @@
+/* Official Store page. Ported from the approved design preview (Official Store Preview artifact): same tokens, sizes and
+   radii, scoped under .sp so nothing leaks into the rest of the app. Sizes are in px on purpose: this app's root font
+   size is small, so rem-based utility classes do not match the design. */
+.sp {
+  --brand: #ea580c;
+  --brand-soft: #fff1e6;
+  --glow: rgba(249, 115, 22, 0.45);
+  --ink: #1c1917;
+  --muted: #6b6560;
+  --bg: #f6f4f1;
+  --surface: #ffffff;
+  --line: #e9e4de;
+  --ok: #0f9d6b;
+  --ok-soft: #e2f6ee;
+  --font-display: "Sora", "Segoe UI", sans-serif;
+  --font-body: "Manrope", "Segoe UI", sans-serif;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+  box-sizing: border-box;
+}
+.sp *,
+.sp *::before,
+.sp *::after {
+  box-sizing: border-box;
+}
+.sp h1,
+.sp h2,
+.sp h3 {
+  font-family: var(--font-display);
+  margin: 0;
+  text-wrap: balance;
+  letter-spacing: normal;
+}
+.sp p {
+  margin: 0;
+}
+.sp button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.sp a,
+.sp a:link,
+.sp a:visited,
+.sp a:hover,
+.sp a:active {
+  color: inherit;
+  text-decoration: none !important;
+}
+.sp a.sp-primary,
+.sp a.sp-primary:link,
+.sp a.sp-primary:visited,
+.sp a.sp-primary:hover {
+  color: #fff;
+}
+.sp :focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.sp .num {
+  font-variant-numeric: tabular-nums;
+}
+
+.sp-center {
+  width: 100%;
+  align-content: start;
+  padding: 16px;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.sp-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* hero */
+.sp-hero {
+  position: relative;
+}
+.sp-cover {
+  height: 150px;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.28) 0 14%, transparent 15%),
+    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.18) 0 18%, transparent 19%),
+    linear-gradient(120deg, #ea580c, #f59e0b 60%, #dc2626);
+}
+.sp-hero-body {
+  padding: 0 20px 18px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: start;
+  margin-top: -38px;
+}
+.sp-hero-body > div:nth-child(2) {
+  padding-top: 46px;
+}
+.sp-logo {
+  width: 84px;
+  height: 84px;
+  border-radius: 22px;
+  background: var(--surface);
+  border: 4px solid var(--surface);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  display: grid;
+  place-items: center;
+  font: 800 28px var(--font-display);
+  color: var(--brand);
+}
+.sp-logo span {
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: var(--brand-soft);
+}
+.sp-hero h1 {
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.25;
+}
+.sp-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 700 12px var(--font-body);
+  color: var(--ok);
+  background: var(--ok-soft);
+  padding: 4px 9px;
+  border-radius: 99px;
+}
+.sp-meta {
+  color: var(--muted);
+  font-size: 13.5px;
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+.sp-cta {
+  display: flex;
+  gap: 8px;
+  padding-top: 52px;
+}
+.sp-btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 9px 16px;
+  border-radius: 99px;
+  font-weight: 700;
+  font-size: 14px;
+  display: inline-block;
+  text-align: center;
+}
+.sp-primary {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+  box-shadow: 0 6px 16px var(--glow);
+}
+.sp-stats {
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+.sp-stats div {
+  padding: 12px 20px;
+  border-right: 1px solid var(--line);
+  min-width: 0;
+}
+.sp-stats div:last-child {
+  border-right: 0;
+}
+.sp-stats b {
+  display: block;
+  font: 800 20px var(--font-display);
+}
+.sp-stats span {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+@media (max-width: 640px) {
+  .sp-hero-body {
+    grid-template-columns: auto 1fr;
+  }
+  .sp-cta {
+    grid-column: 1 / -1;
+    padding-top: 0;
+  }
+}
+
+/* listings */
+.sp-sec-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 20px 4px;
+}
+.sp-sec-head h2 {
+  font-size: 18px;
+  font-weight: 700;
+}
+.sp-sec-head small {
+  color: var(--muted);
+  font-size: 13px;
+}
+.sp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+  padding: 14px 20px 20px;
+}
+.sp-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+  display: flex;
+  flex-direction: column;
+}
+.sp-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.12);
+}
+.sp-art {
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.sp-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.sp-art svg {
+  width: 46%;
+  height: auto;
+  opacity: 0.92;
+}
+.sp-off {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: #dc2626;
+  color: #fff;
+  font: 800 11px var(--font-body);
+  padding: 3px 8px;
+  border-radius: 99px;
+}
+.sp-txt {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.sp-txt h3 {
+  font: 700 14px var(--font-body);
+}
+.sp-price {
+  font: 800 17px var(--font-display);
+  color: var(--brand);
+  margin-top: 4px;
+}
+.sp-price s {
+  color: var(--muted);
+  font: 500 12px var(--font-body);
+  margin-left: 6px;
+}
+.sp-add {
+  margin-top: 10px;
+  width: 100%;
+  border: 1.5px solid var(--brand);
+  color: var(--brand);
+  background: transparent;
+  border-radius: 10px;
+  padding: 7px;
+  font-weight: 700;
+  font-size: 13px;
+}
+.sp-add:hover {
+  background: var(--brand);
+  color: #fff;
+}
+.sp-add[disabled] {
+  opacity: 0.6;
+  cursor: default;
+}
+.sp-more {
+  display: block;
+  margin: 0 auto 22px;
+}
+
+/* right: updates and posts */
+.sp-feed {
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+.sp-status {
+  padding: 14px 0;
+}
+.sp-status header {
+  padding: 0 16px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sp-status h2 {
+  font-size: 16px;
+  font-weight: 700;
+}
+.sp-status header small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.sp-rules {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 10px 16px;
+  background: var(--bg);
+  border-radius: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.sp-empty {
+  text-align: center;
+  padding: 26px 20px 28px;
+}
+.sp-empty svg {
+  width: 150px;
+  height: auto;
+  margin-bottom: 8px;
+}
+.sp-empty h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.sp-empty p {
+  color: var(--muted);
+  margin: 0 auto;
+  max-width: 30ch;
+}
+
+/* loading */
+.sp-sk {
+  background: linear-gradient(90deg, var(--line) 25%, var(--bg) 50%, var(--line) 75%);
+  background-size: 200% 100%;
+  animation: sp-shimmer 1.4s infinite;
+  border-radius: 10px;
+}
+@keyframes sp-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sp-sk {
+    animation: none;
+  }
+  .sp-card {
+    transition: none;
+  }
+}
