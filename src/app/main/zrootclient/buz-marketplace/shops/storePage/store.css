@@ -635,3 +635,29 @@
   font: inherit;
   resize: vertical;
 }
+
+/* Statuses (S20, P1b): the ring strip and the full-screen viewer */
+.sp-ring-row { display: flex; gap: 14px; padding: 6px 16px 16px; overflow-x: auto; }
+.sp-ring { background: none; border: 0; padding: 0; cursor: pointer; display: grid; justify-items: center; gap: 6px; flex: 0 0 auto; font: inherit; }
+.sp-ring-pic { width: 68px; height: 68px; border-radius: 50%; padding: 3px; background: conic-gradient(var(--brand), #fdba74, var(--brand)); display: block; }
+.sp-ring-pic img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid #fff; display: block; }
+.sp-ring small { color: var(--muted); font-size: 11.5px; }
+.sp-ring:hover .sp-ring-pic { transform: scale(1.05); }
+.sp-ring-pic { transition: transform .15s; }
+@media (prefers-reduced-motion: reduce) { .sp-ring-pic { transition: none; } }
+
+.sp-story { position: fixed; inset: 0; z-index: 1300; background: rgba(0, 0, 0, .86); display: grid; place-items: center; }
+.sp-story-card { position: relative; width: min(420px, 100vw); height: min(92vh, 760px); background: #111827; border-radius: 18px; overflow: hidden; }
+.sp-story-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.sp-story-bars { position: absolute; z-index: 3; top: 10px; left: 10px; right: 10px; display: flex; gap: 4px; }
+.sp-story-bars span { flex: 1; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .35); overflow: hidden; }
+.sp-story-bars i { display: block; height: 100%; background: #fff; }
+.sp-story-top { position: absolute; z-index: 3; top: 22px; left: 12px; right: 12px; display: flex; align-items: center; gap: 8px; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
+.sp-story-top small { opacity: .85; }
+.sp-story-top button { margin-left: auto; background: none; border: 0; color: #fff; font-size: 28px; line-height: 1; cursor: pointer; }
+.sp-story-zone { position: absolute; z-index: 2; top: 60px; bottom: 120px; width: 40%; background: none; border: 0; cursor: pointer; }
+.sp-story-prev { left: 0; }
+.sp-story-next { right: 0; }
+.sp-story-bottom { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; padding: 40px 16px 20px; background: linear-gradient(transparent, rgba(0, 0, 0, .8)); color: #fff; display: grid; gap: 12px; }
+.sp-story-bottom p { margin: 0; font-size: 15px; line-height: 1.4; }
+.sp-story .sp-story-cta { display: block; text-align: center; background: var(--brand, #ea580c); color: #fff; border: 0; border-radius: 99px; padding: 12px 16px; font-weight: 800; font-size: 15px; cursor: pointer; text-decoration: none; }

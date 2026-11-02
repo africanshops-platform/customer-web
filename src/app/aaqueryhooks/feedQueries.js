@@ -1,5 +1,5 @@
-import { useInfiniteQuery } from "react-query";
-import { getStoreFeedApi } from "../configs/data/client/RepositoryClient";
+import { useInfiniteQuery, useQuery } from "react-query";
+import { getStoreFeedApi, getStoreStatusesApi } from "../configs/data/client/RepositoryClient";
 
 export const FEED_PAGE_SIZE = 10;
 
@@ -16,4 +16,12 @@ export function useStoreFeed(shopId) {
       staleTime: 30000,
     },
   );
+}
+
+/** A shop's live statuses. Short stale time: they come and go within a day. */
+export function useStoreStatuses(shopId) {
+  return useQuery(["__store_statuses", shopId], () => getStoreStatusesApi(shopId), {
+    enabled: Boolean(shopId),
+    staleTime: 30000,
+  });
 }

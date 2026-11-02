@@ -189,7 +189,11 @@ function ActiveStorePage() {
     () => <DemoSidebar shopData={shopData} isLoading={shopLoading} />,
     [shopData, shopLoading],
   );
-  const right = useMemo(() => <StoreUpdatesPanel shopId={shopId} />, [shopId]);
+  const shopName = shopData?.shopname || shopData?.name;
+  const right = useMemo(
+    () => <StoreUpdatesPanel shopId={shopId} shopName={shopName} />,
+    [shopId, shopName],
+  );
 
   if (!shopId) return <Navigate to="/marketplace/shop" replace />;
 

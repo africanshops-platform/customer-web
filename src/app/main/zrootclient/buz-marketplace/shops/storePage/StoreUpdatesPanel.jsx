@@ -6,6 +6,7 @@ import { selectUser } from "src/app/auth/user/store/userSlice";
 import { useStoreFeed } from "src/app/aaqueryhooks/feedQueries";
 import { getFeedGuidelinesStatusApi } from "app/configs/data/client/RepositoryAuthClient";
 import PostCard from "./PostCard";
+import StatusStrip from "./StatusStrip";
 import ReportFlow from "./ReportFlow";
 
 const postArt = (
@@ -26,10 +27,9 @@ const postArt = (
 );
 
 /**
- * The right-hand side: updates header, the guidelines note, then this shop's real posts. Statuses join the strip in
- * the next phase; until then it says so plainly.
+ * The right-hand side: the shop's 24 hour statuses (when it has any), the guidelines note, then its real posts.
  */
-function StoreUpdatesPanel({ shopId }) {
+function StoreUpdatesPanel({ shopId, shopName }) {
   const navigate = useNavigate();
   const user = useAppSelector(selectUser);
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
@@ -76,15 +76,7 @@ function StoreUpdatesPanel({ shopId }) {
 
   return (
     <div className="sp sp-feed" data-testid="store-feed">
-      <section className="sp-panel sp-status">
-        <header>
-          <h2>Updates</h2>
-          <small>Statuses last 24 hours</small>
-        </header>
-        <p style={{ padding: "6px 16px 4px", color: "var(--muted)", fontSize: 13 }}>
-          No statuses right now. New ones appear here for 24 hours.
-        </p>
-      </section>
+      <StatusStrip shopId={shopId} shopName={shopName} />
 
       <div className="sp-rules" role="note">
         <svg

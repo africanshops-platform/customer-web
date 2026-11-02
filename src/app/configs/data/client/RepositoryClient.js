@@ -91,6 +91,9 @@ export const getPositionByIdApi = (id) => Api().get(`/careers/positions/${id}`);
  *********************************************************************************************** */
 export const getLegalDocumentByKeyApi = (key) => Api().get(`/corporate-cms/legal/${key}`);
 
+/** Business feed, public read: a shop's statuses that are still within their 24 hours. */
+export const getStoreStatusesApi = (shopId) => Api().get(`/feed/shops/${shopId}/statuses`);
+
 /** Business feed, public read: one shop's published posts, newest first (limit 50 max). */
 export const getStoreFeedApi = (shopId, params = {}) => Api().get(`/feed/shops/${shopId}/posts`, { params });
 

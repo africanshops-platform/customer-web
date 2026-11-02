@@ -15,7 +15,11 @@ jest.mock("app/store/hooks", () => ({ useAppSelector: () => mockUser }));
 jest.mock("src/app/auth/user/store/userSlice", () => ({ selectUser: () => null }));
 
 let mockFeed;
-jest.mock("src/app/aaqueryhooks/feedQueries", () => ({ useStoreFeed: () => mockFeed }));
+let mockStatuses = { data: { data: { statuses: [] } }, isLoading: false };
+jest.mock("src/app/aaqueryhooks/feedQueries", () => ({
+  useStoreFeed: () => mockFeed,
+  useStoreStatuses: () => mockStatuses,
+}));
 jest.mock("src/app/aaqueryhooks/legalDocumentQueries", () => ({
   useLegalDocument: () => ({ data: undefined }),
 }));
@@ -216,5 +220,51 @@ describe("StoreUpdatesPanel", () => {
     fireEvent.click(screen.getByText("Report post"));
     expect(await screen.findByTestId("feed-report")).toBeTruthy();
     expect(screen.queryByTestId("feed-guidelines")).toBeNull();
+  });
+});
+
+describe("statuses", () => {
+  const status = (n, action) => ({
+    id: `st${n}`,
+    shopName: "Imperial Fragrances",
+    caption: `Caption ${n}`,
+    media: photo(n),
+    action,
+    expiresAt: new Date(Date.now() + 5 * 3_600_000).toISOString(),
+  });
+
+  afterEach(() => {
+    mockStatuses = { data: { data: { statuses: [] } }, isLoading: false };
+  });
+
+  it("shows no strip at all when the shop has no live statuses", () => {
+    mockFeed = { data: { pages: [{ data: { posts: [] } }] }, isLoading: false };
+    render(<MemoryRouter><StoreUpdatesPanel shopId="s1" /></MemoryRouter>);
+    expect(screen.queryByTestId("store-statuses")).toBeNull();
+  });
+
+  it("opens a status, moves between them, and sends a Shop now button to the shop's own product", () => {
+    mockFeed = { data: { pages: [{ data: { posts: [] } }] }, isLoading: false };
+    mockStatuses = {
+      isLoading: false,
+      data: { data: { statuses: [status(1), status(2, { label: "Shop now", kind: "PRODUCT", target: "oud-amber" })] } },
+    };
+    render(<MemoryRouter><StoreUpdatesPanel shopId="s1" shopName="Imperial Fragrances" /></MemoryRouter>);
+    fireEvent.click(screen.getByLabelText("Open status 1 of 2"));
+    expect(screen.getByText("Caption 1")).toBeTruthy();
+    fireEvent.click(screen.getByLabelText("Next status"));
+    expect(screen.getByText("Caption 2")).toBeTruthy();
+    fireEvent.click(screen.getByText("Shop now"));
+    expect(mockNavigate).toHaveBeenCalledWith("/marketplace/product/oud-amber/view");
+  });
+
+  it("closes with Escape", () => {
+    mockFeed = { data: { pages: [{ data: { posts: [] } }] }, isLoading: false };
+    mockStatuses = { isLoading: false, data: { data: { statuses: [status(1)] } } };
+    render(<MemoryRouter><StoreUpdatesPanel shopId="s1" /></MemoryRouter>);
+    fireEvent.click(screen.getByLabelText("Open status 1 of 1"));
+    expect(screen.getByTestId("status-viewer")).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByTestId("status-viewer")).toBeNull();
   });
 });

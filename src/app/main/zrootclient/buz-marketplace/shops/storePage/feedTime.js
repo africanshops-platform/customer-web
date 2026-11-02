@@ -35,3 +35,11 @@ export const REPORT_REASONS = [
   { value: "HATE_OR_ABUSE", label: "Hate or abuse" },
   { value: "OTHER", label: "Something else" },
 ];
+
+/** "21h left" / "35m left" for something that expires at the given time. */
+export function timeLeft(iso, now = Date.now()) {
+  const ms = new Date(iso).getTime() - now;
+  if (!Number.isFinite(ms) || ms <= 0) return "ending";
+  const hours = Math.floor(ms / 3_600_000);
+  return hours >= 1 ? `${hours}h left` : `${Math.max(1, Math.round(ms / 60_000))}m left`;
+}
