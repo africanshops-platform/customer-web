@@ -141,6 +141,11 @@ export function AuthApi() {
 export const getApiAuthUser = () => AuthApi().get(`/auth-user/profile/get-details`); // Msvs => (Done)
 export const getApiMinimizedAuthUser = () => AuthApi().get(`/users/minimized/authuser`);
 
+/** Business feed (signed-in customer): community guidelines and reporting a post. */
+export const getFeedGuidelinesStatusApi = () => AuthApi().get('/feed/guidelines/status');
+export const acceptFeedGuidelinesApi = () => AuthApi().post('/feed/guidelines/accept');
+export const reportFeedPostApi = ({ postId, reason, note }) => AuthApi().post(`/feed/posts/${postId}/reports`, { reason, note });
+
 export const clientUpdateUser = (formData) => {
 	console.log('UPDATE_USER_FORMDATA', formData);
 	return AuthApi().put(`/auth-user/profile/update`, formData);

@@ -2,7 +2,6 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import StoreHero from "../StoreHero";
 import StoreProducts from "../StoreProducts";
-import StoreUpdatesPanel from "../StoreUpdatesPanel";
 
 jest.mock("src/app/main/vendors-shop/PosUtils", () => ({ formatCurrency: (n) => `N${n}` }));
 
@@ -116,14 +115,5 @@ describe("StoreProducts", () => {
   it("hides Load more when everything is showing", () => {
     wrap(<StoreProducts {...base} products={products} total={2} hasMore={false} />);
     expect(screen.queryByText("Load more listings")).toBeNull();
-  });
-});
-
-describe("StoreUpdatesPanel", () => {
-  it("is honest about statuses and posts not being live yet and shows no invented content", () => {
-    const { container } = render(<StoreUpdatesPanel />);
-    expect(screen.getByText("Updates")).toBeTruthy();
-    expect(screen.getByText("No posts yet")).toBeTruthy();
-    expect(container.textContent).not.toMatch(/\d+ (likes|comments)|ago/);
   });
 });

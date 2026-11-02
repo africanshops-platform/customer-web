@@ -381,3 +381,257 @@
     transition: none;
   }
 }
+
+/* posts (right column) */
+.sp-post {
+  padding: 14px 16px 12px;
+}
+.sp-post header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.sp-av {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  display: grid;
+  place-items: center;
+  font: 800 14px var(--font-display);
+  flex: none;
+}
+.sp-post header > div:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.sp-post header b {
+  display: block;
+  font-size: 14px;
+}
+.sp-post header small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.sp-chip {
+  font: 700 11px var(--font-body);
+  padding: 3px 9px;
+  border-radius: 99px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  white-space: nowrap;
+  margin-left: 6px;
+}
+.sp-chip.ev {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.sp-chip.edu {
+  background: #e8efff;
+  color: #3454d1;
+}
+.sp-menu {
+  position: relative;
+}
+.sp-menu > button {
+  border: 0;
+  background: transparent;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 18px;
+  color: var(--muted);
+}
+.sp-menu > button:hover {
+  background: var(--bg);
+}
+.sp-pop {
+  position: absolute;
+  right: 0;
+  top: 34px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+  padding: 6px;
+  z-index: 5;
+  min-width: 150px;
+}
+.sp-pop button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13.5px;
+}
+.sp-pop button:hover {
+  background: var(--bg);
+}
+.sp-post-text {
+  margin: 10px 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.sp-media {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  background: var(--bg);
+}
+.sp-slide {
+  position: absolute;
+  inset: 0;
+  display: none;
+  place-items: center;
+}
+.sp-slide.on {
+  display: grid;
+}
+.sp-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.sp-count {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font: 700 12px var(--font-body);
+  padding: 3px 9px;
+  border-radius: 99px;
+}
+.sp-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.9);
+  color: #111;
+  font-weight: 800;
+}
+.sp-nav.l {
+  left: 8px;
+}
+.sp-nav.r {
+  right: 8px;
+}
+.sp-dots {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+.sp-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+}
+.sp-dots i.on {
+  background: #fff;
+  width: 16px;
+  border-radius: 99px;
+}
+.sp-event {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+.sp-date {
+  background: var(--brand);
+  color: #fff;
+  border-radius: 10px;
+  text-align: center;
+  padding: 6px 10px;
+  font: 800 20px var(--font-display);
+  line-height: 1;
+}
+.sp-date small {
+  display: block;
+  font: 700 10px var(--font-body);
+  letter-spacing: 0.08em;
+  margin-bottom: 3px;
+}
+.sp-event-place {
+  color: var(--muted);
+  font-size: 13px;
+}
+.sp-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.sp-actions button {
+  border: 0;
+  background: transparent;
+  padding: 7px 10px;
+  border-radius: 99px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.sp-actions button:hover {
+  background: var(--bg);
+}
+
+/* report dialogs */
+.sp-rules-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+}
+.sp-reasons {
+  border: 0;
+  padding: 0;
+  margin: 0 0 14px;
+  display: grid;
+  gap: 8px;
+}
+.sp-reasons legend {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.sp-reasons label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+}
+.sp-note {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.sp-note textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font: inherit;
+  resize: vertical;
+}
