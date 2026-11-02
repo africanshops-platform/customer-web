@@ -39,6 +39,7 @@ import { useGetUserAddresses, useCreateUserAddress } from "app/configs/data/serv
 import MyAddresses from "../buz-bookings/user-reservations/MyAddresses";
 import { formatCurrency } from "../../vendors-shop/PosUtils";
 import { selectUser } from "../../../auth/user/store/userSlice";
+import InfoLamp from "src/app/shared-components/InfoLamp";
 
 
 
@@ -80,7 +81,7 @@ const payments = [
 /**
  * Section header — consistent gradient card header used across all sections
  */
-function SectionHeader({ icon, title, subtitle, action }) {
+function SectionHeader({ icon, title, subtitle, action, lamp = false }) {
   return (
     <div
       className="p-4 sm:p-6"
@@ -90,12 +91,16 @@ function SectionHeader({ icon, title, subtitle, action }) {
     >
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div className="flex items-center gap-3">
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)" }}
-          >
-            {icon}
-          </div>
+          {lamp ? (
+            <InfoLamp />
+          ) : (
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)" }}
+            >
+              {icon}
+            </div>
+          )}
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-gray-800">{title}</h2>
             {subtitle && <p className="text-xs sm:text-sm text-gray-600">{subtitle}</p>}
@@ -798,13 +803,9 @@ function FoodCartReview() {
                     style={{ border: "2px solid rgba(234,88,12,0.1)" }}
                   >
                     <SectionHeader
-                      icon={
-                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      }
+                      lamp
                       title="Terms & Conditions"
-                      subtitle="Please read before placing your food order"
+                      subtitle="Good to know before you order"
                     />
 
                     <div className="p-4 sm:p-6">
@@ -887,8 +888,6 @@ function FoodCartReview() {
                                 zoom: 14,
                                 phone: phone || "",
                                 isVerified: true,
-                                rating: 4.8,
-                                totalSales: 1234,
                               }}
                             />
                           </Suspense>

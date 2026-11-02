@@ -7,6 +7,7 @@ import FusePageSimple from "@fuse/core/FusePageSimple";
 import useThemeMediaQuery from "@fuse/hooks/useThemeMediaQuery";
 import { selectUser } from "src/app/auth/user/store/userSlice";
 import { useAppSelector } from "app/store/hooks";
+import { useGetMerchantPreview } from "app/configs/data/server-calls/auth/userapp/a_merchants/useMerchantRepo";
 import {
   useGetMyFoodCart,
   useUpdateFoodCartItemQty,
@@ -38,7 +39,7 @@ const CartItem = ({
   id,
   image,
   title,
-  seller,
+  sellerId,
   unitsLeft,
   price,
   oldPrice,
@@ -47,6 +48,8 @@ const CartItem = ({
   cartItem, // full cart item object to check for bulk order
 }) => {
   const { mutate: updateCartQty } = useUpdateCartItemQty();
+  const { data: sellerPreview } = useGetMerchantPreview(sellerId);
+  const sellerName = sellerPreview?.data?.merchant?.shopname;
 
   const increaseCart = (itemId) => {
     const formData = {
@@ -121,9 +124,11 @@ const CartItem = ({
             >
               {title}
             </Typography>
-            <Typography variant="body2" className="text-gray-600 mb-2">
-              Seller: <span className="font-semibold">{seller}</span>
-            </Typography>
+            {sellerName && (
+              <Typography variant="body2" className="text-gray-600 mb-2">
+                Seller: <span className="font-semibold">{sellerName}</span>
+              </Typography>
+            )}
             <div className="flex items-center gap-2 flex-wrap">
               <Chip
                 label={`${unitsLeft} units left`}
@@ -1105,7 +1110,7 @@ function Cart() {
                                 id={cartItem?.id}
                                 title={cartItem?.product?.name}
                                 image={cartItem?.product?.imageLinks[0]?.url}
-                                seller="Verified Seller"
+                                sellerId={cartItem?.seller || cartItem?.product?.shop}
                                 unitsLeft={cartItem?.product?.quantityInStock}
                                 cartQuantity={cartItem?.quantity}
                                 price={cartItem?.product?.price}
