@@ -24,7 +24,10 @@ import ProductShippingEstimate from "./ProductShippingEstimate";
 import ProductImageGalleryView from "./ProductImageGalleryView";
 import SingleProductLoadingPlaceholder from "./SingleProductLoadingPlaceholder";
 import OffPlatformNotice from "../../../../shared-contact/OffPlatformNotice";
-import { PLATFORM_ORDER_PHONE, PLATFORM_ORDER_TEL } from "../../../../shared-contact/platformContact";
+import {
+  PLATFORM_ORDER_PHONE,
+  PLATFORM_ORDER_TEL,
+} from "../../../../shared-contact/platformContact";
 
 /**
  * Demo Content - Single Product Page
@@ -36,6 +39,7 @@ function DemoContentSingleProduct(props) {
     isLoading,
     isError,
     productData,
+    shopVerified = false,
     onSubmit,
     loading,
     productId,
@@ -48,7 +52,6 @@ function DemoContentSingleProduct(props) {
 
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
-
 
   // Loading state
   if (isLoading) {
@@ -214,7 +217,7 @@ function DemoContentSingleProduct(props) {
                   icon={<Store fontSize="small" />}
                   label="Official Store"
                   component={NavLinkAdapter}
-                  to={`/marketplace/merchant/${productData?.shop}/portal`}
+                  to={`/marketplace/store/${productData?.shop}/view`}
                   clickable
                   sx={{
                     backgroundColor: "#10b981",
@@ -226,26 +229,18 @@ function DemoContentSingleProduct(props) {
                     },
                   }}
                 />
-                <Chip
-                  icon={<Verified fontSize="small" />}
-                  label="Verified Seller"
-                  sx={{
-                    backgroundColor: "#3b82f6",
-                    color: "white",
-                    fontWeight: 600,
-                    fontSize: "0.875rem",
-                  }}
-                />
-                <Chip
-                  icon={<LocalShipping fontSize="small" />}
-                  label="Fast Delivery"
-                  sx={{
-                    backgroundColor: "#f59e0b",
-                    color: "white",
-                    fontWeight: 600,
-                    fontSize: "0.875rem",
-                  }}
-                />
+                {shopVerified && (
+                  <Chip
+                    icon={<Verified fontSize="small" />}
+                    label="Verified Seller"
+                    sx={{
+                      backgroundColor: "#3b82f6",
+                      color: "white",
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                    }}
+                  />
+                )}
               </div>
 
               {/* Product Title */}
@@ -403,7 +398,11 @@ function DemoContentSingleProduct(props) {
                 </div>
                 <ul className="space-y-3">
                   {[
-                    { icon: Phone, text: `Call ${PLATFORM_ORDER_PHONE} to place your order`, color: "#10b981" },
+                    {
+                      icon: Phone,
+                      text: `Call ${PLATFORM_ORDER_PHONE} to place your order`,
+                      color: "#10b981",
+                    },
                     {
                       icon: WhatsApp,
                       text: "Need extra money? Loan up to ₦500,000 on your Africanshops Wallet",
@@ -446,7 +445,7 @@ function DemoContentSingleProduct(props) {
       </div>
 
       {/* Image Gallery Modal */}
-      
+
       <ProductImageGalleryView
         open={galleryOpen}
         onClose={() => setGalleryOpen(false)}

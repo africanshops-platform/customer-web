@@ -34,7 +34,7 @@ import BookingsSinglePageWithSidebarsContentScroll from "../main/zrootclient/buz
 import FoodMartSingleMenuWithContentScrollPage from "../main/zrootclient/buz-foodmart/foodMartSingleMenuPage/FoodMartSingleMenuWithContentScrollPage";
 import SingleProductWithContentScrollPage from "../main/zrootclient/buz-marketplace/shops/singleProductPage/SingleProductWithContentScrollPage";
 import MarketplaceProductsByCatWithContentScrollPage from "../main/zrootclient/buz-marketplace/shops/marketplaceProductsByCat/MarketplaceProductsByCatWithContentScrollPage";
-import MerchantShopPafeWithContentScrollPage from "../main/zrootclient/buz-marketplace/shops/merchanyShopPage/MerchantShopPafeWithContentScrollPage";
+import StorePage, { StoreRedirect } from "../main/zrootclient/buz-marketplace/shops/storePage/StorePage";
 import RealestatePageWithSidebarsContentScrollComponent from "../main/zrootclient/buz-realestates/realestatePage/RealestatePageWithSidebarsContentScrollComponent";
 import RealestateSinglePageWithSidebarsContentScroll from "../main/zrootclient/buz-realestates/realestateSinglePage/RealestateSinglePageWithSidebarsContentScroll";
 import userRealEstatePagesConfig from "../main/zrootclient/buz-realestates/realEstatePagesConfig";
@@ -602,7 +602,22 @@ const routes = [
         },
       },
     },
-    element: <MerchantShopPafeWithContentScrollPage />,
+    element: <StoreRedirect />,
+  },
+  {
+    path: "/marketplace/store/:shopId/view",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: false },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <StorePage />,
   },
   /****
    * ##############################################################
