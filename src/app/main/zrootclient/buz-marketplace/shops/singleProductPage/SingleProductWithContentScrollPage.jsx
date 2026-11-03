@@ -124,6 +124,7 @@ function ActiveSingleProductPage() {
 
   // Memoize derived data to avoid recalculation on every render
   const productData = useMemo(() => product?.data?.product, [product?.data?.product]);
+  const { merchant, market, isLoading: shopLoading } = useShopSellerInfo(productData?.shop);
   const productId = useMemo(() => product?.data?.product?.id, [product?.data?.product?.id]);
   const cartItems = useMemo(
     () => userCartData?.data?.cartSession?.cartProducts,
@@ -146,6 +147,7 @@ function ActiveSingleProductPage() {
     () => (
       <DemoContentSingleProduct
         productData={productData}
+        shopVerified={Boolean(merchant?.verified)}
         isLoading={isLoading}
         isError={isError}
         select={select}
@@ -156,11 +158,20 @@ function ActiveSingleProductPage() {
         cartItems={cartItems}
       />
     ),
-    [productData, isLoading, isError, select, onAddToUserCart, cartLoading, productId, cartItems],
+    [
+      productData,
+      merchant?.verified,
+      isLoading,
+      isError,
+      select,
+      onAddToUserCart,
+      cartLoading,
+      productId,
+      cartItems,
+    ],
   );
 
   // Memoize left sidebar content
-  const { merchant, market, isLoading: shopLoading } = useShopSellerInfo(productData?.shop);
   const shopData = useMemo(() => {
     if (!merchant) return null;
     const lat = Number(market?.lat);
