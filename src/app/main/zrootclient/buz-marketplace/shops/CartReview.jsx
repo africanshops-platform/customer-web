@@ -34,6 +34,7 @@ import { useAppSelector } from "app/store/hooks";
 // import { selectFuseCurrentLayoutConfig } from "@fuse/core/FuseSettings/fuseSettingsSlice";
 import { useMyCart } from "app/configs/data/server-calls/auth/userapp/a_marketplace/useProductsRepo";
 
+import { useGetMerchantPreview } from "app/configs/data/server-calls/auth/userapp/a_merchants/useMerchantRepo";
 import useSellerCountries from "app/configs/data/server-calls/countries/useCountries";
 import {
   getMarketsByLgaId,
@@ -42,6 +43,7 @@ import {
 } from "app/configs/data/client/clientToApiRoutes";
 import MyAddresses from "../../buz-bookings/user-reservations/MyAddresses";
 import TermsAndConditionsPreview from "./components/TermsAndConditionsPreview";
+import InfoLamp from "src/app/shared-components/InfoLamp";
 import useNearestPickup from "../../buz-bookings/user-reservations/useNearestPickup";
 import CartSummaryAndPay from "./components/CartSummaryAndPay";
 // import ClienttErrorPage from "../../components/ClienttErrorPage";
@@ -1060,7 +1062,7 @@ function CartReview() {
                               id={cartItem?.id}
                               title={cartItem?.product?.name}
                               image={cartItem?.product?.imageLinks[0]?.url}
-                              seller="Apple Authorized Reseller"
+                              sellerId={cartItem?.seller || cartItem?.product?.shop}
                               unitsLeft={cartItem?.product?.quantityInStock}
                               cartQuantity={cartItem?.quantity}
                               price={cartItem?.product?.price}
@@ -1335,32 +1337,13 @@ function CartReview() {
                         }}
                       >
                         <div className="flex items-center gap-3">
-                          <div
-                            className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                            style={{
-                              background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-                            }}
-                          >
-                            <svg
-                              className="w-6 h-6 text-white"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                              />
-                            </svg>
-                          </div>
+                          <InfoLamp />
                           <div>
                             <h2 className="text-lg sm:text-xl font-bold text-gray-800">
                               Terms & Conditions
                             </h2>
                             <p className="text-xs sm:text-sm text-gray-600">
-                              Please read before proceeding
+                              Good to know before you pay
                             </p>
                           </div>
                         </div>
@@ -1439,8 +1422,6 @@ function CartReview() {
                                 zoom: 14,
                                 phone: selectedMarketData?.phone || "+234 800 000 0000",
                                 isVerified: true,
-                                rating: 4.8,
-                                totalSales: 1234,
                               }}
                             />
                           </Suspense>
@@ -1919,7 +1900,7 @@ const ReviewCartItem = ({
   id,
   image,
   title,
-  seller,
+  sellerId,
   unitsLeft,
   price,
   oldPrice,
@@ -1927,6 +1908,9 @@ const ReviewCartItem = ({
   cartQuantity,
   cartItem, // full cart item object to check for bulk order
 }) => {
+  const { data: sellerPreview } = useGetMerchantPreview(sellerId);
+  const sellerName = sellerPreview?.data?.merchant?.shopname;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -1946,7 +1930,7 @@ const ReviewCartItem = ({
       />
       <div className="flex-1">
         <h3 className="text-base font-semibold text-gray-800 mb-1">{title}</h3>
-        <p className="text-sm text-gray-500 mb-1">Seller: {seller}</p>
+        {sellerName && <p className="text-sm text-gray-500 mb-1">Seller: {sellerName}</p>}
         <p className="text-sm text-red-500 font-medium">{unitsLeft} units left</p>
         <p className="text-sm text-gray-600 mt-1">Quantity: {cartQuantity}</p>
       </div>

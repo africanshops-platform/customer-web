@@ -1,10 +1,15 @@
 import { useEffect, useMemo } from "react";
+import { useQuery } from "react-query";
 import "leaflet/dist/leaflet.css";
-import { MapContainer, TileLayer, Marker, Popup, useMap, Polygon } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Typography, Chip } from "@mui/material";
 import { LocationOnOutlined, ShoppingCartOutlined } from "@mui/icons-material";
+import { useAppSelector } from "app/store/hooks";
+import { selectUser } from "src/app/auth/user/store/userSlice";
 import { useGetSingleState } from "app/configs/data/server-calls/states/useStates";
+import { getApiAuthUser } from "app/configs/data/client/RepositoryAuthClient";
+import { getMarketsByLgaId } from "app/configs/data/client/RepositoryClient";
 import { calculateCartTotalAmount, formatCurrency } from "src/app/main/vendors-shop/PosUtils";
 
 // Fix for default marker icons in Leaflet
@@ -40,20 +45,57 @@ function MapBounds({ center, zoom }) {
   return null;
 }
 
+// Nigeria-wide view, used only when neither the cart nor the customer's profile says where they shop.
+const NIGERIA_CENTER = [9.082, 8.6753];
+
+const toPoint = (lat, lng) => {
+  const la = Number(lat);
+  const ln = Number(lng);
+  return lat != null &&
+    lat !== "" &&
+    lng != null &&
+    lng !== "" &&
+    Number.isFinite(la) &&
+    Number.isFinite(ln)
+    ? [la, ln]
+    : null;
+};
+
 /**
  * MarketplaceMap Component
- * Shows the active shopping cart state with highlighting
- * Uses dummy data for demonstration - will be replaced with API data
+ * Shows the region the customer is shopping in: the cart's state when there is a cart, otherwise the
+ * customer's own market (from their profile), then their state, then a Nigeria-wide view.
  */
 function MarketplaceMap({ cartData }) {
-  const { data: stateData } = useGetSingleState(cartData?.stateId);
-  const stateCenter = useMemo(
-    () =>
-      stateData?.data?.state
-        ? [stateData.data.state.latitude, stateData.data.state.longitude]
-        : [6.5244, 3.3792],
-    [stateData?.data?.state],
+  const user = useAppSelector(selectUser);
+  const { data: profile } = useQuery(["__authUserData"], getApiAuthUser, {
+    enabled: Boolean(user?.email),
+    staleTime: 300000,
+  });
+  const me = profile?.data?.user || profile?.data;
+
+  const stateId = cartData?.stateId || me?.stateorigin;
+  const { data: stateData } = useGetSingleState(stateId);
+  const state = stateData?.data?.state;
+
+  const { data: lgaMarkets } = useQuery(
+    ["__marketsByLga", me?.lgaorigin],
+    () => getMarketsByLgaId(me.lgaorigin),
+    {
+      enabled: Boolean(!cartData?.stateId && me?.lgaorigin),
+      staleTime: 300000,
+    },
   );
+  const myMarketId = me?.pickUpOrigin || me?.market;
+  const myMarket = lgaMarkets?.data?.markets?.find((m) => m.id === myMarketId);
+
+  const view = useMemo(() => {
+    const marketPoint = !cartData?.stateId && toPoint(myMarket?.lat, myMarket?.lng);
+    if (marketPoint) return { center: marketPoint, zoom: 13, name: myMarket.name };
+    const statePoint = toPoint(state?.latitude, state?.longitude);
+    if (statePoint) return { center: statePoint, zoom: 10, name: state.name };
+    return { center: NIGERIA_CENTER, zoom: 6, name: null };
+  }, [cartData?.stateId, myMarket, state]);
   let checkItemsArrayForTotal = [];
   cartData?.cartProducts?.forEach((element) => {
     // Check if item is bulk order and use appropriate price
@@ -78,28 +120,18 @@ function MarketplaceMap({ cartData }) {
 
   const totalAmount = calculateCartTotalAmount(checkItemsArrayForTotal);
 
-  // Dummy data for active shopping state
-  // This will be replaced with API data from the user's active cart session
-  const activeState = useMemo(() => {
-    return {
-      id: stateData?.data?.state?.name || "Lagos", // Fallback to Lagos if state data is not available
-      name: stateData?.data?.state?.name || "None currently",
-      center: stateCenter, // Lagos coordinates
-      zoom: 10,
-      // Approximate boundary coordinates for Lagos (simplified polygon)
-      boundary: [
-        [6.7027, 3.2019],
-        [6.6989, 3.5869],
-        [6.4281, 3.5869],
-        [6.388, 3.2019],
-        [6.7027, 3.2019],
-      ],
+  const activeState = useMemo(
+    () => ({
+      name: view.name || "None currently",
+      center: view.center,
+      zoom: view.zoom,
       cartInfo: {
         itemCount: cartData?.cartProducts?.length || 0,
         totalValue: formatCurrency(totalAmount) || 0,
       },
-    };
-  }, []);
+    }),
+    [view, cartData?.cartProducts?.length, totalAmount],
+  );
 
   return (
     <div className="w-full h-full relative rounded-2xl overflow-hidden shadow-lg">
@@ -228,18 +260,6 @@ function MarketplaceMap({ cartData }) {
 
         {/* Auto-adjust bounds */}
         <MapBounds center={activeState.center} zoom={activeState.zoom} />
-
-        {/* State Boundary Polygon - Highlighted */}
-        <Polygon
-          positions={activeState.boundary}
-          pathOptions={{
-            color: "#10b981",
-            fillColor: "#10b981",
-            fillOpacity: 0.2,
-            weight: 3,
-            dashArray: "10, 10",
-          }}
-        />
 
         {/* Center Marker for the state */}
         <Marker position={activeState.center} icon={cartIcon}>

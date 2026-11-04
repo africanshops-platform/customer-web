@@ -41,10 +41,8 @@ function DemoSidebarRight({ menu, foodMart }) {
       className="flex flex-col h-screen p-6"
       style={{ background: "linear-gradient(180deg, #fafaf9 0%, #f3f4f6 100%)" }}
     >
-
       {/* ── Delivery Route section — 60% ── */}
       <div className="flex-[6] flex flex-col min-h-0 mb-4">
-
         {/* Header — same style as MarketplaceDemoSidebarRight */}
         <div
           className="mb-4 p-4 rounded-xl flex items-center gap-3 flex-shrink-0"
@@ -63,7 +61,6 @@ function DemoSidebarRight({ menu, foodMart }) {
         <div className="flex-1 min-h-0 rounded-2xl overflow-hidden shadow-2xl">
           <DeliveryRouteMap restaurant={foodMart} />
         </div>
-
       </div>
 
       {/* ── FoodMart Official Restaurant — 40% ── */}
@@ -75,25 +72,19 @@ function DemoSidebarRight({ menu, foodMart }) {
         {/* Scrollable so it never overflows on short screens */}
         <div className="flex-1 min-h-0 overflow-y-auto">
           <SellerInformation
-            sellerName={foodMart?.title || "FoodMart Official Restaurant"}
+            sellerName={foodMart?.title || "Restaurant"}
             sellerDescription={
-              foodMart?.description
-                ? foodMart.description.length > 80
-                  ? `${foodMart.description.slice(0, 80)}…`
-                  : foodMart.description
-                : "Serving delicious meals with passion since day one"
+              foodMart?.description && foodMart.description.length > 80
+                ? `${foodMart.description.slice(0, 80)}…`
+                : foodMart?.description
             }
-            sellerScore={96}
-            followers={foodMart?.followers ?? 3200}
-            products={450}
-            shippingSpeed={{ label: "Excellent", value: 97, color: "green" }}
-            qualityScore={{ label: "Excellent", value: 99, color: "green" }}
-            customerRating={{ label: "Excellent", value: 95, color: "green" }}
-            responseTime={{ label: "Very Fast", value: 98, color: "blue" }}
+            address={foodMart?.address}
+            rating={foodMart?.rating}
+            numReviews={foodMart?.numReviews}
+            memberSince={foodMart?.createdAt ? new Date(foodMart.createdAt).getFullYear() : null}
           />
         </div>
       </div>
-
     </div>
   );
 }

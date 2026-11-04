@@ -1,0 +1,663 @@
+/* Official Store page. Ported from the approved design preview (Official Store Preview artifact): same tokens, sizes and
+   radii, scoped under .sp so nothing leaks into the rest of the app. Sizes are in px on purpose: this app's root font
+   size is small, so rem-based utility classes do not match the design. */
+.sp {
+  --brand: #ea580c;
+  --brand-soft: #fff1e6;
+  --glow: rgba(249, 115, 22, 0.45);
+  --ink: #1c1917;
+  --muted: #6b6560;
+  --bg: #f6f4f1;
+  --surface: #ffffff;
+  --line: #e9e4de;
+  --ok: #0f9d6b;
+  --ok-soft: #e2f6ee;
+  --font-display: "Sora", "Segoe UI", sans-serif;
+  --font-body: "Manrope", "Segoe UI", sans-serif;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+  box-sizing: border-box;
+}
+.sp *,
+.sp *::before,
+.sp *::after {
+  box-sizing: border-box;
+}
+.sp h1,
+.sp h2,
+.sp h3 {
+  font-family: var(--font-display);
+  margin: 0;
+  text-wrap: balance;
+  letter-spacing: normal;
+}
+.sp p {
+  margin: 0;
+}
+.sp button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.sp a,
+.sp a:link,
+.sp a:visited,
+.sp a:hover,
+.sp a:active {
+  color: inherit;
+  text-decoration: none !important;
+}
+.sp a.sp-primary,
+.sp a.sp-primary:link,
+.sp a.sp-primary:visited,
+.sp a.sp-primary:hover {
+  color: #fff;
+}
+.sp :focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.sp .num {
+  font-variant-numeric: tabular-nums;
+}
+
+.sp-center {
+  width: 100%;
+  align-content: start;
+  padding: 16px;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.sp-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* hero */
+.sp-hero {
+  position: relative;
+}
+.sp-cover {
+  height: 150px;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.28) 0 14%, transparent 15%),
+    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.18) 0 18%, transparent 19%),
+    linear-gradient(120deg, #ea580c, #f59e0b 60%, #dc2626);
+}
+.sp-hero-body {
+  padding: 0 20px 18px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: start;
+  margin-top: -38px;
+}
+.sp-hero-body > div:nth-child(2) {
+  padding-top: 46px;
+}
+.sp-logo {
+  width: 84px;
+  height: 84px;
+  border-radius: 22px;
+  background: var(--surface);
+  border: 4px solid var(--surface);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  display: grid;
+  place-items: center;
+  font: 800 28px var(--font-display);
+  color: var(--brand);
+}
+.sp-logo span {
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: var(--brand-soft);
+}
+.sp-hero h1 {
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.25;
+}
+.sp-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 700 12px var(--font-body);
+  color: var(--ok);
+  background: var(--ok-soft);
+  padding: 4px 9px;
+  border-radius: 99px;
+}
+.sp-meta {
+  color: var(--muted);
+  font-size: 13.5px;
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+.sp-cta {
+  display: flex;
+  gap: 8px;
+  padding-top: 52px;
+}
+.sp-btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 9px 16px;
+  border-radius: 99px;
+  font-weight: 700;
+  font-size: 14px;
+  display: inline-block;
+  text-align: center;
+}
+.sp-primary {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+  box-shadow: 0 6px 16px var(--glow);
+}
+.sp-stats {
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+.sp-stats div {
+  padding: 12px 20px;
+  border-right: 1px solid var(--line);
+  min-width: 0;
+}
+.sp-stats div:last-child {
+  border-right: 0;
+}
+.sp-stats b {
+  display: block;
+  font: 800 20px var(--font-display);
+}
+.sp-stats span {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+@media (max-width: 640px) {
+  .sp-hero-body {
+    grid-template-columns: auto 1fr;
+  }
+  .sp-cta {
+    grid-column: 1 / -1;
+    padding-top: 0;
+  }
+}
+
+/* listings */
+.sp-sec-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 20px 4px;
+}
+.sp-sec-head h2 {
+  font-size: 18px;
+  font-weight: 700;
+}
+.sp-sec-head small {
+  color: var(--muted);
+  font-size: 13px;
+}
+.sp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+  padding: 14px 20px 20px;
+}
+.sp-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+  display: flex;
+  flex-direction: column;
+}
+.sp-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.12);
+}
+.sp-art {
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.sp-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.sp-art svg {
+  width: 46%;
+  height: auto;
+  opacity: 0.92;
+}
+.sp-off {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: #dc2626;
+  color: #fff;
+  font: 800 11px var(--font-body);
+  padding: 3px 8px;
+  border-radius: 99px;
+}
+.sp-txt {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.sp-txt h3 {
+  font: 700 14px var(--font-body);
+}
+.sp-price {
+  font: 800 17px var(--font-display);
+  color: var(--brand);
+  margin-top: 4px;
+}
+.sp-price s {
+  color: var(--muted);
+  font: 500 12px var(--font-body);
+  margin-left: 6px;
+}
+.sp-add {
+  margin-top: 10px;
+  width: 100%;
+  border: 1.5px solid var(--brand);
+  color: var(--brand);
+  background: transparent;
+  border-radius: 10px;
+  padding: 7px;
+  font-weight: 700;
+  font-size: 13px;
+}
+.sp-add:hover {
+  background: var(--brand);
+  color: #fff;
+}
+.sp-add[disabled] {
+  opacity: 0.6;
+  cursor: default;
+}
+.sp-more {
+  display: block;
+  margin: 0 auto 22px;
+}
+
+/* right: updates and posts */
+.sp-feed {
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+.sp-status {
+  padding: 14px 0;
+}
+.sp-status header {
+  padding: 0 16px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sp-status h2 {
+  font-size: 16px;
+  font-weight: 700;
+}
+.sp-status header small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.sp-rules {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 10px 16px;
+  background: var(--bg);
+  border-radius: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.sp-empty {
+  text-align: center;
+  padding: 26px 20px 28px;
+}
+.sp-empty svg {
+  width: 150px;
+  height: auto;
+  margin-bottom: 8px;
+}
+.sp-empty h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.sp-empty p {
+  color: var(--muted);
+  margin: 0 auto;
+  max-width: 30ch;
+}
+
+/* loading */
+.sp-sk {
+  background: linear-gradient(90deg, var(--line) 25%, var(--bg) 50%, var(--line) 75%);
+  background-size: 200% 100%;
+  animation: sp-shimmer 1.4s infinite;
+  border-radius: 10px;
+}
+@keyframes sp-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sp-sk {
+    animation: none;
+  }
+  .sp-card {
+    transition: none;
+  }
+}
+
+/* posts (right column) */
+.sp-post {
+  padding: 14px 16px 12px;
+}
+.sp-post header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.sp-av {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  display: grid;
+  place-items: center;
+  font: 800 14px var(--font-display);
+  flex: none;
+}
+.sp-post header > div:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.sp-post header b {
+  display: block;
+  font-size: 14px;
+}
+.sp-post header small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.sp-chip {
+  font: 700 11px var(--font-body);
+  padding: 3px 9px;
+  border-radius: 99px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  white-space: nowrap;
+  margin-left: 6px;
+}
+.sp-chip.ev {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.sp-chip.edu {
+  background: #e8efff;
+  color: #3454d1;
+}
+.sp-menu {
+  position: relative;
+}
+.sp-menu > button {
+  border: 0;
+  background: transparent;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 18px;
+  color: var(--muted);
+}
+.sp-menu > button:hover {
+  background: var(--bg);
+}
+.sp-pop {
+  position: absolute;
+  right: 0;
+  top: 34px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+  padding: 6px;
+  z-index: 5;
+  min-width: 150px;
+}
+.sp-pop button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13.5px;
+}
+.sp-pop button:hover {
+  background: var(--bg);
+}
+.sp-post-text {
+  margin: 10px 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.sp-media {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  background: var(--bg);
+}
+.sp-slide {
+  position: absolute;
+  inset: 0;
+  display: none;
+  place-items: center;
+}
+.sp-slide.on {
+  display: grid;
+}
+.sp-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.sp-count {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font: 700 12px var(--font-body);
+  padding: 3px 9px;
+  border-radius: 99px;
+}
+.sp-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.9);
+  color: #111;
+  font-weight: 800;
+}
+.sp-nav.l {
+  left: 8px;
+}
+.sp-nav.r {
+  right: 8px;
+}
+.sp-dots {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+.sp-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+}
+.sp-dots i.on {
+  background: #fff;
+  width: 16px;
+  border-radius: 99px;
+}
+.sp-event {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+.sp-date {
+  background: var(--brand);
+  color: #fff;
+  border-radius: 10px;
+  text-align: center;
+  padding: 6px 10px;
+  font: 800 20px var(--font-display);
+  line-height: 1;
+}
+.sp-date small {
+  display: block;
+  font: 700 10px var(--font-body);
+  letter-spacing: 0.08em;
+  margin-bottom: 3px;
+}
+.sp-event-place {
+  color: var(--muted);
+  font-size: 13px;
+}
+.sp-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.sp-actions button {
+  border: 0;
+  background: transparent;
+  padding: 7px 10px;
+  border-radius: 99px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.sp-actions button:hover {
+  background: var(--bg);
+}
+
+/* report dialogs */
+.sp-rules-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+}
+.sp-reasons {
+  border: 0;
+  padding: 0;
+  margin: 0 0 14px;
+  display: grid;
+  gap: 8px;
+}
+.sp-reasons legend {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.sp-reasons label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+}
+.sp-note {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.sp-note textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font: inherit;
+  resize: vertical;
+}
+
+/* Statuses (S20, P1b): the ring strip and the full-screen viewer */
+.sp-ring-row { display: flex; gap: 14px; padding: 6px 16px 16px; overflow-x: auto; }
+.sp-ring { background: none; border: 0; padding: 0; cursor: pointer; display: grid; justify-items: center; gap: 6px; flex: 0 0 auto; font: inherit; }
+.sp-ring-pic { width: 68px; height: 68px; border-radius: 50%; padding: 3px; background: conic-gradient(var(--brand), #fdba74, var(--brand)); display: block; }
+.sp-ring-pic img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid #fff; display: block; }
+.sp-ring small { color: var(--muted); font-size: 11.5px; }
+.sp-ring:hover .sp-ring-pic { transform: scale(1.05); }
+.sp-ring-pic { transition: transform .15s; }
+@media (prefers-reduced-motion: reduce) { .sp-ring-pic { transition: none; } }
+
+.sp-story { position: fixed; inset: 0; z-index: 1300; background: rgba(0, 0, 0, .86); display: grid; place-items: center; }
+.sp-story-card { position: relative; width: min(420px, 100vw); height: min(92vh, 760px); background: #111827; border-radius: 18px; overflow: hidden; }
+.sp-story-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.sp-story-bars { position: absolute; z-index: 3; top: 10px; left: 10px; right: 10px; display: flex; gap: 4px; }
+.sp-story-bars span { flex: 1; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .35); overflow: hidden; }
+.sp-story-bars i { display: block; height: 100%; background: #fff; }
+.sp-story-top { position: absolute; z-index: 3; top: 22px; left: 12px; right: 12px; display: flex; align-items: center; gap: 8px; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
+.sp-story-top small { opacity: .85; }
+.sp-story-top button { margin-left: auto; background: none; border: 0; color: #fff; font-size: 28px; line-height: 1; cursor: pointer; }
+.sp-story-zone { position: absolute; z-index: 2; top: 60px; bottom: 120px; width: 40%; background: none; border: 0; cursor: pointer; }
+.sp-story-prev { left: 0; }
+.sp-story-next { right: 0; }
+.sp-story-bottom { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; padding: 40px 16px 20px; background: linear-gradient(transparent, rgba(0, 0, 0, .8)); color: #fff; display: grid; gap: 12px; }
+.sp-story-bottom p { margin: 0; font-size: 15px; line-height: 1.4; }
+.sp-story .sp-story-cta { display: block; text-align: center; background: var(--brand, #ea580c); color: #fff; border: 0; border-radius: 99px; padding: 12px 16px; font-weight: 800; font-size: 15px; cursor: pointer; text-decoration: none; }
