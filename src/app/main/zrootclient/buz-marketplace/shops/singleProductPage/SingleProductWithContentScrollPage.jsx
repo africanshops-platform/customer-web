@@ -5,6 +5,7 @@ import useThemeMediaQuery from "@fuse/hooks/useThemeMediaQuery";
 import DemoHeader from "./shared-components/DemoHeader";
 import DemoContentSingleProduct from "./shared-components/DemoContentSingleProduct";
 import DemoSidebar from "./shared-components/DemoSidebar";
+import { useShopSellerInfo } from "app/configs/data/server-calls/auth/userapp/a_merchants/useMerchantRepo";
 import DemoSidebarRight from "./shared-components/DemoSidebarRight";
 import FusePageSimpleWithMargin from "@fuse/core/FusePageSimple/FusePageSimpleWithMargin";
 import useGetAllProducts, {
@@ -123,6 +124,7 @@ function ActiveSingleProductPage() {
 
   // Memoize derived data to avoid recalculation on every render
   const productData = useMemo(() => product?.data?.product, [product?.data?.product]);
+  const { merchant, market, isLoading: shopLoading } = useShopSellerInfo(productData?.shop);
   const productId = useMemo(() => product?.data?.product?.id, [product?.data?.product?.id]);
   const cartItems = useMemo(
     () => userCartData?.data?.cartSession?.cartProducts,
@@ -145,6 +147,7 @@ function ActiveSingleProductPage() {
     () => (
       <DemoContentSingleProduct
         productData={productData}
+        shopVerified={Boolean(merchant?.verified)}
         isLoading={isLoading}
         isError={isError}
         select={select}
@@ -155,11 +158,40 @@ function ActiveSingleProductPage() {
         cartItems={cartItems}
       />
     ),
-    [productData, isLoading, isError, select, onAddToUserCart, cartLoading, productId, cartItems],
+    [
+      productData,
+      merchant?.verified,
+      isLoading,
+      isError,
+      select,
+      onAddToUserCart,
+      cartLoading,
+      productId,
+      cartItems,
+    ],
   );
 
   // Memoize left sidebar content
-  const leftSidebarContentComponent = useMemo(() => <DemoSidebar />, []);
+  const shopData = useMemo(() => {
+    if (!merchant) return null;
+    const lat = Number(market?.lat);
+    const lng = Number(market?.lng);
+    return {
+      id: merchant.id,
+      shopName: merchant.shopname,
+      address: merchant.address || market?.localityaddress,
+      marketName: market?.name,
+      coordinates: Number.isFinite(lat) && Number.isFinite(lng) && market?.lat ? [lat, lng] : null,
+      zoom: 14,
+      phone: merchant.shopphone,
+      isVerified: Boolean(merchant.verified),
+      memberSince: merchant.createdAt ? new Date(merchant.createdAt).getFullYear() : null,
+    };
+  }, [merchant, market]);
+  const leftSidebarContentComponent = useMemo(
+    () => <DemoSidebar shopData={shopData} isLoading={isLoading || shopLoading} />,
+    [shopData, isLoading, shopLoading],
+  );
 
   // Memoize right sidebar content
   const rightSidebarContentComponent = useMemo(
@@ -189,7 +221,6 @@ const MemoizedActiveSingleProductPage = memo(ActiveSingleProductPage);
  * Main Single Product Page Component with Service Status Check
  * Wraps the active single product page with service status landing pages
  */
-
 
 function SingleProductWithContentScrollPage() {
   // Fetch user app settings
