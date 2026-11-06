@@ -9,9 +9,9 @@ import CircularProgress from '@mui/material/CircularProgress';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useTransferLimits, useSetTransferLimits, useConfirmTransferLimitIncrease } from '../../hooks/useFintechApi';
 import { F, fieldSx } from '../../financeUiTokens';
+import TransactionPinField from './TransactionPinField';
 
 const naira = (kobo) => `₦${(kobo / 100).toLocaleString('en-NG')}`;
-const shortNaira = (kobo) => (kobo >= 100_000_000 ? `${kobo / 100_000_000}m` : `${kobo / 100_000}k`);
 
 function LimitField({ label, value, onChange, tokens }) {
   return (
@@ -150,10 +150,18 @@ export default function TransferLimitsCard({ account, tokens, card }) {
                     min={0}
                     max={steps.length - 1}
                     step={1}
-                    marks={steps.map((v, i) => ({ value: i, label: shortNaira(v) }))}
+                    marks={steps.map((v, i) => ({ value: i, label: naira(v) }))}
                     onChange={(_, v) => setStep(v)}
                     aria-label="Daily transfer limit"
-                    sx={{ color: tokens.accentSolid }}
+                    sx={{
+                      color: tokens.accentSolid,
+                      // Full amounts under the marks; the first and last stay inside the card, and on a narrow screen
+                      // only the chosen amount (shown above) is spelled out so the labels never overlap.
+                      '& .MuiSlider-markLabel': { fontSize: 11, whiteSpace: 'nowrap' },
+                      '& .MuiSlider-markLabel[data-index="0"]': { transform: 'translateX(-20%)' },
+                      '& .MuiSlider-markLabel[data-index="5"]': { transform: 'translateX(-80%)' },
+                      '@media (max-width: 520px)': { '& .MuiSlider-markLabel': { display: 'none' } },
+                    }}
                   />
                 </div>
               </div>
@@ -170,18 +178,11 @@ export default function TransferLimitsCard({ account, tokens, card }) {
 
           {awaitingCode && (
             <div className="max-w-lg" style={{ marginTop: 16 }}>
-              <Typography style={{ fontSize: F.small, fontWeight: 600, color: tokens.textPrimary, marginBottom: 6 }}>Code from your email</Typography>
-              <div className="flex gap-12">
-                <TextField
-                  value={code}
-                  onChange={e => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                  placeholder="6-digit code"
-                  inputProps={{ inputMode: 'numeric', maxLength: 6 }}
-                  sx={fieldSx(tokens)}
-                />
+              <TransactionPinField value={code} onChange={setCode} tokens={tokens} label="Code from your email" masked={false} />
+              <div className="flex justify-center">
                 <Button
                   variant="contained" disabled={confirming || code.length !== 6} onClick={handleConfirm}
-                  sx={{ background: tokens.accentGradient, borderRadius: '12px', fontWeight: 700, px: 3, textTransform: 'none', fontSize: F.body }}
+                  sx={{ background: tokens.accentGradient, borderRadius: '12px', fontWeight: 700, px: 4, textTransform: 'none', fontSize: F.body }}
                 >
                   {confirming ? <CircularProgress size={20} sx={{ color: 'white' }} /> : 'Confirm'}
                 </Button>

@@ -6,10 +6,10 @@ const LENGTH = 6;
 
 /**
  * 6-digit transaction PIN as six single boxes: typing a digit moves to the next box, Backspace steps back, the arrow keys
- * move between boxes and a pasted PIN fills them all. Same props and same value (a string of up to 6 digits) as before,
+ * move between boxes and a pasted PIN fills them all. `masked={false}` shows the digits (used for the emailed code). Same props and same value (a string of up to 6 digits) as before,
  * so every screen that uses it keeps working unchanged. Matches the PIN set at WalletSetupWizard account creation.
  */
-export default function TransactionPinField({ value = '', onChange, tokens, label = 'Enter transaction PIN' }) {
+export default function TransactionPinField({ value = '', onChange, tokens, label = 'Enter transaction PIN', masked = true }) {
   const refs = useRef([]);
   const digits = Array.from({ length: LENGTH }, (_, i) => value[i] ?? '');
 
@@ -78,7 +78,7 @@ export default function TransactionPinField({ value = '', onChange, tokens, labe
             ref={(el) => {
               refs.current[i] = el;
             }}
-            type="password"
+            type={masked ? 'password' : 'text'}
             inputMode="numeric"
             pattern="[0-9]*"
             autoComplete="off"
