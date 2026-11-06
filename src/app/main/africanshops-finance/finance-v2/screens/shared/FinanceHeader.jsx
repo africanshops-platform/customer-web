@@ -25,6 +25,8 @@ const PAGE_META = {
   '/africanshops/finance-v2/withdrawal':   { title: 'Withdraw',      subtitle: 'Move money to your own bank account' },
   '/africanshops/finance-v2/savings':      { title: 'Savings',       subtitle: 'Earn on money you set aside' },
   '/africanshops/finance-v2/wallets':      { title: 'Wallets',       subtitle: 'Multi-currency accounts' },
+  '/africanshops/finance-v2/kyc':          { title: 'KYC Verification', subtitle: 'Verify your identity to unlock more' },
+  '/africanshops/finance-v2/settings':     { title: 'Settings',      subtitle: 'Security and limits' },
   '/africanshops/finance-v2/cards':        { title: 'Cards',         subtitle: 'Virtual card details' },
   '/africanshops/finance-v2/beneficiaries': { title: 'Beneficiaries', subtitle: 'People and accounts you send to' },
 };
