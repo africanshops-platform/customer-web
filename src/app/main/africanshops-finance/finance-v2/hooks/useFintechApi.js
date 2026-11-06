@@ -451,6 +451,29 @@ export function useSetTransferLimits() {
   return { mutate, isLoading, error };
 }
 
+// Step two of a limit raise: the emailed code starts the 24h wait.
+export function useConfirmTransferLimitIncrease() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const mutate = useCallback(async (accountNumber, otp) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await AuthApi().post(`/fintech-accounts/user/account/${accountNumber}/transfer-limits/confirm`, { otp });
+      return unwrap(res);
+    } catch (err) {
+      const msg = err?.response?.data?.message ?? 'Could not confirm the code';
+      setError(msg);
+      throw new Error(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { mutate, isLoading, error };
+}
+
 // Retail-8 (2026-07-12): fund default wallet via card checkout (react-paystack
 // inline popup, same component already used on bookings/marketplace/foodmart)
 export function useVerifyWalletFunding() {
