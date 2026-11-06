@@ -756,6 +756,12 @@ export function useCrossCurrencyTransfer() {
   return { mutate, isLoading, error };
 }
 
+// Dynamic currency registry (2026-11-06, board F13): the currencies, their look and what can be done with each come from
+// the server. CURRENCIES and CURRENCY_SYMBOLS below stay as the fallback for screens that have not moved over yet.
+export const useCurrencies = makeHook(() =>
+  AuthApi().get('/fintech-accounts/user/currencies').then(r => unwrap(r)?.currencies ?? [])
+);
+
 export const CURRENCIES = ['NGN', 'GHS', 'KES', 'ZAR', 'UGX', 'TZS', 'XOF', 'XAF', 'EGP', 'MAD'];
 
 export const CURRENCY_SYMBOLS = {
