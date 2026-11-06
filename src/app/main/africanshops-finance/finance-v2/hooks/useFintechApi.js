@@ -122,6 +122,33 @@ export const useFintechKycStatus = makeHook((accountNumber) =>
     : Promise.resolve(null)
 );
 
+// Wallet beneficiaries with groups (2026-11-06, board F12): accounts saved for wallet-to-wallet transfers.
+export const useWalletBeneficiaries = makeHook((accountNumber) =>
+  accountNumber
+    ? AuthApi().get(`/fintech-accounts/user/account/${accountNumber}/wallet-beneficiaries`).then(r => unwrap(r))
+    : Promise.resolve(null)
+);
+
+/** Write calls for wallet beneficiaries and their groups. Each returns the server's answer or throws with its message. */
+export function useWalletBeneficiaryActions(accountNumber) {
+  const base = `/fintech-accounts/user/account/${accountNumber}`;
+  const call = useCallback(async (run, fallback) => {
+    try {
+      return unwrap(await run());
+    } catch (err) {
+      throw new Error(err?.response?.data?.message ?? fallback);
+    }
+  }, []);
+  return {
+    add: (dto) => call(() => AuthApi().post(`${base}/wallet-beneficiaries`, dto), 'Could not save this account'),
+    update: (id, dto) => call(() => AuthApi().put(`${base}/wallet-beneficiaries/${id}`, dto), 'Could not update this account'),
+    remove: (id) => call(() => AuthApi().delete(`${base}/wallet-beneficiaries/${id}`), 'Could not remove this account'),
+    createGroup: (name) => call(() => AuthApi().post(`${base}/wallet-beneficiary-groups`, { name }), 'Could not create the group'),
+    renameGroup: (id, name) => call(() => AuthApi().put(`${base}/wallet-beneficiary-groups/${id}`, { name }), 'Could not rename the group'),
+    deleteGroup: (id) => call(() => AuthApi().delete(`${base}/wallet-beneficiary-groups/${id}`), 'Could not delete the group'),
+  };
+}
+
 export const useBeneficiaries = makeHook((accountNumber) =>
   accountNumber
     ? AuthApi().get(`/fintech-accounts/user/beneficiary/list/${accountNumber}`).then(r => unwrap(r) ?? [])
