@@ -77,8 +77,10 @@ function NotPublishedState({ title }) {
 	);
 }
 
-function LegalDocumentPage({ documentKey, eyebrow = 'Legal' }) {
-	const { data: doc, isLoading, isError } = useLegalDocument(documentKey);
+function LegalDocumentPage({ documentKey, eyebrow = 'Legal', staticDocument = null }) {
+	// A static document (for example the delete-account page) is rendered as is: no request, no loading state.
+	const { data: fetched, isLoading, isError } = useLegalDocument(staticDocument ? null : documentKey);
+	const doc = staticDocument || fetched;
 	const [activeSection, setActiveSection] = useState(null);
 
 	const headings = useMemo(() => extractHeadings(doc?.content), [doc?.content]);
