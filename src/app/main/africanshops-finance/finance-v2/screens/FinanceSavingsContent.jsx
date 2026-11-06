@@ -19,6 +19,7 @@ import {
 } from '../hooks/useFintechApi';
 import { useFinanceTheme } from '../FinanceThemeContext';
 import TransactionPinField from './shared/TransactionPinField';
+import SavingsPlans from './shared/SavingsPlans';
 import { fieldSx } from '../financeUiTokens';
 
 const F = {
@@ -266,6 +267,10 @@ export default function FinanceSavingsContent() {
 
           </>
         )}
+
+        <motion.div variants={item} style={{ display: 'grid', gap: 20 }}>
+          <SavingsPlans accountNumber={account?.accountNumber} onChanged={() => { refetch(); refetchFinanceData?.(); }} />
+        </motion.div>
         </div>
 
         <motion.div variants={item} style={{ display: 'grid', gap: 20, minWidth: 0 }}>

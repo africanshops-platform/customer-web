@@ -149,6 +149,33 @@ export function useWalletBeneficiaryActions(accountNumber) {
   };
 }
 
+// Savings plans (2026-11-06): the fixed-term deposits the server already offers (3, 6, 9 and 12 months) and every plan's rate.
+export const useAllHighYieldRates = makeHook(() =>
+  AuthApi().get('/fintech-accounts/high-yield/rates').then(r => unwrap(r))
+);
+
+export const useFixedDeposits = makeHook((accountNumber) =>
+  accountNumber
+    ? AuthApi().get(`/fintech-accounts/user/account/${accountNumber}/fixed-deposit/list`).then(r => unwrap(r))
+    : Promise.resolve(null)
+);
+
+/** Open and withdraw calls for fixed deposits. Each returns the server's answer or throws with its message. */
+export function useFixedDepositActions(accountNumber) {
+  const base = `/fintech-accounts/user/account/${accountNumber}/fixed-deposit`;
+  const call = useCallback(async (run, fallback) => {
+    try {
+      return unwrap(await run());
+    } catch (err) {
+      throw new Error(err?.response?.data?.message ?? fallback);
+    }
+  }, []);
+  return {
+    open: (productKey, amountKobo, transactionPin) => call(() => AuthApi().post(`${base}/open`, { productKey, amountKobo, transactionPin }), 'Could not open this plan'),
+    withdraw: (fixedDepositId, transactionPin) => call(() => AuthApi().post(`${base}/withdraw`, { fixedDepositId, transactionPin }), 'Could not withdraw this plan'),
+  };
+}
+
 export const useBeneficiaries = makeHook((accountNumber) =>
   accountNumber
     ? AuthApi().get(`/fintech-accounts/user/beneficiary/list/${accountNumber}`).then(r => unwrap(r) ?? [])
