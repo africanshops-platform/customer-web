@@ -36,7 +36,9 @@ export function describeTx(tx) {
   if (!raw) return { title: credit ? 'Money received' : 'Money sent', sub: '' };
   // Civic wallet funding is money moving between your own wallets, in either direction: check it before the card top-up.
   if (low.includes('civic wallet funding')) return { title: 'Civic wallet funding', sub: '' };
-  if (low.includes('wallet funding') || low.includes('card payment') || low.includes('payment deposit')) {
+  // A bank transfer into the account's own number arrives as a Paystack "payment deposit"; a card top-up says wallet funding or card payment.
+  if (low.includes('payment deposit')) return { title: 'Bank deposit', sub: ref ? `Bank transfer · ref ${ref}` : 'Bank transfer' };
+  if (low.includes('wallet funding') || low.includes('card payment')) {
     return { title: 'Wallet top-up', sub: ref ? `Card · ref ${ref}` : 'Card' };
   }
   if (low.startsWith('correction')) return { title: 'Correction', sub: raw.replace(/^correction:?\s*/i, '').slice(0, 60) };

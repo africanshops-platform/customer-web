@@ -5,7 +5,6 @@ import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
-import InputAdornment from '@mui/material/InputAdornment';
 import Checkbox from '@mui/material/Checkbox';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,6 +16,35 @@ import BeneficiaryPicker from './shared/BeneficiaryPicker';
 import TransactionPinField from './shared/TransactionPinField';
 import ForgotPinDialog from './shared/ForgotPinDialog';
 import PartialKycAllowanceBanner, { exceedsMonthlyAllowance } from './shared/PartialKycAllowanceBanner';
+
+function BankStepper({ step, tokens }) {
+  const labels = ['Details', 'Confirm', 'Code', 'Done'];
+  const keys = ['form', 'confirm', 'otp', 'success'];
+  const at = keys.indexOf(step);
+  const dotBg = (done, on) => {
+    if (done) return tokens.success;
+    return on ? tokens.accentGradient : tokens.borderColor;
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', margin: '4px 0 20px' }}>
+      {labels.map((l, i) => {
+        const done = i < at;
+        const on = i === at;
+        return (
+          <div key={l} style={{ display: 'flex', alignItems: 'center', flex: i < 3 ? 1 : 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, fontSize: 14, color: done || on ? tokens.textPrimary : tokens.textMuted }}>
+              <i style={{ width: 32, height: 32, borderRadius: '50%', display: 'grid', placeItems: 'center', fontStyle: 'normal', background: dotBg(done, on), color: done || on ? '#fff' : tokens.textSecondary, boxShadow: on ? `0 4px 12px ${tokens.accentSolid}44` : 'none' }}>
+                {done ? '✓' : i + 1}
+              </i>
+              {l}
+            </div>
+            {i < 3 && <div style={{ flex: 1, height: 2, background: done ? tokens.success : tokens.borderColor, margin: '0 12px' }} />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 /**
  * Phase C (2026-07-11) — the external counterpart to the internal, free
@@ -130,30 +158,42 @@ export default function FinanceExternalTransferContent() {
   const bankName = bankNameByCode[beneficiary?.beneficiaryBankCode] ?? beneficiary?.beneficiaryBankCode;
 
   return (
-    <div className="w-full px-16 md:px-24 xl:px-32 py-24 flex justify-center">
-      <div className="w-full max-w-md">
-        <Typography style={{ fontSize: F.sectionHead, fontWeight: 700, color: tokens.textPrimary, marginBottom: 4 }}>Send to Bank Account</Typography>
-        <Typography style={{ fontSize: F.body, color: tokens.textMuted, marginBottom: 24 }}>Pay anyone's Nigerian bank account directly</Typography>
+    <div className="w-full px-16 md:px-24 xl:px-32 py-24">
+      <div className="w-full">
+        <BankStepper step={step} tokens={tokens} />
 
         <AnimatePresence mode="wait">
           {step === 'form' && (
-            <motion.div key="form" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-16">
+            <motion.div key="form" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.5fr) minmax(0,1fr)', gap: 16, alignItems: 'start' }}>
+              <div className="space-y-16" style={{ minWidth: 0 }}>
               <div className="rounded-3xl p-24 space-y-16" style={card}>
                 <div className="flex items-center justify-between rounded-xl px-16 py-12" style={{ background: tokens.accentSoft }}>
                   <Typography style={{ fontSize: F.small, color: tokens.textSecondary }}>Available</Typography>
                   <Typography style={{ fontSize: F.body, fontWeight: 700, color: tokens.success }}>₦{availableNGN.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</Typography>
                 </div>
 
-                <TextField
-                  label="Amount (₦)"
-                  value={form.amountNGN}
-                  onChange={e => update('amountNGN', e.target.value.replace(/[^0-9.]/g, ''))}
-                  fullWidth
-                  error={(amountNGN > availableNGN && amountNGN > 0) || overMonthlyAllowance}
-                  helperText={amountHelperText}
-                  InputProps={{ startAdornment: <InputAdornment position="start"><Typography style={{ color: tokens.textMuted, fontSize: F.body }}>₦</Typography></InputAdornment> }}
-                  sx={{ ...fieldSx(tokens), '& .MuiFormHelperText-root.Mui-error': { color: tokens.danger } }}
-                />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6, color: tokens.textPrimary }}>Amount</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, border: `2px solid ${(amountNGN > availableNGN && amountNGN > 0) || overMonthlyAllowance ? tokens.danger : tokens.borderColor}`, borderRadius: 18, padding: '12px 18px', background: tokens.cardBg }}>
+                    <b style={{ fontSize: 28, color: tokens.textMuted }}>₦</b>
+                    <input
+                      value={form.amountNGN ? Number(form.amountNGN.split('.')[0] || 0).toLocaleString('en-NG') + (form.amountNGN.includes('.') ? `.${form.amountNGN.split('.')[1]}` : '') : ''}
+                      onChange={e => update('amountNGN', e.target.value.replace(/[^0-9.]/g, ''))}
+                      inputMode="decimal"
+                      placeholder="0"
+                      aria-label="Amount in naira"
+                      style={{ border: 0, outline: 0, fontSize: 38, fontWeight: 800, width: '100%', background: 'none', letterSpacing: '-0.02em', color: tokens.textPrimary }}
+                    />
+                  </div>
+                  <div style={{ fontSize: 13, marginTop: 6, color: (amountNGN > availableNGN && amountNGN > 0) || overMonthlyAllowance ? tokens.danger : tokens.textMuted }}>{amountHelperText}</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                    {[5000, 10000, 50000, 100000].map(q => (
+                      <button key={q} type="button" onClick={() => update('amountNGN', String(q))} style={{ border: `1px solid ${tokens.borderColor}`, borderRadius: 99, padding: '6px 14px', fontWeight: 700, fontSize: 13, background: tokens.cardBg, color: tokens.textPrimary, cursor: 'pointer' }}>
+                        ₦{q.toLocaleString('en-NG')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
                 <PartialKycAllowanceBanner submission={kycSubmission} />
               </div>
@@ -181,11 +221,47 @@ export default function FinanceExternalTransferContent() {
               >
                 Continue
               </Button>
+              </div>
+
+              <div style={{ display: 'grid', gap: 16, position: 'sticky', top: 16 }}>
+                <div style={{ ...card, borderRadius: 20, padding: 20 }}>
+                  <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: tokens.textPrimary }}>Summary</h3>
+                  {!beneficiary && !(amountNGN > 0) ? (
+                    <div style={{ textAlign: 'center', padding: 18, fontSize: 13, color: tokens.textMuted }}>Enter an amount and choose who to pay. Your summary appears here.</div>
+                  ) : (
+                    [
+                      ['To', beneficiary?.beneficiaryAccountName ?? '—'],
+                      ['Bank', bankName ?? '—'],
+                      ['Account', beneficiary?.beneficiaryAccountNumber ?? '—'],
+                      ['Amount', `₦${amountNGN.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`],
+                      ['Fees', 'Added on top, shown next'],
+                    ].map(([l, v]) => (
+                      <div key={l} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '9px 0', borderBottom: `1px dashed ${tokens.borderColor}`, fontSize: 14, color: tokens.textSecondary }}>
+                        <span>{l}</span><b style={{ color: tokens.textPrimary, textAlign: 'right' }}>{v}</b>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div style={{ ...card, borderRadius: 20, padding: 20, background: tokens.accentSoft, border: `1px solid ${tokens.accentSolid}33`, boxShadow: 'none' }}>
+                  <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: tokens.textPrimary }}>Good to know</h3>
+                  {[
+                    ['🏦', 'Any Nigerian bank', 'Pay any account, not just AfricanShops users.'],
+                    ['✅', 'Name checked first', 'We confirm the account name with the bank before you pay.'],
+                    ['🔐', 'PIN, and a code for larger amounts', 'You always enter your PIN; bigger payments also ask for a code we email you.'],
+                    ['🧾', 'Fees before you commit', 'The exact fee is shown on the next step, before anything leaves your wallet.'],
+                  ].map(([icon, title, text]) => (
+                    <div key={title} style={{ display: 'flex', gap: 12, padding: '8px 0' }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 10, background: tokens.cardBg, display: 'grid', placeItems: 'center', fontSize: 14, flex: 'none' }}>{icon}</div>
+                      <div style={{ fontSize: 13, color: tokens.textSecondary }}><b style={{ display: 'block', color: tokens.textPrimary }}>{title}</b>{text}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </motion.div>
           )}
 
           {step === 'confirm' && (
-            <motion.div key="confirm" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <motion.div key="confirm" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} style={{ maxWidth: 640, margin: '0 auto' }}>
               <div className="rounded-3xl p-24 space-y-16" style={card}>
                 <div className="rounded-2xl p-16" style={{ background: tokens.pageBg, border: `1px solid ${tokens.borderColor}` }}>
                   <Typography style={{ fontSize: F.small, color: tokens.textSecondary, marginBottom: 8 }}>You're sending</Typography>
@@ -227,7 +303,7 @@ export default function FinanceExternalTransferContent() {
           )}
 
           {step === 'otp' && (
-            <motion.div key="otp" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <motion.div key="otp" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} style={{ maxWidth: 640, margin: '0 auto' }}>
               <div className="rounded-3xl p-24" style={card}>
                 <div className="rounded-2xl p-16 mb-20" style={{ background: tokens.pageBg, border: `1px solid ${tokens.borderColor}` }}>
                   <div className="flex justify-between mb-8">
@@ -321,7 +397,7 @@ export default function FinanceExternalTransferContent() {
           )}
 
           {step === 'success' && (
-            <motion.div key="success" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
+            <motion.div key="success" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center" style={{ maxWidth: 640, margin: '0 auto' }}>
               <div className="rounded-3xl p-32" style={card}>
                 <motion.div
                   initial={{ scale: 0 }} animate={{ scale: 1 }}
