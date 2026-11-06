@@ -51,9 +51,7 @@ export default function SpendingDonut({ transactions, isLoading, tokens: tokensP
 
   return (
     <div>
-      <Typography className="uppercase tracking-widest font-semibold mb-14" style={{ fontSize: F.small, color: tokens.textMuted }}>
-        Spending Breakdown
-      </Typography>
+      <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: tokens.textPrimary }}>Where it went</h3>
 
       {isLoading ? (
         <div className="flex items-center gap-20">

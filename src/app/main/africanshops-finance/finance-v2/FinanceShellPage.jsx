@@ -24,11 +24,11 @@ const Root = styled(FusePageSimpleWithMargin)(({ theme }) => ({
     borderStyle: 'solid',
   },
   '& .FusePageSimple-leftSidebar': {
-    width: 240,
+    width: 220,
     backgroundColor: 'transparent',
   },
   '& .FusePageSimple-rightSidebar': {
-    width: 260,
+    width: 320,
     backgroundColor: 'transparent',
   },
 }));
