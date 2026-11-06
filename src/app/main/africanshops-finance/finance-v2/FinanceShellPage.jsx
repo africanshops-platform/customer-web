@@ -19,7 +19,17 @@ import { FinanceThemeProvider, useFinanceTheme } from './FinanceThemeContext';
 // the light and dark finance-v2 variants at runtime — only structural/layout
 // rules live here.
 const Root = styled(FusePageSimpleWithMargin)(({ theme }) => ({
+  // Full-bleed, as in the approved preview: the shared page component adds a 160px margin on each side and a
+  // centred max-width container; the finance section uses the whole width instead.
+  '& .FusePageSimple-wrapper': {
+    marginLeft: '0 !important',
+    marginRight: '0 !important',
+  },
+  '& .FusePageSimple-content, & .FusePageSimple-header > .container': {
+    maxWidth: 'none !important',
+  },
   '& .FusePageSimple-header': {
+    width: '100%',
     borderBottomWidth: 1,
     borderStyle: 'solid',
   },

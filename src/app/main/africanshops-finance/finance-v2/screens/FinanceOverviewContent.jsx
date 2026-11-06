@@ -144,6 +144,8 @@ function TxRow({ tx, index, tokens }) {
   const credit = isCredit(tx);
   const { title, sub } = describeTx(tx);
   const amount = Math.abs(parseFloat(tx?.amount ?? tx?.amountKobo ?? 0));
+  // The old list showed the status text; keep it, but only call out the ones that are not completed.
+  const status = (tx?.status ?? '').toLowerCase();
   return (
     <motion.div
       initial={{ opacity: 0, x: -12 }}
@@ -158,6 +160,11 @@ function TxRow({ tx, index, tokens }) {
         <b style={{ display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: tokens.textPrimary }}>{title}</b>
         <span style={{ color: tokens.textMuted, fontSize: 12.5 }}>{[sub, shortDate(tx?.createdAt)].filter(Boolean).join(' · ')}</span>
       </div>
+      {status && status !== 'completed' && (
+        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', borderRadius: 99, padding: '3px 10px', textTransform: 'uppercase', background: status === 'failed' ? tokens.dangerBg : tokens.warningBg, color: status === 'failed' ? tokens.danger : tokens.warning }}>
+          {status}
+        </span>
+      )}
       <div style={{ fontWeight: 800, whiteSpace: 'nowrap', color: credit ? tokens.success : tokens.danger }}>
         {credit ? '+' : '−'}{nairaFull(amount)}
       </div>
