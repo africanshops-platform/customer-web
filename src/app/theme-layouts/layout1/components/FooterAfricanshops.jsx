@@ -173,6 +173,12 @@ const FooterAfricanshops = () => {
               Privacy Policy
             </Link>
             <Link
+              to="/delete-account"
+              className="text-gray-400 hover:text-orange-500 text-sm transition-colors duration-300"
+            >
+              Delete account
+            </Link>
+            <Link
               to="/careers"
               className="text-gray-400 hover:text-orange-500 text-sm transition-colors duration-300"
             >
