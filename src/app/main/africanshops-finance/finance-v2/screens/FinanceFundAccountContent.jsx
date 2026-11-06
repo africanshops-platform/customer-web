@@ -1,25 +1,22 @@
 import { useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { usePaystackPayment } from 'react-paystack';
 import { useAppSelector } from 'app/store/hooks';
 import { selectUser } from 'src/app/auth/user/store/userSlice';
-import Typography from '@mui/material/Typography';
-import TextField from '@mui/material/TextField';
-import InputAdornment from '@mui/material/InputAdornment';
-import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
-import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { motion } from 'framer-motion';
-import { useVerifyWalletFunding, formatKobo } from '../hooks/useFintechApi';
+import { useVerifyWalletFunding } from '../hooks/useFintechApi';
 import { useFinanceTheme } from '../FinanceThemeContext';
-import { F, fieldSx } from '../financeUiTokens';
+import { nairaFull } from '../financeFormat';
+
+// Fund account, as in the approved preview: the default wallet, a choice of card or bank transfer, a large amount
+// field with quick amounts. The card payment is the old one, unchanged: Paystack inline checkout with the same reference
+// format, the payment verified on the server before the balance moves, the same minimum (100 naira).
 
 const container = { show: { transition: { staggerChildren: 0.08 } } };
-const item      = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
+const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
+const QUICK = [5000, 10000, 50000, 100000];
 
-// Retail-8 (2026-07-12): drives liquidity into the default wallet via card
-// checkout — same react-paystack inline popup already used on bookings/
-// marketplace/foodmart, verified+credited the same way charge.success does.
 export default function FinanceFundAccountContent() {
   const { account, balance, balanceLoading, refetchFinanceData } = useOutletContext();
   const { tokens } = useFinanceTheme();
@@ -29,16 +26,12 @@ export default function FinanceFundAccountContent() {
   const [amount, setAmount] = useState('');
   const [success, setSuccess] = useState('');
 
-  const card = { background: tokens.cardBg, border: `1px solid ${tokens.cardBorder}`, boxShadow: tokens.cardShadow };
+  const card = { background: tokens.cardBg, border: `1px solid ${tokens.cardBorder}`, boxShadow: tokens.cardShadow, borderRadius: 20, padding: 20 };
   const amountNaira = parseFloat(amount);
   const amountValid = amountNaira >= 100;
+  // A unique reference per payment, prefixed so the server can tell wallet funding apart from other Paystack payments.
   const reference = `AFSHFUND${account?.accountNumber ?? ''}${Date.now()}`;
 
-  // Retail-8 (2026-07-12) bugfix: <PaystackButton> renders its own DOM and
-  // silently drops any `style`/custom prop it doesn't explicitly recognize —
-  // that's why no visible/clickable button showed up regardless of amount.
-  // usePaystackPayment instead just returns a trigger function, so this
-  // component owns the actual <button> element and its styling entirely.
   const initializePayment = usePaystackPayment({
     reference,
     email: user?.email,
@@ -46,111 +39,101 @@ export default function FinanceFundAccountContent() {
     publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
   });
 
+  // Paystack confirms the charge to the browser; the server re-verifies the reference before crediting the wallet.
   async function handleSuccess(paystackResponse) {
     setSuccess('');
     try {
       await verifyFunding(account?.accountNumber, paystackResponse.reference);
-      setSuccess('Payment confirmed — your balance has been updated.');
+      setSuccess('Payment confirmed. Your balance has been updated.');
       setAmount('');
       refetchFinanceData?.();
     } catch {
-      // error surfaced via verifyError
+      // verifyError is shown by the hook state
     }
   }
 
   function handleFundClick() {
     if (!amountValid || !user?.email) return;
-    initializePayment({ onSuccess: handleSuccess, onClose: () => {} });
+    initializePayment({ onSuccess: handleSuccess, onClose: () => undefined });
   }
+
+  const shown = amount ? Number(amount.split('.')[0] || 0).toLocaleString('en-NG') + (amount.includes('.') ? `.${amount.split('.')[1]}` : '') : '';
+  const optionStyle = (on) => ({ border: `2px solid ${on ? tokens.accentSolid : tokens.cardBorder}`, borderRadius: 20, padding: 18, background: tokens.cardBg, textAlign: 'left', display: 'block', textDecoration: 'none', boxShadow: on ? `0 8px 22px ${tokens.accentSolid}22` : 'none', cursor: 'pointer' });
+  const iconBox = { fontStyle: 'normal', width: 46, height: 46, borderRadius: 14, display: 'grid', placeItems: 'center', fontSize: 22, background: tokens.accentSoft, marginBottom: 10 };
 
   return (
     <div className="w-full px-16 md:px-24 xl:px-32 py-24">
-      <Typography style={{ fontSize: F.sectionHead, fontWeight: 700, color: tokens.textPrimary, marginBottom: 4 }}>Fund Account</Typography>
-      <Typography style={{ fontSize: F.body, color: tokens.textMuted, marginBottom: 28 }}>Add money to your default wallet from a card</Typography>
-
-      <motion.div variants={container} initial="hidden" animate="show" className="grid gap-20 max-w-2xl">
-        {/* Account details */}
-        <motion.div variants={item}>
-          <div className="rounded-3xl p-28 relative overflow-hidden" style={{ background: tokens.heroBg }}>
-            <div className="relative z-10">
-              <Typography className="uppercase tracking-widest font-semibold" style={{ fontSize: F.small, color: tokens.heroTextMuted }}>
-                Default Wallet
-              </Typography>
-              <Typography style={{ fontSize: 'clamp(2.2rem, 3.6vw, 3rem)', fontWeight: 800, color: tokens.heroText, marginTop: 8, marginBottom: 16 }}>
-                {balanceLoading ? '—' : formatKobo(balance?.availableBalance)}
-              </Typography>
-              <div className="flex items-center gap-24 flex-wrap">
-                <div>
-                  <Typography style={{ fontSize: F.small, color: tokens.heroTextMuted }}>Account Number</Typography>
-                  <Typography style={{ fontSize: F.label, fontWeight: 700, color: tokens.heroText, letterSpacing: '0.08em' }}>
-                    {account?.accountNumber ?? '—'}
-                  </Typography>
-                </div>
-                <div>
-                  <Typography style={{ fontSize: F.small, color: tokens.heroTextMuted }}>Account Name</Typography>
-                  <Typography style={{ fontSize: F.label, fontWeight: 700, color: tokens.heroText }}>
-                    {account?.accountName ?? '—'}
-                  </Typography>
-                </div>
-              </div>
+      <motion.div variants={container} initial="hidden" animate="show" style={{ display: 'grid', gap: 16, maxWidth: 760 }}>
+        <motion.div variants={item} style={{ background: tokens.heroBg, color: '#fff', borderRadius: 24, padding: 22 }}>
+          <div style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Default wallet</div>
+          <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-0.02em', margin: '6px 0 12px' }}>{balanceLoading ? '—' : nairaFull(balance?.availableBalance)}</div>
+          <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Account number</div>
+              <b style={{ fontSize: 16, letterSpacing: '0.08em' }}>{account?.accountNumber ?? '—'}</b>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Account name</div>
+              <b style={{ fontSize: 16 }}>{account?.accountName ?? '—'}</b>
             </div>
           </div>
         </motion.div>
 
-        {/* Fund via card */}
-        <motion.div variants={item}>
-          <div className="rounded-2xl p-24" style={card}>
-            <div className="flex items-center gap-12 mb-20">
-              <div className="w-40 h-40 rounded-xl flex items-center justify-center" style={{ background: tokens.accentSoft }}>
-                <FuseSvgIcon size={20} style={{ color: tokens.accentSolid }}>heroicons-outline:credit-card</FuseSvgIcon>
-              </div>
-              <div>
-                <Typography style={{ fontSize: F.label, fontWeight: 700, color: tokens.textPrimary }}>Fund with Card</Typography>
-                <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Instant — via Paystack</Typography>
-              </div>
-            </div>
-
-            {success && <Alert severity="success" sx={{ mb: 2, borderRadius: '10px', fontSize: F.small }}>{success}</Alert>}
-            {verifyError && <Alert severity="error" sx={{ mb: 2, borderRadius: '10px', fontSize: F.small }}>{verifyError}</Alert>}
-
-            <div className="max-w-xs">
-              <TextField
-                label="Amount (₦)"
-                value={amount}
-                onChange={e => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-                fullWidth
-                InputProps={{ startAdornment: <InputAdornment position="start">₦</InputAdornment> }}
-                sx={{ ...fieldSx(tokens), mb: 3 }}
-              />
-            </div>
-
-            {verifying ? (
-              <div className="flex items-center gap-10">
-                <CircularProgress size={20} sx={{ color: tokens.accentSolid }} />
-                <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Confirming payment…</Typography>
-              </div>
-            ) : (
-              <button
-                onClick={handleFundClick}
-                disabled={!amountValid}
-                className="rounded-xl font-semibold"
-                style={{
-                  fontSize: F.body,
-                  padding: '12px 24px',
-                  border: 'none',
-                  background: amountValid ? tokens.accentGradient : tokens.borderColor,
-                  color: amountValid ? '#ffffff' : tokens.textMuted,
-                  cursor: amountValid ? 'pointer' : 'not-allowed',
-                }}
-              >
-                {amountValid ? `Fund ₦${amountNaira.toLocaleString('en-NG')}` : 'Enter an amount'}
-              </button>
-            )}
-
-            <Typography style={{ fontSize: F.small, color: tokens.textMuted, marginTop: 16, maxWidth: 420, lineHeight: 1.5 }}>
-              Minimum ₦100. Funds land in your default wallet immediately after payment confirms.
-            </Typography>
+        <motion.div variants={item} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={optionStyle(true)}>
+            <i style={iconBox}>💳</i>
+            <b style={{ display: 'block', fontSize: 16, color: tokens.textPrimary }}>Pay with card</b>
+            <span style={{ color: tokens.textSecondary, fontSize: 13 }}>Instant, through Paystack. Minimum ₦100.</span>
           </div>
+          <Link to="/africanshops/finance-v2/receive-money" style={optionStyle(false)}>
+            <i style={iconBox}>🏦</i>
+            <b style={{ display: 'block', fontSize: 16, color: tokens.textPrimary }}>Bank transfer</b>
+            <span style={{ color: tokens.textSecondary, fontSize: 13 }}>Send to your own account number from any bank. See your details.</span>
+          </Link>
+        </motion.div>
+
+        <motion.div variants={item} style={card}>
+          {success && <div style={{ background: tokens.successBg, color: tokens.success, borderRadius: 14, padding: '10px 14px', marginBottom: 14, fontSize: 14 }}>{success}</div>}
+          {verifyError && <div style={{ background: tokens.dangerBg, color: tokens.danger, borderRadius: 14, padding: '10px 14px', marginBottom: 14, fontSize: 14 }}>{verifyError}</div>}
+
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6, color: tokens.textPrimary }}>Amount to add</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, border: `2px solid ${tokens.borderColor}`, borderRadius: 18, padding: '12px 18px', background: tokens.cardBg }}>
+            <b style={{ fontSize: 28, color: tokens.textMuted }}>₦</b>
+            <input
+              value={shown}
+              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+              inputMode="decimal"
+              placeholder="0"
+              aria-label="Amount in naira"
+              style={{ border: 0, outline: 0, fontSize: 38, fontWeight: 800, width: '100%', background: 'none', letterSpacing: '-0.02em', color: tokens.textPrimary }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '10px 0 16px' }}>
+            {QUICK.map((q) => (
+              <button key={q} type="button" onClick={() => setAmount(String(q))} style={{ border: `1px solid ${tokens.borderColor}`, borderRadius: 99, padding: '6px 14px', fontWeight: 700, fontSize: 13, background: tokens.cardBg, color: tokens.textPrimary, cursor: 'pointer' }}>
+                ₦{q.toLocaleString('en-NG')}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: tokens.textSecondary, padding: '6px 0' }}><span>Fee</span><b style={{ color: tokens.textPrimary }}>₦0.00</b></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: tokens.textSecondary, padding: '6px 0 16px' }}><span>You will receive</span><b style={{ color: tokens.textPrimary }}>{amountValid ? nairaFull(amountNaira * 100) : '₦0.00'}</b></div>
+
+          {verifying ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', padding: 14 }}>
+              <CircularProgress size={20} sx={{ color: tokens.accentSolid }} />
+              <span style={{ fontSize: 14, color: tokens.textMuted }}>Confirming payment…</span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleFundClick}
+              disabled={!amountValid}
+              style={{ width: '100%', padding: 15, borderRadius: 14, fontWeight: 700, fontSize: 15, border: 0, background: amountValid ? tokens.accentGradient : tokens.borderColor, color: amountValid ? '#fff' : tokens.textMuted, cursor: amountValid ? 'pointer' : 'not-allowed', boxShadow: amountValid ? `0 6px 16px ${tokens.accentSolid}44` : 'none' }}
+            >
+              {amountValid ? `Fund ₦${amountNaira.toLocaleString('en-NG')}` : 'Enter an amount (minimum ₦100)'}
+            </button>
+          )}
+          <div style={{ fontSize: 13, color: tokens.textMuted, marginTop: 14, lineHeight: 1.5 }}>Funds land in your default wallet immediately after the payment confirms.</div>
         </motion.div>
       </motion.div>
     </div>

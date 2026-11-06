@@ -12,7 +12,8 @@ export function shortDate(value) {
 }
 
 export function isCredit(tx) {
-  return tx?.direction === 'CREDIT' || tx?.type === 'CREDIT';
+  // The history feed says CREDIT, the statement feed says IN.
+  return tx?.direction === 'CREDIT' || tx?.type === 'CREDIT' || tx?.direction === 'IN';
 }
 
 /** A transaction's reference as the server wrote it, e.g. AFSHFUND733008860717…8953 shortened for display. */
@@ -33,11 +34,12 @@ export function describeTx(tx) {
   const credit = isCredit(tx);
   const ref = shortRef(raw);
   if (!raw) return { title: credit ? 'Money received' : 'Money sent', sub: '' };
+  // Civic wallet funding is money moving between your own wallets, in either direction: check it before the card top-up.
+  if (low.includes('civic wallet funding')) return { title: 'Civic wallet funding', sub: '' };
   if (low.includes('wallet funding') || low.includes('card payment') || low.includes('payment deposit')) {
     return { title: 'Wallet top-up', sub: ref ? `Card · ref ${ref}` : 'Card' };
   }
   if (low.startsWith('correction')) return { title: 'Correction', sub: raw.replace(/^correction:?\s*/i, '').slice(0, 60) };
-  if (low.includes('civic wallet funding')) return { title: 'Civic wallet funding', sub: '' };
   if (low === 'cash') return { title: 'Cash withdrawal', sub: '' };
   const title = raw.charAt(0).toUpperCase() + raw.slice(1);
   return { title: title.length > 42 ? `${title.slice(0, 40)}…` : title, sub: ref ? `ref ${ref}` : '' };
