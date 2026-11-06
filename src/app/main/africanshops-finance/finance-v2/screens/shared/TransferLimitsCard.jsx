@@ -35,7 +35,10 @@ function LimitField({ label, value, onChange, tokens }) {
  * An account that is not verified keeps the older free-text daily cap (its real limit is the monthly allowance shown elsewhere).
  */
 export default function TransferLimitsCard({ account, tokens, card }) {
-  const { data: limits, isLoading, refetch } = useTransferLimits(account?.accountNumber);
+  const { data: fetched, isLoading, refetch } = useTransferLimits(account?.accountNumber);
+  // What the save and confirm calls just returned, shown at once instead of waiting for the refetch.
+  const [local, setLocal] = useState(null);
+  const limits = local ?? fetched;
   const { mutate: setLimits, isLoading: saving, error: apiError } = useSetTransferLimits();
   const { mutate: confirmIncrease, isLoading: confirming, error: confirmError } = useConfirmTransferLimitIncrease();
   const [perTx, setPerTx] = useState('');
@@ -49,11 +52,17 @@ export default function TransferLimitsCard({ account, tokens, card }) {
   const verified = !!limits?.verified && steps.length > 0;
 
   useEffect(() => {
+    setLocal(null);
+  }, [fetched]);
+
+  useEffect(() => {
     if (!limits) return;
     setPerTx(limits.perTransactionLimitKobo != null ? String(limits.perTransactionLimitKobo / 100) : '');
     setDaily(limits.dailyTransferLimitKobo != null ? String(limits.dailyTransferLimitKobo / 100) : '');
     if (limits.verified && limits.dailyLimitStepsKobo?.length) {
-      const idx = limits.dailyLimitStepsKobo.indexOf(limits.dailyTransferLimitKobo);
+      // Sit on the increase that is waiting (for a code or for its 24 hours), otherwise on today's limit.
+      const target = limits.pendingChange?.newDailyTransferLimitKobo ?? limits.dailyTransferLimitKobo;
+      const idx = limits.dailyLimitStepsKobo.indexOf(target);
       setStep(idx >= 0 ? idx : 0);
     }
     setAwaitingCode(!!limits.pendingChange?.awaitingOtp);
@@ -63,9 +72,11 @@ export default function TransferLimitsCard({ account, tokens, card }) {
     setSuccess('');
     try {
       const body = { perTransactionLimitKobo: perTx === '' ? null : Math.round(parseFloat(perTx) * 100) };
-      if (verified) body.dailyTransferLimitKobo = steps[step];
+      // Only send the daily limit when the choice differs from what is in force or already waiting.
+      if (verified && dailyChanged) body.dailyTransferLimitKobo = steps[step];
       else if (daily !== '') body.dailyTransferLimitKobo = Math.round(parseFloat(daily) * 100);
       const res = await setLimits(account?.accountNumber, body);
+      if (res?.pendingChange !== undefined) setLocal(res);
       if (res?.requiresOtp) {
         setAwaitingCode(true);
         setCode('');
@@ -82,7 +93,8 @@ export default function TransferLimitsCard({ account, tokens, card }) {
   async function handleConfirm() {
     setSuccess('');
     try {
-      await confirmIncrease(account?.accountNumber, code.trim());
+      const confirmed = await confirmIncrease(account?.accountNumber, code.trim());
+      if (confirmed?.pendingChange !== undefined) setLocal(confirmed);
       setAwaitingCode(false);
       setCode('');
       setSuccess('Confirmed. Your new limit starts 24 hours from now.');
@@ -93,7 +105,9 @@ export default function TransferLimitsCard({ account, tokens, card }) {
   }
 
   const pending = limits?.pendingChange;
-  const raised = verified && steps[step] > (limits?.dailyTransferLimitKobo ?? 0);
+  const pendingTarget = limits?.pendingChange?.newDailyTransferLimitKobo ?? null;
+  const dailyChanged = verified && steps[step] !== (pendingTarget ?? limits?.dailyTransferLimitKobo);
+  const raised = dailyChanged && steps[step] > (limits?.dailyTransferLimitKobo ?? 0);
   let saveLabel = 'Save Limits';
   if (raised) saveLabel = 'Request increase';
 
@@ -117,7 +131,7 @@ export default function TransferLimitsCard({ account, tokens, card }) {
         <>
           {pending && !pending.awaitingOtp && pending.effectiveAt && (
             <Alert severity="info" sx={{ mb: 2, borderRadius: '10px', fontSize: F.small }}>
-              A limit increase is scheduled for {new Date(pending.effectiveAt).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' })}.
+              {pending.newDailyTransferLimitKobo ? `Your daily limit rises to ${naira(pending.newDailyTransferLimitKobo)}` : 'A limit increase'} on {new Date(pending.effectiveAt).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' })}.
             </Alert>
           )}
           {success && <Alert severity="success" sx={{ mb: 2, borderRadius: '10px', fontSize: F.small }}>{success}</Alert>}
