@@ -1,81 +1,172 @@
-import { useState, useEffect, useRef } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import Typography from '@mui/material/Typography';
-import TextField from '@mui/material/TextField';
-import Button from '@mui/material/Button';
-import Alert from '@mui/material/Alert';
-import InputAdornment from '@mui/material/InputAdornment';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import CircularProgress from '@mui/material/CircularProgress';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTransfer, useResolveInternalAccount, useFintechKycStatus } from '../hooks/useFintechApi';
+import { useTransfer, useResolveInternalAccount, useFintechKycStatus, useWalletBeneficiaries, useWalletBeneficiaryActions } from '../hooks/useFintechApi';
 import { useFinanceTheme } from '../FinanceThemeContext';
-import PartialKycAllowanceBanner, { exceedsMonthlyAllowance } from './shared/PartialKycAllowanceBanner';
+import { nairaFull } from '../financeFormat';
+import { exceedsMonthlyAllowance } from './shared/PartialKycAllowanceBanner';
+import RecipientPicker, { colorFor, initials } from './shared/RecipientPicker';
+import TransactionPinField from './shared/TransactionPinField';
 
-const F = {
-  sectionHead: 'clamp(1.76rem, 2.6vw, 2.2rem)',
-  body:        'clamp(1.5rem,  2.2vw, 1.9rem)',
-  label:       'clamp(1.44rem, 2vw,   1.76rem)',
-  small:       'clamp(1.3rem,  1.8vw, 1.56rem)',
-  amountLg:    'clamp(2rem,    3.2vw, 2.8rem)',
-};
-
-function fieldSx(tokens, fontSize = '1.5rem') {
-  return {
-    '& .MuiOutlinedInput-root': {
-      borderRadius: '12px',
-      background: tokens.pageBg,
-      '& fieldset': { borderColor: tokens.borderColor },
-      '&:hover fieldset': { borderColor: tokens.accentSolid },
-      '&.Mui-focused fieldset': { borderColor: tokens.accentSolid },
-    },
-    '& input': { color: tokens.textPrimary, fontSize },
-    '& .MuiInputLabel-root': { color: tokens.textMuted, fontSize },
-    '& .MuiInputLabel-root.Mui-focused': { color: tokens.accentSolid },
-    '& .MuiFormHelperText-root': { color: tokens.textMuted, fontSize: F.small },
-  };
-}
+// Transfer, as in the approved preview: search by name or account number, beneficiary chips, a live summary, and a
+// "save this account" choice after a successful send. The transfer logic is the old screen's, unchanged: resolve the
+// account, block your own account, the balance and monthly-allowance guards, PIN, emailed code, and the receipt.
 
 const STEPS = { FORM: 'form', PIN: 'pin', OTP: 'otp', SUCCESS: 'success' };
+const QUICK = [5000, 10000, 50000, 100000];
 
-/** Recipient verification card shown under the account-number field — the load-bearing piece of the "verify before Continue" flow. */
-function RecipientCard({ tokens, verifying, recipient, selfError, notFoundError }) {
-  if (verifying) {
-    return (
-      <div className="rounded-2xl p-16 flex items-center gap-12" style={{ background: tokens.pageBg, border: `1px solid ${tokens.borderColor}` }}>
-        <CircularProgress size={18} sx={{ color: tokens.accentSolid }} />
-        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Verifying account…</Typography>
-      </div>
-    );
+function Avatar({ name, size = 40 }) {
+  return (
+    <div style={{ width: size, height: size, borderRadius: '50%', display: 'grid', placeItems: 'center', fontWeight: 800, color: '#fff', flex: 'none', background: colorFor(name), fontSize: size * 0.36 }}>
+      {initials(name)}
+    </div>
+  );
+}
+
+function Row({ label, value, strong, tokens }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: `1px dashed ${tokens.borderColor}`, fontSize: 14, color: tokens.textSecondary }}>
+      <span>{label}</span>
+      <b style={{ color: tokens.textPrimary, fontSize: strong ? 22 : 14, fontWeight: strong ? 800 : 700, textAlign: 'right' }}>{value}</b>
+    </div>
+  );
+}
+
+function Stepper({ step, tokens }) {
+  const labels = ['Details', 'PIN', 'Confirm', 'Done'];
+  const keys = [STEPS.FORM, STEPS.PIN, STEPS.OTP, STEPS.SUCCESS];
+  const at = keys.indexOf(step);
+  const dotBg = (done, on) => {
+    if (done) return tokens.success;
+    return on ? tokens.accentGradient : tokens.borderColor;
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', margin: '4px 0 20px' }}>
+      {labels.map((l, i) => {
+        const done = i < at;
+        const on = i === at;
+        return (
+          <div key={l} style={{ display: 'flex', alignItems: 'center', flex: i < 3 ? 1 : 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, fontSize: 14, color: done || on ? tokens.textPrimary : tokens.textMuted }}>
+              <i
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontStyle: 'normal',
+                  background: dotBg(done, on),
+                  color: done || on ? '#fff' : tokens.textSecondary,
+                  boxShadow: on ? `0 4px 12px ${tokens.accentSolid}44` : 'none',
+                }}
+              >
+                {done ? <FuseSvgIcon size={16} className="text-white">heroicons-solid:check</FuseSvgIcon> : i + 1}
+              </i>
+              {l}
+            </div>
+            {i < 3 && <div style={{ flex: 1, height: 2, background: done ? tokens.success : tokens.borderColor, margin: '0 12px' }} />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Notice({ kind, children, tokens }) {
+  const map = { error: [tokens.dangerBg, tokens.danger], warn: [tokens.warningBg, tokens.warning], ok: [tokens.successBg, tokens.success] }[kind];
+  return <div style={{ background: map[0], color: map[1], borderRadius: 14, padding: '10px 14px', fontSize: 14, margin: '10px 0' }}>{children}</div>;
+}
+
+/** After a successful send: offer to save an account that is not yet a beneficiary, with its details beside the toggle. */
+function SaveBeneficiary({ accountNumber, accountName, list, account, onSaved, tokens }) {
+  const actions = useWalletBeneficiaryActions(account?.accountNumber);
+  const [on, setOn] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [err, setErr] = useState('');
+  const sameName = (list?.beneficiaries ?? []).find((b) => b.accountName === accountName);
+  const groups = list?.groups ?? [];
+  let toggleLabel = 'Save as beneficiary?';
+  if (saved) toggleLabel = 'Saved';
+  else if (on) toggleLabel = 'Yes, save it';
+  // Suggest the group of an existing saved account with the same name; the user can change it.
+  const defaultGroup = sameName?.groupId ?? 'new';
+  const [group, setGroup] = useState(defaultGroup);
+
+  async function save() {
+    setSaving(true);
+    setErr('');
+    try {
+      const dto = { beneficiaryAccountNumber: accountNumber };
+      if (group === 'new') dto.groupName = accountName;
+      else if (group !== 'none') dto.groupId = group;
+      await actions.add(dto);
+      setSaved(true);
+      onSaved?.();
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setSaving(false);
+    }
   }
-  if (selfError) {
-    return (
-      <Alert severity="warning" sx={{ borderRadius: '10px', fontSize: F.small, background: tokens.warningBg, color: tokens.warning, '& .MuiAlert-icon': { color: tokens.warning } }}>
-        You can't send money to your own account.
-      </Alert>
-    );
-  }
-  if (notFoundError) {
-    return (
-      <Alert severity="error" sx={{ borderRadius: '10px', fontSize: F.small, background: tokens.dangerBg, color: tokens.danger, '& .MuiAlert-icon': { color: tokens.danger } }}>
-        No account found with that number. Double-check and try again.
-      </Alert>
-    );
-  }
-  if (recipient) {
-    return (
-      <div className="rounded-2xl p-16 flex items-center gap-12" style={{ background: tokens.successBg, border: `1px solid ${tokens.success}44` }}>
-        <div className="w-36 h-36 rounded-full flex items-center justify-center shrink-0" style={{ background: `${tokens.success}22` }}>
-          <FuseSvgIcon size={18} style={{ color: tokens.success }}>heroicons-solid:check-circle</FuseSvgIcon>
+
+  return (
+    <div style={{ border: `2px solid ${on ? tokens.accentSolid : tokens.borderColor}`, background: on ? tokens.accentSoft : 'transparent', borderRadius: 20, padding: 16, textAlign: 'left', transition: '0.2s' }}>
+      <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+        <div style={{ flex: 1, display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
+          <Avatar name={accountName} />
+          <div style={{ minWidth: 0 }}>
+            <b style={{ color: tokens.textPrimary }}>{accountName}</b>
+            <div style={{ color: tokens.textSecondary, fontSize: 13 }}>{accountNumber} · AfricanShops wallet</div>
+          </div>
         </div>
-        <div className="min-w-0">
-          <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Sending to</Typography>
-          <Typography className="truncate" style={{ fontSize: F.body, fontWeight: 700, color: tokens.textPrimary }}>{recipient.accountName}</Typography>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6, color: tokens.textPrimary }}>{toggleLabel}</div>
+          <button
+            type="button"
+            aria-label="Save as beneficiary"
+            aria-pressed={on}
+            disabled={saved}
+            onClick={() => setOn((v) => !v)}
+            style={{ width: 54, height: 30, borderRadius: 99, background: on ? tokens.accentSolid : tokens.borderColor, position: 'relative', border: 0, cursor: saved ? 'default' : 'pointer', transition: '0.2s' }}
+          >
+            <span style={{ position: 'absolute', left: on ? 27 : 3, top: 3, width: 24, height: 24, borderRadius: '50%', background: '#fff', transition: '0.2s', boxShadow: '0 2px 6px rgba(0,0,0,.25)' }} />
+          </button>
         </div>
       </div>
-    );
-  }
-  return null;
+      {on && !saved && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6, color: tokens.textPrimary }}>Add to a group</div>
+          <select
+            value={group}
+            onChange={(e) => setGroup(e.target.value)}
+            style={{ width: '100%', border: `2px solid ${tokens.borderColor}`, borderRadius: 14, padding: '10px 12px', fontSize: 14, background: tokens.cardBg, color: tokens.textPrimary }}
+          >
+            <option value="new">{accountName} (new group)</option>
+            {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+            <option value="none">No group</option>
+          </select>
+          {sameName && (
+            <div style={{ marginTop: 12, background: tokens.infoBg, color: tokens.info, borderRadius: 14, padding: '10px 12px', fontSize: 13 }}>
+              💡 {accountName} has another account you saved ({sameName.accountNumber}). It will be grouped together.
+            </div>
+          )}
+          {err && <Notice kind="error" tokens={tokens}>{err}</Notice>}
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            style={{ marginTop: 14, width: '100%', padding: '12px 20px', borderRadius: 14, fontWeight: 700, background: tokens.accentGradient, color: '#fff', border: 0, cursor: 'pointer' }}
+          >
+            {saving ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : 'Save beneficiary'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function FinanceTransferContent() {
@@ -83,26 +174,30 @@ export default function FinanceTransferContent() {
   const { mutate, isLoading } = useTransfer();
   const { mutate: resolveAccount } = useResolveInternalAccount();
   const { data: kycSubmission } = useFintechKycStatus(account?.accountNumber);
+  const { data: benList, refetch: refetchBeneficiaries } = useWalletBeneficiaries(account?.accountNumber);
   const { tokens } = useFinanceTheme();
-  const card = { background: tokens.cardBg, border: `1px solid ${tokens.cardBorder}`, boxShadow: tokens.cardShadow };
+  const card = { background: tokens.cardBg, border: `1px solid ${tokens.cardBorder}`, boxShadow: tokens.cardShadow, borderRadius: 20, padding: 20 };
 
+  const [searchParams] = useSearchParams();
+  const presetTo = (searchParams.get('to') ?? '').replace(/\D/g, '').slice(0, 10);
   const [step, setStep] = useState(STEPS.FORM);
-  const [form, setForm] = useState({ receiverAccountNumber: '', amount: '', narration: '' });
+  const [form, setForm] = useState({ receiverAccountNumber: presetTo.length === 10 ? presetTo : '', amount: '', narration: '' }); // ?to= comes from the Beneficiaries page
+  const [query, setQuery] = useState('');
   const [pin, setPin] = useState('');
   const [otp, setOtp] = useState('');
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
 
-  // Recipient verification — no "Continue" until the receiver account number
-  // has been resolved to a real, distinct account name.
+  // Recipient verification: no "Continue" until the receiver account number has been resolved to a real, distinct account.
   const [recipient, setRecipient] = useState(null);
   const [verifying, setVerifying] = useState(false);
   const [notFoundError, setNotFoundError] = useState(false);
   const verifyToken = useRef(0);
 
   const availableNGN = parseFloat(balance?.availableBalance ?? 0) / 100;
-  const amountNaira  = parseFloat(form.amount || 0);
+  const amountNaira = parseFloat(form.amount || 0);
   const isSelf = form.receiverAccountNumber.length === 10 && form.receiverAccountNumber === account?.accountNumber;
+  const saved = useMemo(() => (benList?.beneficiaries ?? []).find((b) => b.accountNumber === form.receiverAccountNumber), [benList, form.receiverAccountNumber]);
 
   useEffect(() => {
     setRecipient(null);
@@ -110,7 +205,8 @@ export default function FinanceTransferContent() {
     const num = form.receiverAccountNumber;
     if (num.length !== 10 || num === account?.accountNumber) { setVerifying(false); return undefined; }
 
-    const myToken = ++verifyToken.current;
+    verifyToken.current += 1;
+    const myToken = verifyToken.current;
     setVerifying(true);
     const timer = setTimeout(async () => {
       try {
@@ -124,10 +220,25 @@ export default function FinanceTransferContent() {
     }, 450);
 
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.receiverAccountNumber, account?.accountNumber]);
 
-  function update(key, value) { setForm(f => ({ ...f, [key]: value })); setError(''); }
+  function update(key, value) { setForm((f) => ({ ...f, [key]: value })); setError(''); }
+
+  // Typing in the search box: ten digits become the account number (then verified as always); anything else is a name search.
+  function onQuery(text) {
+    setQuery(text);
+    const digits = text.replace(/\D/g, '');
+    if (/^\d+$/.test(text.trim()) && digits.length === 10) update('receiverAccountNumber', digits);
+    else if (form.receiverAccountNumber && text !== form.receiverAccountNumber) update('receiverAccountNumber', '');
+  }
+  function choose(number) {
+    setQuery('');
+    update('receiverAccountNumber', number);
+  }
+  function clearRecipient() {
+    setQuery('');
+    update('receiverAccountNumber', '');
+  }
 
   async function submitTransfer(otpCode) {
     setError('');
@@ -135,16 +246,11 @@ export default function FinanceTransferContent() {
       const payload = {
         senderAccountNumber: account?.accountNumber,
         receiverAccountNumber: form.receiverAccountNumber,
-        // Retail-N (2026-07-13) bugfix: initiateTransfer's `amount` is naira,
-        // not kobo — it does its own naira->kobo conversion internally for
-        // the ledger call (unlike withdrawal/external-transfer, which take
-        // amountKobo directly). Sending amountNaira * 100 here silently
-        // multiplied every internal transfer by 100x.
+        // initiateTransfer's `amount` is naira, not kobo: it converts to kobo itself for the ledger call.
         amount: amountNaira,
         transactionPin: pin,
         narration: form.narration,
-        // The backend re-verifies this exact pending transaction when
-        // confirming an OTP — it can't be regenerated client-side.
+        // The backend re-verifies this exact pending transaction when confirming an OTP.
         ...(otpCode ? { otpCode, transactionReference: result?.transactionReference } : {}),
       };
       const res = await mutate(payload);
@@ -152,216 +258,208 @@ export default function FinanceTransferContent() {
       setResult(res);
       setStep(STEPS.SUCCESS);
       refetchFinanceData?.();
+      refetchBeneficiaries?.();
     } catch (err) { setError(err.message); }
   }
 
   function reset() {
     setStep(STEPS.FORM);
     setForm({ receiverAccountNumber: '', amount: '', narration: '' });
+    setQuery('');
     setPin(''); setOtp(''); setResult(null); setError('');
     setRecipient(null); setNotFoundError(false);
   }
 
-  function PinDots({ value }) {
-    return (
-      <div className="flex gap-10 justify-center my-16">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="w-16 h-16 rounded-full transition-all duration-200"
-            style={{ background: i < value.length ? tokens.accentSolid : tokens.borderColor, transform: i < value.length ? 'scale(1.2)' : 'scale(1)' }} />
-        ))}
-      </div>
-    );
-  }
-
-  const stepLabels = ['Details', 'PIN', 'Confirm', 'Done'];
-  const stepKeys   = [STEPS.FORM, STEPS.PIN, STEPS.OTP, STEPS.SUCCESS];
-  const errorAlertSx = { borderRadius: '10px', background: tokens.dangerBg, color: tokens.danger, fontSize: F.small, '& .MuiAlert-icon': { color: tokens.danger } };
-
   const overMonthlyAllowance = exceedsMonthlyAllowance(kycSubmission, amountNaira);
   const canContinue = !!recipient && !isSelf && form.amount && amountNaira > 0 && amountNaira <= availableNGN && !overMonthlyAllowance;
-  let amountHelperText = '';
-  if (amountNaira > availableNGN) amountHelperText = 'Insufficient balance';
-  else if (overMonthlyAllowance) amountHelperText = 'Exceeds your remaining monthly allowance';
+  let amountHelper = '';
+  if (amountNaira > availableNGN) amountHelper = 'Insufficient balance';
+  else if (overMonthlyAllowance) amountHelper = 'Exceeds your remaining monthly allowance';
+
+  let continueLabel = `Continue with ${nairaFull(amountNaira * 100)}`;
+  if (!form.receiverAccountNumber) continueLabel = 'Choose who to send to';
+  else if (!recipient) continueLabel = 'Confirming the account…';
+  else if (!(amountNaira > 0)) continueLabel = 'Enter an amount';
+  else if (!canContinue) continueLabel = amountHelper || 'Check the details';
+
+  const monthly = kycSubmission?.monthlyCapKobo != null ? kycSubmission : null;
+  const allowanceUsedPct = monthly ? Math.min(100, (Number(monthly.monthlyUsedKobo) / Number(monthly.monthlyCapKobo)) * 100) : 0;
+  const inputBase = { width: '100%', border: `2px solid ${tokens.borderColor}`, borderRadius: 14, padding: '14px 16px', fontSize: 16, background: tokens.cardBg, color: tokens.textPrimary, outline: 'none' };
+  const primary = (enabled) => ({ width: '100%', padding: 15, borderRadius: 14, fontWeight: 700, fontSize: 15, border: 0, cursor: enabled ? 'pointer' : 'not-allowed', background: enabled ? tokens.accentGradient : tokens.borderColor, color: enabled ? '#fff' : tokens.textMuted, boxShadow: enabled ? `0 6px 16px ${tokens.accentSolid}44` : 'none' });
+
+  const summary = (
+    <div style={{ ...card, position: 'sticky', top: 16 }}>
+      <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: tokens.textPrimary }}>Summary</h3>
+      {!recipient && !(amountNaira > 0) ? (
+        <div style={{ textAlign: 'center', padding: 18, fontSize: 13, color: tokens.textMuted }}>Choose who you are sending to and the amount. Your summary appears here.</div>
+      ) : (
+        <>
+          <Row label="To" value={recipient?.accountName ?? '—'} tokens={tokens} />
+          <Row label="Account" value={form.receiverAccountNumber || '—'} tokens={tokens} />
+          <Row label="Amount" value={nairaFull(amountNaira * 100)} tokens={tokens} />
+          <Row label="Fee" value="₦0.00" tokens={tokens} />
+          <Row label="Balance after" value={nairaFull((availableNGN - amountNaira) * 100)} tokens={tokens} />
+          <Row label="Total" value={nairaFull(amountNaira * 100)} strong tokens={tokens} />
+        </>
+      )}
+    </div>
+  );
 
   return (
-    <div className="w-full px-16 md:px-24 xl:px-32 py-24 flex justify-center">
-      <div className="w-full max-w-md">
-        <Typography style={{ fontSize: F.sectionHead, fontWeight: 700, color: tokens.textPrimary, marginBottom: 4 }}>Send Money</Typography>
-        <Typography style={{ fontSize: F.body, color: tokens.textMuted, marginBottom: 28 }}>Instant account-to-account transfer</Typography>
+    <div className="w-full px-16 md:px-24 xl:px-32 py-24">
+      <Stepper step={step} tokens={tokens} />
 
-        {/* Step indicator */}
-        <div className="flex items-center gap-0 mb-28">
-          {stepLabels.map((s, i) => {
-            const stepIndex = stepKeys.indexOf(step);
-            const done = i < stepIndex, active = i === stepIndex;
-            return (
-              <div key={s} className="flex items-center flex-1">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="w-32 h-32 rounded-full flex items-center justify-center font-bold transition-all duration-300"
-                    style={{ fontSize: F.small, background: done || active ? tokens.accentGradient : tokens.borderColor, color: done || active ? '#ffffff' : tokens.textMuted }}>
-                    {done ? <FuseSvgIcon size={16} className="text-white">heroicons-solid:check</FuseSvgIcon> : i + 1}
-                  </div>
-                  <Typography style={{ fontSize: F.small, color: active ? tokens.accentSolid : tokens.textMuted }}>{s}</Typography>
-                </div>
-                {i < 3 && <div className="flex-1 h-1 mx-4" style={{ background: done ? tokens.accentSolid : tokens.borderColor }} />}
+      <AnimatePresence mode="wait">
+        {step === STEPS.FORM && (
+          <motion.div key="form" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.5fr) minmax(0,1fr)', gap: 16, alignItems: 'start' }}>
+            <div style={card}>
+              <div style={{ background: tokens.accentSoft, borderRadius: 16, padding: 14, marginBottom: 16 }}>
+                <div style={{ fontSize: 12, color: tokens.textSecondary }}>Sending from</div>
+                <b style={{ color: tokens.textPrimary }}>{account?.accountName ?? '—'}</b>
+                <div style={{ fontFamily: 'monospace', fontSize: 13, color: tokens.textSecondary }}>{account?.accountNumber ?? '—'}</div>
+                <div style={{ fontSize: 13, color: tokens.success, fontWeight: 600, marginTop: 4 }}>Balance: {nairaFull(availableNGN * 100)}</div>
               </div>
-            );
-          })}
-        </div>
 
-        <div className="rounded-3xl p-24" style={card}>
-          <AnimatePresence mode="wait">
-            {step === STEPS.FORM && (
-              <motion.div key="form" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-16">
-                <div className="rounded-2xl p-16" style={{ background: tokens.accentSoft }}>
-                  <Typography style={{ fontSize: F.small, color: tokens.textSecondary, marginBottom: 4 }}>Sending from</Typography>
-                  <Typography style={{ fontSize: F.body, fontWeight: 700, color: tokens.textPrimary }}>{account?.accountName ?? '—'}</Typography>
-                  <Typography style={{ fontSize: F.label, fontFamily: 'monospace', color: tokens.textSecondary, marginBottom: 8 }}>{account?.accountNumber ?? '—'}</Typography>
-                  <Typography style={{ fontSize: F.small, color: tokens.success, fontWeight: 600 }}>Balance: ₦{availableNGN.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</Typography>
-                </div>
-
-                <TextField label="Receiver Account Number" value={form.receiverAccountNumber}
-                  onChange={e => update('receiverAccountNumber', e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  fullWidth inputProps={{ maxLength: 10 }} helperText="10-digit account number" sx={fieldSx(tokens, F.body)} />
-
-                <RecipientCard tokens={tokens} verifying={verifying} recipient={recipient} selfError={isSelf} notFoundError={notFoundError} />
-
-                <PartialKycAllowanceBanner submission={kycSubmission} />
-
-                <TextField label="Amount (₦)" value={form.amount}
-                  onChange={e => update('amount', e.target.value.replace(/[^0-9.]/g, ''))}
-                  fullWidth
-                  InputProps={{ startAdornment: <InputAdornment position="start"><Typography style={{ color: tokens.textMuted, fontSize: F.body }}>₦</Typography></InputAdornment> }}
-                  error={amountNaira > availableNGN || overMonthlyAllowance}
-                  helperText={amountHelperText}
-                  sx={{ ...fieldSx(tokens, F.body), '& .MuiFormHelperText-root.Mui-error': { color: tokens.danger } }} />
-
-                <TextField label="Narration (optional)" value={form.narration}
-                  onChange={e => update('narration', e.target.value)} fullWidth
-                  placeholder="e.g. Rent payment" sx={fieldSx(tokens, F.body)} />
-
-                {error && <Alert severity="error" sx={errorAlertSx}>{error}</Alert>}
-
-                <Button variant="contained" fullWidth
-                  disabled={!canContinue}
-                  onClick={() => setStep(STEPS.PIN)}
-                  sx={{ background: tokens.accentGradient, borderRadius: '12px', fontWeight: 700, py: 1.5, textTransform: 'none', fontSize: F.body, '&:disabled': { background: tokens.borderColor, color: tokens.textMuted } }}>
-                  Continue
-                </Button>
-              </motion.div>
-            )}
-
-            {step === STEPS.PIN && (
-              <motion.div key="pin" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <div className="mb-20 rounded-2xl p-16" style={{ background: tokens.pageBg, border: `1px solid ${tokens.borderColor}` }}>
-                  <div className="flex justify-between mb-8">
-                    <Typography style={{ fontSize: F.body, color: tokens.textSecondary }}>To</Typography>
-                    <div style={{ textAlign: 'right' }}>
-                      <Typography style={{ fontSize: F.body, fontWeight: 600, color: tokens.textPrimary }}>{recipient?.accountName}</Typography>
-                      <Typography style={{ fontSize: F.small, fontFamily: 'monospace', color: tokens.textMuted }}>{form.receiverAccountNumber}</Typography>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6, color: tokens.textPrimary }}>Send to</div>
+              {!form.receiverAccountNumber || (!recipient && !verifying && !notFoundError && !isSelf) ? (
+                <RecipientPicker beneficiaries={benList?.beneficiaries} query={query} onQuery={onQuery} onChoose={choose} selectedNumber={form.receiverAccountNumber} />
+              ) : (
+                <div>
+                  {verifying && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, border: `1px solid ${tokens.borderColor}`, background: tokens.pageBg }}>
+                      <CircularProgress size={18} sx={{ color: tokens.accentSolid }} />
+                      <span style={{ fontSize: 14, color: tokens.textMuted }}>Verifying account…</span>
                     </div>
+                  )}
+                  {isSelf && <Notice kind="warn" tokens={tokens}>You can't send money to your own account.</Notice>}
+                  {notFoundError && <Notice kind="error" tokens={tokens}>No account found with that number. Double-check and try again.</Notice>}
+                  {recipient && (
+                    <div style={{ display: 'flex', gap: 14, alignItems: 'center', border: `2px solid ${tokens.accentSolid}`, borderRadius: 18, padding: 14, background: tokens.accentSoft }}>
+                      <Avatar name={recipient.accountName} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <b style={{ fontSize: 16, color: tokens.textPrimary }}>{recipient.accountName}</b>
+                        <span style={{ display: 'block', color: tokens.textSecondary, fontSize: 13 }}>{form.receiverAccountNumber} · name confirmed{saved ? ' · saved' : ''}</span>
+                      </div>
+                      <button type="button" onClick={clearRecipient} style={{ color: tokens.textMuted, fontWeight: 700, padding: 6, background: 'none', border: 0, cursor: 'pointer' }}>Change</button>
+                    </div>
+                  )}
+                  {(isSelf || notFoundError) && (
+                    <button type="button" onClick={clearRecipient} style={{ marginTop: 6, color: tokens.accentSolid, fontWeight: 700, background: 'none', border: 0, cursor: 'pointer' }}>Choose someone else</button>
+                  )}
+                </div>
+              )}
+
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6, color: tokens.textPrimary }}>Amount</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, border: `2px solid ${amountHelper ? tokens.danger : tokens.borderColor}`, borderRadius: 18, padding: '12px 18px', background: tokens.cardBg }}>
+                  <b style={{ fontSize: 28, color: tokens.textMuted }}>₦</b>
+                  <input
+                    value={form.amount ? Number(form.amount.split('.')[0] || 0).toLocaleString('en-NG') + (form.amount.includes('.') ? `.${form.amount.split('.')[1]}` : '') : ''}
+                    onChange={(e) => update('amount', e.target.value.replace(/[^0-9.]/g, ''))}
+                    inputMode="decimal"
+                    placeholder="0"
+                    aria-label="Amount in naira"
+                    style={{ border: 0, outline: 0, fontSize: 38, fontWeight: 800, width: '100%', background: 'none', letterSpacing: '-0.02em', color: tokens.textPrimary }}
+                  />
+                </div>
+                {amountHelper && <div style={{ color: tokens.danger, fontSize: 13, marginTop: 6 }}>{amountHelper}</div>}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  {QUICK.map((q) => (
+                    <button key={q} type="button" onClick={() => update('amount', String(q))} style={{ border: `1px solid ${tokens.borderColor}`, borderRadius: 99, padding: '6px 14px', fontWeight: 700, fontSize: 13, background: tokens.cardBg, color: tokens.textPrimary, cursor: 'pointer' }}>
+                      ₦{q.toLocaleString('en-NG')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {monthly && (
+                <div style={{ border: `1px solid ${tokens.borderColor}`, borderRadius: 16, padding: '12px 14px', margin: '16px 0', background: tokens.pageBg }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: tokens.textSecondary }}>
+                    <span>Monthly allowance (KYC pending)</span>
+                    <b style={{ color: tokens.textPrimary }}>{nairaFull(monthly.monthlyRemainingKobo)} left</b>
                   </div>
-                  <div className="flex justify-between">
-                    <Typography style={{ fontSize: F.body, color: tokens.textSecondary }}>Amount</Typography>
-                    <Typography style={{ fontSize: F.amountLg, fontWeight: 700, color: tokens.accentSolid }}>₦{parseFloat(form.amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</Typography>
+                  <div style={{ height: 8, borderRadius: 99, background: tokens.borderColor, overflow: 'hidden', margin: '8px 0 6px' }}>
+                    <div style={{ width: `${Math.max(2, allowanceUsedPct)}%`, height: '100%', borderRadius: 99, background: allowanceUsedPct > 80 ? 'linear-gradient(90deg,#f59e0b,#dc2626)' : tokens.accentGradient }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: tokens.textSecondary }}>
+                    <span>{nairaFull(monthly.monthlyUsedKobo)} of {nairaFull(monthly.monthlyCapKobo)} used</span>
+                    <a href="/africanshops/finance-v2/kyc" style={{ color: tokens.accentSolid, fontWeight: 700, textDecoration: 'none' }}>Complete KYC to remove the limit</a>
                   </div>
                 </div>
+              )}
 
-                <Typography style={{ fontSize: F.body, fontWeight: 600, color: tokens.textPrimary, marginBottom: 4 }}>Enter transaction PIN</Typography>
-                <PinDots value={pin} />
-                <TextField type="password" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="••••••" fullWidth
-                  inputProps={{ maxLength: 6, inputMode: 'numeric', style: { textAlign: 'center', fontSize: 28, letterSpacing: 14, color: tokens.textPrimary } }}
-                  sx={fieldSx(tokens, F.body)} />
+              <div style={{ margin: '16px 0' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6, color: tokens.textPrimary }}>Narration <span style={{ color: tokens.textMuted, fontWeight: 500 }}>(optional)</span></div>
+                <input value={form.narration} onChange={(e) => update('narration', e.target.value)} placeholder="e.g. Rent payment" style={inputBase} />
+              </div>
 
-                {error && <Alert severity="error" sx={{ ...errorAlertSx, mt: 2 }}>{error}</Alert>}
+              {error && <Notice kind="error" tokens={tokens}>{error}</Notice>}
+              <button type="button" disabled={!canContinue} onClick={() => setStep(STEPS.PIN)} style={primary(canContinue)}>{continueLabel}</button>
+            </div>
+            {summary}
+          </motion.div>
+        )}
 
-                <Button variant="contained" fullWidth disabled={pin.length < 6 || isLoading} onClick={() => submitTransfer()}
-                  sx={{ mt: 3, background: tokens.accentGradient, borderRadius: '12px', fontWeight: 700, py: 1.5, textTransform: 'none', fontSize: F.body, '&:disabled': { background: tokens.borderColor, color: tokens.textMuted } }}>
+        {step !== STEPS.FORM && (
+          <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} style={{ ...card, maxWidth: 640, margin: '0 auto' }}>
+            {step === STEPS.PIN && (
+              <>
+                <div style={{ border: `1px solid ${tokens.borderColor}`, borderRadius: 16, padding: 16, background: tokens.pageBg, marginBottom: 16 }}>
+                  <Row label="To" value={<span>{recipient?.accountName}<span style={{ display: 'block', fontFamily: 'monospace', fontSize: 12, color: tokens.textMuted }}>{form.receiverAccountNumber}</span></span>} tokens={tokens} />
+                  <Row label="Amount" value={nairaFull(amountNaira * 100)} strong tokens={tokens} />
+                </div>
+                <TransactionPinField value={pin} onChange={setPin} tokens={tokens} label="Enter transaction PIN" />
+                {error && <Notice kind="error" tokens={tokens}>{error}</Notice>}
+                <button type="button" disabled={pin.length < 6 || isLoading} onClick={() => submitTransfer()} style={primary(pin.length === 6 && !isLoading)}>
                   {isLoading ? <CircularProgress size={22} sx={{ color: 'white' }} /> : 'Confirm Transfer'}
-                </Button>
-                <Button onClick={() => { setStep(STEPS.FORM); setPin(''); }} sx={{ mt: 1, color: tokens.textMuted, textTransform: 'none', width: '100%', fontSize: F.small }}>Back</Button>
-              </motion.div>
+                </button>
+                <button type="button" onClick={() => { setStep(STEPS.FORM); setPin(''); }} style={{ marginTop: 8, color: tokens.textMuted, width: '100%', background: 'none', border: 0, cursor: 'pointer', fontSize: 14 }}>Back</button>
+              </>
             )}
 
             {step === STEPS.OTP && (
-              <motion.div key="otp" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <Typography style={{ fontSize: F.body, color: tokens.textPrimary, marginBottom: 4 }}>An OTP has been sent to your registered email.</Typography>
-                <TextField label="OTP Code" value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  fullWidth inputProps={{ maxLength: 6, style: { textAlign: 'center', fontSize: 28, letterSpacing: 14, color: tokens.textPrimary } }}
-                  sx={{ ...fieldSx(tokens, F.body), mt: 2 }} />
-                {result?._devOtp && (
-                  <Typography style={{ fontSize: F.small, color: tokens.warning, textAlign: 'center', marginTop: 8 }}>DEV OTP: {result._devOtp}</Typography>
-                )}
-                {error && <Alert severity="error" sx={{ ...errorAlertSx, mt: 2 }}>{error}</Alert>}
-                <Button variant="contained" fullWidth disabled={otp.length < 6 || isLoading} onClick={() => submitTransfer(otp)}
-                  sx={{ mt: 3, background: tokens.accentGradient, borderRadius: '12px', fontWeight: 700, py: 1.5, textTransform: 'none', fontSize: F.body, '&:disabled': { background: tokens.borderColor, color: tokens.textMuted } }}>
+              <>
+                <div style={{ fontSize: 15, color: tokens.textPrimary, textAlign: 'center', marginBottom: 6 }}>An OTP has been sent to your registered email.</div>
+                <TransactionPinField value={otp} onChange={setOtp} tokens={tokens} label="OTP code" masked={false} />
+                {result?._devOtp && <div style={{ fontSize: 13, color: tokens.warning, textAlign: 'center', marginTop: 8 }}>DEV OTP: {result._devOtp}</div>}
+                {error && <Notice kind="error" tokens={tokens}>{error}</Notice>}
+                <button type="button" disabled={otp.length < 6 || isLoading} onClick={() => submitTransfer(otp)} style={primary(otp.length === 6 && !isLoading)}>
                   {isLoading ? <CircularProgress size={22} sx={{ color: 'white' }} /> : 'Verify & Send'}
-                </Button>
-              </motion.div>
+                </button>
+              </>
             )}
 
             {step === STEPS.SUCCESS && (
-              <motion.div key="success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-                <div className="text-center pt-8 pb-24">
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }}
-                    className="w-72 h-72 rounded-full flex items-center justify-center mx-auto mb-16"
-                    style={{ background: tokens.successBg }}>
+              <>
+                <div style={{ textAlign: 'center', padding: '10px 0 4px' }}>
+                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }} style={{ width: 76, height: 76, borderRadius: '50%', background: tokens.successBg, margin: '0 auto 10px', display: 'grid', placeItems: 'center' }}>
                     <FuseSvgIcon size={36} style={{ color: tokens.success }}>heroicons-solid:check</FuseSvgIcon>
                   </motion.div>
-                  <Typography style={{ fontSize: F.sectionHead, fontWeight: 800, color: tokens.textPrimary, marginBottom: 4 }}>Transfer Successful!</Typography>
-                  <Typography style={{ fontSize: F.amountLg, fontWeight: 800, color: tokens.success }}>
-                    ₦{Number(result?.amount ?? amountNaira).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-                  </Typography>
+                  <h1 style={{ fontSize: 24, margin: '0 0 2px', color: tokens.textPrimary }}>{nairaFull(Number(result?.amount ?? amountNaira) * 100)} sent</h1>
+                  <p style={{ margin: 0, color: tokens.textSecondary }}>Delivered to <b>{result?.receiverName ?? recipient?.accountName}</b> instantly</p>
+                </div>
+                <div style={{ border: `1px dashed ${tokens.borderColor}`, borderRadius: 18, padding: '6px 16px', margin: '16px 0', background: tokens.pageBg }}>
+                  <Row label="From" value={result?.senderName ?? account?.accountName} tokens={tokens} />
+                  <Row label="To" value={<span>{result?.receiverName ?? recipient?.accountName}<span style={{ display: 'block', fontFamily: 'monospace', fontSize: 12, color: tokens.textMuted }}>{result?.receiverAccountNumber ?? form.receiverAccountNumber}</span></span>} tokens={tokens} />
+                  {(result?.narration || form.narration) && <Row label="Note" value={result?.narration ?? form.narration} tokens={tokens} />}
+                  <Row label="Fee" value="₦0.00" tokens={tokens} />
+                  <Row label="Reference" value={<span style={{ fontFamily: 'monospace', fontSize: 12 }}>{result?.reference ?? '—'}</span>} tokens={tokens} />
+                  <Row label="Date" value={(result?.completedAt ? new Date(result.completedAt) : new Date()).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' })} tokens={tokens} />
+                  {result?.senderBalance != null && <Row label="New balance" value={nairaFull(Number(result.senderBalance))} tokens={tokens} />}
                 </div>
 
-                <div className="rounded-2xl p-20 mb-16" style={{ background: tokens.pageBg, border: `1px solid ${tokens.borderColor}` }}>
-                  <div className="flex justify-between mb-10">
-                    <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>From</Typography>
-                    <Typography style={{ fontSize: F.small, fontWeight: 600, color: tokens.textPrimary }}>{result?.senderName ?? account?.accountName}</Typography>
-                  </div>
-                  <div className="flex justify-between mb-10">
-                    <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>To</Typography>
-                    <div style={{ textAlign: 'right' }}>
-                      <Typography style={{ fontSize: F.small, fontWeight: 600, color: tokens.textPrimary }}>{result?.receiverName ?? recipient?.accountName}</Typography>
-                      <Typography style={{ fontSize: '1.2rem', fontFamily: 'monospace', color: tokens.textMuted }}>{result?.receiverAccountNumber ?? form.receiverAccountNumber}</Typography>
-                    </div>
-                  </div>
-                  {(result?.narration || form.narration) && (
-                    <div className="flex justify-between mb-10">
-                      <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Note</Typography>
-                      <Typography style={{ fontSize: F.small, fontWeight: 600, color: tokens.textPrimary }}>{result?.narration ?? form.narration}</Typography>
-                    </div>
-                  )}
-                  <div className="flex justify-between mb-10 pt-10" style={{ borderTop: `1px dashed ${tokens.borderColor}` }}>
-                    <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Reference</Typography>
-                    <Typography style={{ fontSize: '1.2rem', fontFamily: 'monospace', color: tokens.textPrimary }}>{result?.reference ?? '—'}</Typography>
-                  </div>
-                  <div className="flex justify-between">
-                    <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Date</Typography>
-                    <Typography style={{ fontSize: F.small, fontWeight: 600, color: tokens.textPrimary }}>
-                      {result?.completedAt ? new Date(result.completedAt).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : new Date().toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' })}
-                    </Typography>
-                  </div>
-                  {result?.senderBalance != null && (
-                    <div className="flex justify-between mt-10 pt-10" style={{ borderTop: `1px dashed ${tokens.borderColor}` }}>
-                      <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>New balance</Typography>
-                      <Typography style={{ fontSize: F.small, fontWeight: 700, color: tokens.success }}>₦{(Number(result.senderBalance) / 100).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</Typography>
-                    </div>
-                  )}
-                </div>
+                {!saved && recipient && (
+                  <SaveBeneficiary accountNumber={form.receiverAccountNumber} accountName={recipient.accountName} list={benList} account={account} onSaved={() => refetchBeneficiaries?.()} tokens={tokens} />
+                )}
 
-                <div className="text-center">
-                  <Button variant="contained" onClick={reset}
-                    sx={{ background: tokens.accentGradient, borderRadius: '12px', fontWeight: 700, py: 1.5, px: 4, textTransform: 'none', fontSize: F.body }}>
-                    New Transfer
-                  </Button>
+                <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                  <button type="button" onClick={reset} style={{ ...primary(true), flex: 1 }}>New Transfer</button>
                 </div>
-              </motion.div>
+              </>
             )}
-          </AnimatePresence>
-        </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

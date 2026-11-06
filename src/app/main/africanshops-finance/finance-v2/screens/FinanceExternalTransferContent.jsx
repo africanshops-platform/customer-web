@@ -5,7 +5,6 @@ import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
-import InputAdornment from '@mui/material/InputAdornment';
 import Checkbox from '@mui/material/Checkbox';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,6 +13,7 @@ import { useFinanceTheme } from '../FinanceThemeContext';
 import { F, fieldSx } from '../financeUiTokens';
 import OtpTimer from './shared/OtpTimer';
 import BeneficiaryPicker from './shared/BeneficiaryPicker';
+import { BankStepper, AmountField, SideColumn } from './shared/BankFlowParts';
 import TransactionPinField from './shared/TransactionPinField';
 import ForgotPinDialog from './shared/ForgotPinDialog';
 import PartialKycAllowanceBanner, { exceedsMonthlyAllowance } from './shared/PartialKycAllowanceBanner';
@@ -130,30 +130,21 @@ export default function FinanceExternalTransferContent() {
   const bankName = bankNameByCode[beneficiary?.beneficiaryBankCode] ?? beneficiary?.beneficiaryBankCode;
 
   return (
-    <div className="w-full px-16 md:px-24 xl:px-32 py-24 flex justify-center">
-      <div className="w-full max-w-md">
-        <Typography style={{ fontSize: F.sectionHead, fontWeight: 700, color: tokens.textPrimary, marginBottom: 4 }}>Send to Bank Account</Typography>
-        <Typography style={{ fontSize: F.body, color: tokens.textMuted, marginBottom: 24 }}>Pay anyone's Nigerian bank account directly</Typography>
+    <div className="w-full px-16 md:px-24 xl:px-32 py-24">
+      <div className="w-full">
+        <BankStepper step={step} tokens={tokens} />
 
         <AnimatePresence mode="wait">
           {step === 'form' && (
-            <motion.div key="form" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-16">
+            <motion.div key="form" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.5fr) minmax(0,1fr)', gap: 16, alignItems: 'start' }}>
+              <div className="space-y-16" style={{ minWidth: 0 }}>
               <div className="rounded-3xl p-24 space-y-16" style={card}>
                 <div className="flex items-center justify-between rounded-xl px-16 py-12" style={{ background: tokens.accentSoft }}>
                   <Typography style={{ fontSize: F.small, color: tokens.textSecondary }}>Available</Typography>
                   <Typography style={{ fontSize: F.body, fontWeight: 700, color: tokens.success }}>₦{availableNGN.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</Typography>
                 </div>
 
-                <TextField
-                  label="Amount (₦)"
-                  value={form.amountNGN}
-                  onChange={e => update('amountNGN', e.target.value.replace(/[^0-9.]/g, ''))}
-                  fullWidth
-                  error={(amountNGN > availableNGN && amountNGN > 0) || overMonthlyAllowance}
-                  helperText={amountHelperText}
-                  InputProps={{ startAdornment: <InputAdornment position="start"><Typography style={{ color: tokens.textMuted, fontSize: F.body }}>₦</Typography></InputAdornment> }}
-                  sx={{ ...fieldSx(tokens), '& .MuiFormHelperText-root.Mui-error': { color: tokens.danger } }}
-                />
+                <AmountField value={form.amountNGN} onChange={(v) => update('amountNGN', v)} tokens={tokens} helper={amountHelperText} isError={(amountNGN > availableNGN && amountNGN > 0) || overMonthlyAllowance} />
 
                 <PartialKycAllowanceBanner submission={kycSubmission} />
               </div>
@@ -181,11 +172,31 @@ export default function FinanceExternalTransferContent() {
               >
                 Continue
               </Button>
+              </div>
+
+              <SideColumn
+                tokens={tokens}
+                card={card}
+                emptyText="Enter an amount and choose who to pay. Your summary appears here."
+                rows={!beneficiary && !(amountNGN > 0) ? [] : [
+                  ['To', beneficiary?.beneficiaryAccountName ?? '—'],
+                  ['Bank', bankName ?? '—'],
+                  ['Account', beneficiary?.beneficiaryAccountNumber ?? '—'],
+                  ['Amount', `₦${amountNGN.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`],
+                  ['Fees', 'Added on top, shown next'],
+                ]}
+                facts={[
+                  ['🏦', 'Any Nigerian bank', 'Pay any account, not just AfricanShops users.'],
+                  ['✅', 'Name checked first', 'We confirm the account name with the bank before you pay.'],
+                  ['🔐', 'PIN, and a code for larger amounts', 'You always enter your PIN; bigger payments also ask for a code we email you.'],
+                  ['🧾', 'Fees before you commit', 'The exact fee is shown on the next step, before anything leaves your wallet.'],
+                ]}
+              />
             </motion.div>
           )}
 
           {step === 'confirm' && (
-            <motion.div key="confirm" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <motion.div key="confirm" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} style={{ maxWidth: 640, margin: '0 auto' }}>
               <div className="rounded-3xl p-24 space-y-16" style={card}>
                 <div className="rounded-2xl p-16" style={{ background: tokens.pageBg, border: `1px solid ${tokens.borderColor}` }}>
                   <Typography style={{ fontSize: F.small, color: tokens.textSecondary, marginBottom: 8 }}>You're sending</Typography>
@@ -227,7 +238,7 @@ export default function FinanceExternalTransferContent() {
           )}
 
           {step === 'otp' && (
-            <motion.div key="otp" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <motion.div key="otp" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} style={{ maxWidth: 640, margin: '0 auto' }}>
               <div className="rounded-3xl p-24" style={card}>
                 <div className="rounded-2xl p-16 mb-20" style={{ background: tokens.pageBg, border: `1px solid ${tokens.borderColor}` }}>
                   <div className="flex justify-between mb-8">
@@ -321,7 +332,7 @@ export default function FinanceExternalTransferContent() {
           )}
 
           {step === 'success' && (
-            <motion.div key="success" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
+            <motion.div key="success" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center" style={{ maxWidth: 640, margin: '0 auto' }}>
               <div className="rounded-3xl p-32" style={card}>
                 <motion.div
                   initial={{ scale: 0 }} animate={{ scale: 1 }}
