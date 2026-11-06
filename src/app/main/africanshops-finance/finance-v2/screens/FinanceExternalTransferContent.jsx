@@ -13,38 +13,10 @@ import { useFinanceTheme } from '../FinanceThemeContext';
 import { F, fieldSx } from '../financeUiTokens';
 import OtpTimer from './shared/OtpTimer';
 import BeneficiaryPicker from './shared/BeneficiaryPicker';
+import { BankStepper, AmountField, SideColumn } from './shared/BankFlowParts';
 import TransactionPinField from './shared/TransactionPinField';
 import ForgotPinDialog from './shared/ForgotPinDialog';
 import PartialKycAllowanceBanner, { exceedsMonthlyAllowance } from './shared/PartialKycAllowanceBanner';
-
-function BankStepper({ step, tokens }) {
-  const labels = ['Details', 'Confirm', 'Code', 'Done'];
-  const keys = ['form', 'confirm', 'otp', 'success'];
-  const at = keys.indexOf(step);
-  const dotBg = (done, on) => {
-    if (done) return tokens.success;
-    return on ? tokens.accentGradient : tokens.borderColor;
-  };
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', margin: '4px 0 20px' }}>
-      {labels.map((l, i) => {
-        const done = i < at;
-        const on = i === at;
-        return (
-          <div key={l} style={{ display: 'flex', alignItems: 'center', flex: i < 3 ? 1 : 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, fontSize: 14, color: done || on ? tokens.textPrimary : tokens.textMuted }}>
-              <i style={{ width: 32, height: 32, borderRadius: '50%', display: 'grid', placeItems: 'center', fontStyle: 'normal', background: dotBg(done, on), color: done || on ? '#fff' : tokens.textSecondary, boxShadow: on ? `0 4px 12px ${tokens.accentSolid}44` : 'none' }}>
-                {done ? '✓' : i + 1}
-              </i>
-              {l}
-            </div>
-            {i < 3 && <div style={{ flex: 1, height: 2, background: done ? tokens.success : tokens.borderColor, margin: '0 12px' }} />}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 /**
  * Phase C (2026-07-11) — the external counterpart to the internal, free
@@ -172,28 +144,7 @@ export default function FinanceExternalTransferContent() {
                   <Typography style={{ fontSize: F.body, fontWeight: 700, color: tokens.success }}>₦{availableNGN.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</Typography>
                 </div>
 
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6, color: tokens.textPrimary }}>Amount</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, border: `2px solid ${(amountNGN > availableNGN && amountNGN > 0) || overMonthlyAllowance ? tokens.danger : tokens.borderColor}`, borderRadius: 18, padding: '12px 18px', background: tokens.cardBg }}>
-                    <b style={{ fontSize: 28, color: tokens.textMuted }}>₦</b>
-                    <input
-                      value={form.amountNGN ? Number(form.amountNGN.split('.')[0] || 0).toLocaleString('en-NG') + (form.amountNGN.includes('.') ? `.${form.amountNGN.split('.')[1]}` : '') : ''}
-                      onChange={e => update('amountNGN', e.target.value.replace(/[^0-9.]/g, ''))}
-                      inputMode="decimal"
-                      placeholder="0"
-                      aria-label="Amount in naira"
-                      style={{ border: 0, outline: 0, fontSize: 38, fontWeight: 800, width: '100%', background: 'none', letterSpacing: '-0.02em', color: tokens.textPrimary }}
-                    />
-                  </div>
-                  <div style={{ fontSize: 13, marginTop: 6, color: (amountNGN > availableNGN && amountNGN > 0) || overMonthlyAllowance ? tokens.danger : tokens.textMuted }}>{amountHelperText}</div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                    {[5000, 10000, 50000, 100000].map(q => (
-                      <button key={q} type="button" onClick={() => update('amountNGN', String(q))} style={{ border: `1px solid ${tokens.borderColor}`, borderRadius: 99, padding: '6px 14px', fontWeight: 700, fontSize: 13, background: tokens.cardBg, color: tokens.textPrimary, cursor: 'pointer' }}>
-                        ₦{q.toLocaleString('en-NG')}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <AmountField value={form.amountNGN} onChange={(v) => update('amountNGN', v)} tokens={tokens} helper={amountHelperText} isError={(amountNGN > availableNGN && amountNGN > 0) || overMonthlyAllowance} />
 
                 <PartialKycAllowanceBanner submission={kycSubmission} />
               </div>
@@ -223,40 +174,24 @@ export default function FinanceExternalTransferContent() {
               </Button>
               </div>
 
-              <div style={{ display: 'grid', gap: 16, position: 'sticky', top: 16 }}>
-                <div style={{ ...card, borderRadius: 20, padding: 20 }}>
-                  <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: tokens.textPrimary }}>Summary</h3>
-                  {!beneficiary && !(amountNGN > 0) ? (
-                    <div style={{ textAlign: 'center', padding: 18, fontSize: 13, color: tokens.textMuted }}>Enter an amount and choose who to pay. Your summary appears here.</div>
-                  ) : (
-                    [
-                      ['To', beneficiary?.beneficiaryAccountName ?? '—'],
-                      ['Bank', bankName ?? '—'],
-                      ['Account', beneficiary?.beneficiaryAccountNumber ?? '—'],
-                      ['Amount', `₦${amountNGN.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`],
-                      ['Fees', 'Added on top, shown next'],
-                    ].map(([l, v]) => (
-                      <div key={l} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '9px 0', borderBottom: `1px dashed ${tokens.borderColor}`, fontSize: 14, color: tokens.textSecondary }}>
-                        <span>{l}</span><b style={{ color: tokens.textPrimary, textAlign: 'right' }}>{v}</b>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div style={{ ...card, borderRadius: 20, padding: 20, background: tokens.accentSoft, border: `1px solid ${tokens.accentSolid}33`, boxShadow: 'none' }}>
-                  <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: tokens.textPrimary }}>Good to know</h3>
-                  {[
-                    ['🏦', 'Any Nigerian bank', 'Pay any account, not just AfricanShops users.'],
-                    ['✅', 'Name checked first', 'We confirm the account name with the bank before you pay.'],
-                    ['🔐', 'PIN, and a code for larger amounts', 'You always enter your PIN; bigger payments also ask for a code we email you.'],
-                    ['🧾', 'Fees before you commit', 'The exact fee is shown on the next step, before anything leaves your wallet.'],
-                  ].map(([icon, title, text]) => (
-                    <div key={title} style={{ display: 'flex', gap: 12, padding: '8px 0' }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 10, background: tokens.cardBg, display: 'grid', placeItems: 'center', fontSize: 14, flex: 'none' }}>{icon}</div>
-                      <div style={{ fontSize: 13, color: tokens.textSecondary }}><b style={{ display: 'block', color: tokens.textPrimary }}>{title}</b>{text}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <SideColumn
+                tokens={tokens}
+                card={card}
+                emptyText="Enter an amount and choose who to pay. Your summary appears here."
+                rows={!beneficiary && !(amountNGN > 0) ? [] : [
+                  ['To', beneficiary?.beneficiaryAccountName ?? '—'],
+                  ['Bank', bankName ?? '—'],
+                  ['Account', beneficiary?.beneficiaryAccountNumber ?? '—'],
+                  ['Amount', `₦${amountNGN.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`],
+                  ['Fees', 'Added on top, shown next'],
+                ]}
+                facts={[
+                  ['🏦', 'Any Nigerian bank', 'Pay any account, not just AfricanShops users.'],
+                  ['✅', 'Name checked first', 'We confirm the account name with the bank before you pay.'],
+                  ['🔐', 'PIN, and a code for larger amounts', 'You always enter your PIN; bigger payments also ask for a code we email you.'],
+                  ['🧾', 'Fees before you commit', 'The exact fee is shown on the next step, before anything leaves your wallet.'],
+                ]}
+              />
             </motion.div>
           )}
 
