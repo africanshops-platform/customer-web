@@ -68,7 +68,7 @@ function WalletCard({ wallet, currency, index, selected, onSelect, onConvert, to
     >
       <div style={{ position: 'absolute', right: -30, bottom: -30, width: 130, height: 130, borderRadius: '50%', background: 'rgba(255,255,255,0.12)' }} />
       <span style={{ position: 'absolute', right: 16, top: 14, fontSize: 24 }}>{currency?.flag ?? '🌍'}</span>
-      <small style={{ opacity: 0.8, letterSpacing: '0.1em', fontSize: 11, textTransform: 'uppercase' }}>{wallet?.currency} · {wallet?.accountType ?? 'Multi-currency'}</small>
+      <small style={{ opacity: 0.8, letterSpacing: '0.1em', fontSize: 11, textTransform: 'uppercase' }}>{wallet?.currency} · {(wallet?.accountType ?? 'Multi-currency').replace(/_/g, ' ')}</small>
       <b style={{ display: 'block', fontSize: 26, margin: '10px 0 4px' }}>{symbol}{balance.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
       <small style={{ opacity: 0.85 }}>{currency?.name ?? wallet?.currency}</small>
       {wallet?.isFrozen && <div style={{ marginTop: 8, display: 'inline-flex', gap: 6, alignItems: 'center', background: 'rgba(0,0,0,0.25)', borderRadius: 10, padding: '3px 10px', fontSize: 12 }}>🔒 Frozen</div>}
