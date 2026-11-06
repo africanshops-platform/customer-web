@@ -23,6 +23,7 @@ const PAGE_META = {
   '/africanshops/finance-v2/savings':      { title: 'Savings',       subtitle: 'Grow your money' },
   '/africanshops/finance-v2/wallets':      { title: 'Wallets',       subtitle: 'Multi-currency accounts' },
   '/africanshops/finance-v2/cards':        { title: 'Cards',         subtitle: 'Virtual card details' },
+  '/africanshops/finance-v2/beneficiaries': { title: 'Beneficiaries', subtitle: 'People and accounts you send to' },
 };
 
 export default function FinanceHeader({ leftToggle, rightToggle, kycStatus }) {

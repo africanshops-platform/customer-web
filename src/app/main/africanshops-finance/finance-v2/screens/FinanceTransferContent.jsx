@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import CircularProgress from '@mui/material/CircularProgress';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -178,8 +178,10 @@ export default function FinanceTransferContent() {
   const { tokens } = useFinanceTheme();
   const card = { background: tokens.cardBg, border: `1px solid ${tokens.cardBorder}`, boxShadow: tokens.cardShadow, borderRadius: 20, padding: 20 };
 
+  const [searchParams] = useSearchParams();
+  const presetTo = (searchParams.get('to') ?? '').replace(/\D/g, '').slice(0, 10);
   const [step, setStep] = useState(STEPS.FORM);
-  const [form, setForm] = useState({ receiverAccountNumber: '', amount: '', narration: '' });
+  const [form, setForm] = useState({ receiverAccountNumber: presetTo.length === 10 ? presetTo : '', amount: '', narration: '' }); // ?to= comes from the Beneficiaries page
   const [query, setQuery] = useState('');
   const [pin, setPin] = useState('');
   const [otp, setOtp] = useState('');

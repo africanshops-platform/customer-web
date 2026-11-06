@@ -30,6 +30,7 @@ const NAV_GROUPS = [
   {
     label: 'Account',
     items: [
+      { path: '/africanshops/finance-v2/beneficiaries', icon: 'heroicons-outline:users',          label: 'Beneficiaries' },
       { path: '/africanshops/finance-v2/kyc',           icon: 'heroicons-outline:identification', label: 'KYC Verification' },
       { path: '/africanshops/finance-v2/settings',      icon: 'heroicons-outline:cog',       label: 'Settings' },
     ],
