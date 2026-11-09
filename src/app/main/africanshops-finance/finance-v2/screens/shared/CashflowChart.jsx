@@ -1,14 +1,10 @@
 import { useMemo, useState } from 'react';
-import Typography from '@mui/material/Typography';
-import { motion } from 'framer-motion';
 import { useFinanceTheme } from '../../FinanceThemeContext';
-import { F } from '../../financeUiTokens';
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-// Buckets transactions into the trailing 6 calendar months (oldest first) and
-// sums CREDIT vs DEBIT kobo per month — purely client-side, no new backend
-// endpoint needed since useTransactionHistory already returns direction+amount+createdAt.
+// Buckets transactions into the trailing 6 calendar months (oldest first) and sums CREDIT vs DEBIT kobo per month.
+// Purely client-side: useTransactionHistory already returns direction, amount and createdAt.
 function bucketByMonth(transactions) {
   const now = new Date();
   const buckets = [];
@@ -17,12 +13,10 @@ function bucketByMonth(transactions) {
     buckets.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: MONTH_LABELS[d.getMonth()], inKobo: 0, outKobo: 0 });
   }
   const byKey = new Map(buckets.map((b) => [b.key, b]));
-
   for (const tx of transactions ?? []) {
     const created = tx?.createdAt ? new Date(tx.createdAt) : null;
     if (!created) continue;
-    const key = `${created.getFullYear()}-${created.getMonth()}`;
-    const bucket = byKey.get(key);
+    const bucket = byKey.get(`${created.getFullYear()}-${created.getMonth()}`);
     if (!bucket) continue;
     const amount = Math.abs(parseFloat(tx?.amount ?? 0));
     if (tx?.direction === 'CREDIT') bucket.inKobo += amount;
@@ -31,86 +25,77 @@ function bucketByMonth(transactions) {
   return buckets;
 }
 
+// A round top for the scale (200k, 500k, 1m...) with headroom, so the tallest bar never touches the title.
+function niceMax(kobo) {
+  const naira = Math.max(1, kobo / 100) * 1.15;
+  const pow = 10 ** Math.floor(Math.log10(naira));
+  const n = naira / pow;
+  const step = [1, 2, 2.5, 5, 10].find((s) => n <= s) ?? 10;
+  return step * pow;
+}
+
+const compact = (naira) => {
+  if (naira >= 1_000_000) return `₦${+(naira / 1_000_000).toFixed(1)}m`;
+  if (naira >= 1_000) return `₦${+(naira / 1_000).toFixed(0)}k`;
+  return `₦${naira}`;
+};
+
 export default function CashflowChart({ transactions, isLoading }) {
   const { tokens } = useFinanceTheme();
-  const [hoverIdx, setHoverIdx] = useState(null);
+  const [hover, setHover] = useState(null);
   const buckets = useMemo(() => bucketByMonth(transactions), [transactions]);
-  const maxKobo = useMemo(
-    () => Math.max(1, ...buckets.map((b) => Math.max(b.inKobo, b.outKobo))),
-    [buckets]
-  );
+  const top = useMemo(() => niceMax(Math.max(...buckets.map((b) => Math.max(b.inKobo, b.outKobo)), 1)), [buckets]);
 
-  const chartH = 140;
+  const W = 420;
+  const H = 190;
+  const x0 = 38;
+  const plotTop = 20;
+  const plotBottom = 150;
+  const plotH = plotBottom - plotTop;
+  const groupW = (W - x0 - 10) / 6;
+  const y = (naira) => plotBottom - (naira / top) * plotH;
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-14">
-        <Typography className="uppercase tracking-widest font-semibold" style={{ fontSize: F.small, color: tokens.textMuted }}>
-          Cashflow · Last 6 Months
-        </Typography>
-        <div className="flex items-center gap-14">
-          <span className="flex items-center gap-6">
-            <span className="w-8 h-8 rounded-full" style={{ background: tokens.success }} />
-            <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>In</Typography>
-          </span>
-          <span className="flex items-center gap-6">
-            <span className="w-8 h-8 rounded-full" style={{ background: tokens.danger }} />
-            <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Out</Typography>
-          </span>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: tokens.textPrimary }}>Cashflow, last 6 months</h3>
+        <span style={{ fontSize: 12, color: tokens.textMuted }}>
+          <i style={{ color: tokens.success, fontStyle: 'normal' }}>●</i> In &nbsp;<i style={{ color: tokens.danger, fontStyle: 'normal' }}>●</i> Out
+        </span>
       </div>
-
       {isLoading ? (
-        <div className="flex items-end gap-16" style={{ height: chartH }}>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex-1 rounded-lg animate-pulse" style={{ height: `${40 + (i % 3) * 20}%`, background: tokens.borderColor }} />
-          ))}
-        </div>
+        <div className="animate-pulse" style={{ height: 170, borderRadius: 12, background: tokens.borderColor }} />
       ) : (
-        <div className="flex items-end gap-16" style={{ height: chartH }} onMouseLeave={() => setHoverIdx(null)}>
+        <svg viewBox={`0 0 ${W} ${H}`} width="100%" onMouseLeave={() => setHover(null)} role="img" aria-label="Money in and out for the last 6 months">
+          {[0.25, 0.5, 0.75, 1].map((f) => (
+            <g key={f}>
+              <line x1={x0} x2={W - 6} y1={y(top * f)} y2={y(top * f)} stroke={tokens.borderColor} />
+              <text x={2} y={y(top * f) + 4} fontSize="10" fill={tokens.textMuted}>{compact(top * f)}</text>
+            </g>
+          ))}
           {buckets.map((b, i) => {
-            const inH = Math.max(3, (b.inKobo / maxKobo) * chartH);
-            const outH = Math.max(3, (b.outKobo / maxKobo) * chartH);
-            const active = hoverIdx === i;
+            const gx = x0 + i * groupW + groupW / 2 - 15;
+            const inH = Math.max(2, plotBottom - y(b.inKobo / 100));
+            const outH = Math.max(2, plotBottom - y(b.outKobo / 100));
+            const active = hover === i;
             return (
-              <div
-                key={b.key}
-                className="flex-1 flex flex-col items-center gap-8 cursor-default"
-                onMouseEnter={() => setHoverIdx(i)}
-              >
-                <div className="relative flex items-end gap-3" style={{ height: chartH, width: '100%' }}>
-                  {active && (b.inKobo > 0 || b.outKobo > 0) && (
-                    <div
-                      className="absolute -top-8 left-1/2 -translate-x-1/2 rounded-lg px-8 py-4 whitespace-nowrap z-10"
-                      style={{ background: tokens.heroBg, transform: 'translate(-50%, -100%)' }}
-                    >
-                      <Typography style={{ fontSize: F.small, color: tokens.heroText, fontWeight: 600 }}>
-                        +₦{(b.inKobo / 100).toLocaleString('en-NG', { maximumFractionDigits: 0 })} / -₦{(b.outKobo / 100).toLocaleString('en-NG', { maximumFractionDigits: 0 })}
-                      </Typography>
-                    </div>
-                  )}
-                  <motion.div
-                    className="flex-1 rounded-t-md"
-                    style={{ background: tokens.success, opacity: active ? 1 : 0.85 }}
-                    initial={{ height: 0 }}
-                    animate={{ height: inH }}
-                    transition={{ duration: 0.5, delay: i * 0.05 }}
-                  />
-                  <motion.div
-                    className="flex-1 rounded-t-md"
-                    style={{ background: tokens.danger, opacity: active ? 1 : 0.85 }}
-                    initial={{ height: 0 }}
-                    animate={{ height: outH }}
-                    transition={{ duration: 0.5, delay: i * 0.05 + 0.03 }}
-                  />
-                </div>
-                <Typography style={{ fontSize: F.small, color: tokens.textMuted, fontWeight: active ? 700 : 500 }}>
-                  {b.label}
-                </Typography>
-              </div>
+              <g key={b.key} onMouseEnter={() => setHover(i)} opacity={hover === null || active ? 1 : 0.6}>
+                <rect x={gx - 6} y={plotTop} width={groupW - 4} height={plotH + 24} fill="transparent" />
+                <rect x={gx} y={plotBottom - inH} width="14" height={inH} rx="4" fill={tokens.success} />
+                <rect x={gx + 18} y={plotBottom - outH} width="14" height={outH} rx="4" fill={tokens.danger} />
+                <text x={gx + 16} y={172} fontSize="11" textAnchor="middle" fill={active ? tokens.textPrimary : tokens.textSecondary} fontWeight={active ? 700 : 400}>{b.label}</text>
+              </g>
             );
           })}
-        </div>
+          {hover !== null && (buckets[hover].inKobo > 0 || buckets[hover].outKobo > 0) && (
+            <g>
+              <rect x={Math.min(W - 128, Math.max(x0, x0 + hover * groupW - 20))} y={2} width="124" height="30" rx="8" fill={tokens.heroBg.includes('gradient') ? '#1a140e' : tokens.heroBg} />
+              <text x={Math.min(W - 128, Math.max(x0, x0 + hover * groupW - 20)) + 62} y={21} textAnchor="middle" fontSize="11" fill="#fff" fontWeight="600">
+                +{compact(buckets[hover].inKobo / 100)} / −{compact(buckets[hover].outKobo / 100)}
+              </text>
+            </g>
+          )}
+        </svg>
       )}
     </div>
   );

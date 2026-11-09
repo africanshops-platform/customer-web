@@ -49,6 +49,7 @@ import ContactUs from "../main/vendors-shop/home/home/ContactUs";
 import CareersListPage from "../main/vendors-shop/careers/CareersListPage";
 import CareerPositionPage from "../main/vendors-shop/careers/CareerPositionPage";
 import LegalDocumentPage from "../main/vendors-shop/legal/LegalDocumentPage";
+import { DELETE_ACCOUNT_DOCUMENT } from "../main/vendors-shop/legal/deleteAccountContent";
 import { LEGAL_DOCUMENT_KEYS } from "../constants/legalDocumentKeys";
 import MyApplicationsPage from "../main/vendors-shop/careers/MyApplicationsPage";
 import MarketplaceDealsWithSidebarsContentScrollComponent from "../main/zrootclient/buz-marketplace/shops/marketplace/MarketplaceDealsWithSidebarsContentScrollComponent";
@@ -337,6 +338,21 @@ const routes = [
       },
     },
     element: <LegalDocumentPage documentKey={LEGAL_DOCUMENT_KEYS.TERMS_AND_CONDITIONS} eyebrow="Legal" />,
+  },
+  {
+    path: "/delete-account",
+    settings: {
+      layout: {
+        config: {
+          navbar: { display: false },
+          toolbar: { display: true },
+          footer: { display: true },
+          leftSidePanel: { display: false },
+          rightSidePanel: { display: false },
+        },
+      },
+    },
+    element: <LegalDocumentPage staticDocument={DELETE_ACCOUNT_DOCUMENT} eyebrow="Your data" />,
   },
 
   {

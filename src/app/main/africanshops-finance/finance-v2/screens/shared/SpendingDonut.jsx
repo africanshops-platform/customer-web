@@ -35,8 +35,9 @@ export default function SpendingDonut({ transactions, isLoading, tokens: tokensP
 
   const palette = [tokens.accentSolid, tokens.info, tokens.tertiary, tokens.danger, tokens.success, tokens.warning];
 
-  const size = 140;
-  const stroke = 22;
+  // Founder 6 Nov: the donut should be about three times larger. It fills the card width (up to 300px) with the legend below.
+  const size = 300;
+  const stroke = 44;
   const r = (size - stroke) / 2;
   const circumference = 2 * Math.PI * r;
 
@@ -51,9 +52,7 @@ export default function SpendingDonut({ transactions, isLoading, tokens: tokensP
 
   return (
     <div>
-      <Typography className="uppercase tracking-widest font-semibold mb-14" style={{ fontSize: F.small, color: tokens.textMuted }}>
-        Spending Breakdown
-      </Typography>
+      <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: tokens.textPrimary }}>Where it went</h3>
 
       {isLoading ? (
         <div className="flex items-center gap-20">
@@ -64,7 +63,7 @@ export default function SpendingDonut({ transactions, isLoading, tokens: tokensP
           No spending yet this period
         </Typography>
       ) : (
-        <div className="flex items-center gap-24 flex-wrap">
+        <div className="flex flex-col items-center gap-20">
           <div className="relative shrink-0" style={{ width: size, height: size }}>
             <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
               <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={tokens.borderColor} strokeWidth={stroke} />
@@ -91,14 +90,14 @@ export default function SpendingDonut({ transactions, isLoading, tokens: tokensP
               ))}
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Total</Typography>
-              <Typography style={{ fontSize: F.label, fontWeight: 800, color: tokens.textPrimary }}>
+              <Typography style={{ fontSize: F.body, color: tokens.textMuted }}>Total</Typography>
+              <Typography style={{ fontSize: F.sectionHead, fontWeight: 800, color: tokens.textPrimary }}>
                 ₦{(total / 100).toLocaleString('en-NG', { maximumFractionDigits: 0 })}
               </Typography>
             </div>
           </div>
 
-          <div className="flex flex-col gap-8 flex-1 min-w-[140px]">
+          <div className="flex flex-col gap-10 w-full" style={{ maxWidth: 320 }}>
             {arcs.map((a, i) => (
               <div
                 key={a.label}

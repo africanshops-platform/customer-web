@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useOutletContext } from 'react-router-dom';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
-import TextField from '@mui/material/TextField';
-import InputAdornment from '@mui/material/InputAdornment';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
@@ -11,12 +9,12 @@ import { motion } from 'framer-motion';
 import {
   useChangePin,
   useTransferLimits,
-  useSetTransferLimits,
 } from '../hooks/useFintechApi';
 import { useFinanceTheme } from '../FinanceThemeContext';
-import { F, fieldSx } from '../financeUiTokens';
+import { F } from '../financeUiTokens';
 import TransactionPinField from './shared/TransactionPinField';
 import ForgotPinDialog from './shared/ForgotPinDialog';
+import TransferLimitsCard from './shared/TransferLimitsCard';
 
 const container = { show: { transition: { staggerChildren: 0.08 } } };
 const item      = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
@@ -92,93 +90,45 @@ function ChangePinCard({ account, tokens, card }) {
   );
 }
 
-function LimitField({ label, value, onChange, tokens }) {
-  return (
-    <div>
-      <Typography style={{ fontSize: F.small, fontWeight: 600, color: tokens.textPrimary, marginBottom: 6 }}>{label}</Typography>
-      <TextField
-        value={value}
-        onChange={e => onChange(e.target.value.replace(/[^0-9]/g, ''))}
-        fullWidth
-        placeholder="No limit"
-        InputProps={{ startAdornment: <InputAdornment position="start">₦</InputAdornment> }}
-        sx={fieldSx(tokens)}
-      />
-    </div>
-  );
-}
-
-function TransferLimitsCard({ account, tokens, card }) {
-  const { data: limits, isLoading, refetch } = useTransferLimits(account?.accountNumber);
-  const { mutate: setLimits, isLoading: saving, error: apiError } = useSetTransferLimits();
-  const [perTx, setPerTx] = useState('');
-  const [daily, setDaily] = useState('');
-  const [success, setSuccess] = useState('');
-
-  useEffect(() => {
-    if (!limits) return;
-    setPerTx(limits.perTransactionLimitKobo != null ? String(limits.perTransactionLimitKobo / 100) : '');
-    setDaily(limits.dailyTransferLimitKobo != null ? String(limits.dailyTransferLimitKobo / 100) : '');
-  }, [limits]);
-
-  async function handleSave() {
-    setSuccess('');
-    try {
-      await setLimits(account?.accountNumber, {
-        perTransactionLimitKobo: perTx === '' ? null : Math.round(parseFloat(perTx) * 100),
-        dailyTransferLimitKobo: daily === '' ? null : Math.round(parseFloat(daily) * 100),
-      });
-      setSuccess('Transfer limits updated. Increases take effect in 24h; decreases apply immediately.');
-      refetch();
-    } catch {
-      // error surfaced via apiError
-    }
-  }
-
+/** Right column: where the account stands on security today, from data the app already has. */
+function SecurityOverview({ account, tokens, card }) {
+  const { data: limits } = useTransferLimits(account?.accountNumber);
+  const verified = account?.kycStatus === 'verified';
   const pending = limits?.pendingChange;
-
+  const rows = [
+    { ok: true, title: 'Transaction PIN', text: 'Set. Every transfer, withdrawal and payout asks for it.' },
+    { ok: verified, title: 'Identity verification', text: verified ? 'Verified. No monthly cap on moving money.' : 'Not complete. Verify to raise your limits.', to: verified ? null : '/africanshops/finance-v2/kyc', cta: 'Verify now' },
+    { ok: !!account?.dvaProvisioned, title: 'Receive-money account', text: account?.dvaProvisioned ? 'Set up. Anyone can pay you by bank transfer.' : 'Not set up yet.', to: account?.dvaProvisioned ? null : '/africanshops/finance-v2/receive-money', cta: 'Set up' },
+    { ok: limits?.dailyTransferLimitKobo != null, title: 'Daily limit', text: limits?.dailyTransferLimitKobo != null ? `Currently ₦${(limits.dailyTransferLimitKobo / 100).toLocaleString('en-NG')} a day${pending?.newDailyTransferLimitKobo ? `, rising to ₦${(pending.newDailyTransferLimitKobo / 100).toLocaleString('en-NG')}` : ''}.` : 'No daily limit set.' },
+  ];
   return (
-    <div className="rounded-2xl p-24" style={card}>
-      <div className="flex items-center gap-12 mb-20">
-        <div className="w-40 h-40 rounded-xl flex items-center justify-center" style={{ background: tokens.infoBg }}>
-          <FuseSvgIcon size={20} style={{ color: tokens.info }}>heroicons-outline:shield-check</FuseSvgIcon>
-        </div>
-        <div>
-          <Typography style={{ fontSize: F.label, fontWeight: 700, color: tokens.textPrimary }}>Transfer Limits</Typography>
-          <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Optional caps for your own peace of mind</Typography>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <CircularProgress size={24} sx={{ color: tokens.accentSolid }} />
-      ) : (
-        <>
-          {pending && (
-            <Alert severity="info" sx={{ mb: 2, borderRadius: '10px', fontSize: F.small }}>
-              A limit increase is scheduled for {new Date(pending.effectiveAt).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' })}.
-            </Alert>
-          )}
-          {success && <Alert severity="success" sx={{ mb: 2, borderRadius: '10px', fontSize: F.small }}>{success}</Alert>}
-          {apiError && <Alert severity="error" sx={{ mb: 2, borderRadius: '10px', fontSize: F.small }}>{apiError}</Alert>}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-16 max-w-lg">
-            <LimitField label="Per-transaction limit" value={perTx} onChange={setPerTx} tokens={tokens} />
-            <LimitField label="Daily total limit" value={daily} onChange={setDaily} tokens={tokens} />
+    <div style={{ display: 'grid', gap: 16, position: 'sticky', top: 16 }}>
+      <div style={{ ...card, borderRadius: 20, padding: 20 }}>
+        <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: tokens.textPrimary }}>Your security</h3>
+        {rows.map((r, i) => (
+          <div key={r.title} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: i < rows.length - 1 ? `1px dashed ${tokens.borderColor}` : 0 }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', display: 'grid', placeItems: 'center', flex: 'none', fontWeight: 800, fontSize: 14, background: r.ok ? tokens.successBg : tokens.warningBg, color: r.ok ? tokens.success : tokens.warning }}>{r.ok ? '✓' : '!'}</div>
+            <div style={{ fontSize: 13.5, color: tokens.textSecondary, flex: 1 }}>
+              <b style={{ display: 'block', color: tokens.textPrimary }}>{r.title}</b>
+              {r.text}
+              {r.to && <Link to={r.to} style={{ display: 'block', marginTop: 4, color: tokens.accentSolid, fontWeight: 700, textDecoration: 'none' }}>{r.cta}</Link>}
+            </div>
           </div>
-
-          <Typography style={{ fontSize: F.small, color: tokens.textMuted, marginTop: 14, maxWidth: 480, lineHeight: 1.5 }}>
-            Lowering a limit applies immediately. Raising it — or clearing it entirely — takes effect 24 hours later,
-            so a compromised PIN can't be used to raise your own limit and drain the account in one session.
-          </Typography>
-
-          <Button
-            variant="contained" disabled={saving} onClick={handleSave}
-            sx={{ mt: 3, background: tokens.accentGradient, borderRadius: '12px', fontWeight: 700, py: 1.2, px: 3, textTransform: 'none', fontSize: F.body }}
-          >
-            {saving ? <CircularProgress size={20} sx={{ color: 'white' }} /> : 'Save Limits'}
-          </Button>
-        </>
-      )}
+        ))}
+      </div>
+      <div style={{ ...card, borderRadius: 20, padding: 20, background: tokens.accentSoft, border: `1px solid ${tokens.accentSolid}33`, boxShadow: 'none' }}>
+        <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: tokens.textPrimary }}>Keeping your money safe</h3>
+        {[
+          ['🔒', 'Never share your PIN', 'No one from AfricanShops will ever ask for it.'],
+          ['✉', 'Codes come by email', 'Larger payments and limit raises ask for a code we email you. Keep your email secure.'],
+          ['⏳', 'Limit raises wait 24 hours', 'So a stolen PIN cannot raise your limit and drain the account in one go.'],
+        ].map(([icon, title, text]) => (
+          <div key={title} style={{ display: 'flex', gap: 12, padding: '8px 0' }}>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: tokens.cardBg, display: 'grid', placeItems: 'center', fontSize: 14, flex: 'none' }}>{icon}</div>
+            <div style={{ fontSize: 13, color: tokens.textSecondary }}><b style={{ display: 'block', color: tokens.textPrimary }}>{title}</b>{text}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -190,12 +140,12 @@ export default function FinanceSettingsContent() {
 
   return (
     <div className="w-full px-16 md:px-24 xl:px-32 py-24">
-      <Typography style={{ fontSize: F.sectionHead, fontWeight: 700, color: tokens.textPrimary, marginBottom: 4 }}>Settings</Typography>
-      <Typography style={{ fontSize: F.body, color: tokens.textMuted, marginBottom: 28 }}>Security and account preferences</Typography>
-
-      <motion.div variants={container} initial="hidden" animate="show" className="grid gap-20 max-w-3xl">
-        <motion.div variants={item}><ChangePinCard account={account} tokens={tokens} card={card} /></motion.div>
-        <motion.div variants={item}><TransferLimitsCard account={account} tokens={tokens} card={card} /></motion.div>
+      <motion.div variants={container} initial="hidden" animate="show" style={{ display: 'grid', gap: 20, gridTemplateColumns: 'minmax(0,1.5fr) minmax(0,1fr)', alignItems: 'start' }}>
+        <div className="grid gap-20" style={{ minWidth: 0 }}>
+          <motion.div variants={item}><ChangePinCard account={account} tokens={tokens} card={card} /></motion.div>
+          <motion.div variants={item}><TransferLimitsCard account={account} tokens={tokens} card={card} /></motion.div>
+        </div>
+        <motion.div variants={item}><SecurityOverview account={account} tokens={tokens} card={card} /></motion.div>
       </motion.div>
     </div>
   );

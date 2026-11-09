@@ -19,6 +19,7 @@ import {
 } from '../hooks/useFintechApi';
 import { useFinanceTheme } from '../FinanceThemeContext';
 import TransactionPinField from './shared/TransactionPinField';
+import SavingsPlans from './shared/SavingsPlans';
 import { fieldSx } from '../financeUiTokens';
 
 const F = {
@@ -126,6 +127,7 @@ export default function FinanceSavingsContent() {
   const [success, setSuccess] = useState('');
   const [error, setError]     = useState('');
   const [dialogMode, setDialogMode] = useState(null); // 'fund' | 'withdraw' | null
+  const [calc, setCalc] = useState('100000');
 
   const noSavings = !isLoading && savings === null;
   const hasSavings = !isLoading && savings != null;
@@ -154,10 +156,8 @@ export default function FinanceSavingsContent() {
 
   return (
     <div className="w-full px-16 md:px-24 xl:px-32 py-24">
-      <Typography style={{ fontSize: F.sectionHead, fontWeight: 700, color: tokens.textPrimary, marginBottom: 4 }}>High-Yield Savings</Typography>
-      <Typography style={{ fontSize: F.body, color: tokens.textMuted, marginBottom: 28 }}>Earn {apy}% APY on money you set aside</Typography>
-
-      <motion.div variants={container} initial="hidden" animate="show" className="grid gap-20 max-w-2xl">
+      <motion.div variants={container} initial="hidden" animate="show" style={{ display: 'grid', gap: 20, gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1fr)', alignItems: 'start' }}>
+        <div className="grid gap-20" style={{ minWidth: 0 }}>
         {noSavings && (
           <motion.div variants={item}>
             <div className="rounded-3xl p-32 text-center" style={card}>
@@ -265,7 +265,35 @@ export default function FinanceSavingsContent() {
               </div>
             </motion.div>
 
-            <motion.div variants={item}>
+          </>
+        )}
+
+        <motion.div variants={item} style={{ display: 'grid', gap: 20 }}>
+          <SavingsPlans accountNumber={account?.accountNumber} onChanged={() => { refetch(); refetchFinanceData?.(); }} />
+        </motion.div>
+        </div>
+
+        <motion.div variants={item} style={{ display: 'grid', gap: 20, minWidth: 0 }}>
+          <div className="rounded-2xl p-20" style={card}>
+            <h3 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 700, color: tokens.textPrimary }}>See what it grows to</h3>
+            <div style={{ fontSize: 13, color: tokens.textSecondary, marginBottom: 12 }}>An estimate at today's {apy}% a year. The rate can change, and the estimate ignores compounding.</div>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6, color: tokens.textPrimary }}>If I keep</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, border: `2px solid ${tokens.borderColor}`, borderRadius: 16, padding: '8px 14px', background: tokens.cardBg }}>
+              <b style={{ fontSize: 22, color: tokens.textMuted }}>₦</b>
+              <input value={calc} onChange={e => setCalc(e.target.value.replace(/[^0-9]/g, ''))} inputMode="numeric" aria-label="Amount to keep" style={{ border: 0, outline: 0, fontSize: 26, fontWeight: 800, width: '100%', background: 'none', color: tokens.textPrimary }} />
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '10px 0 14px' }}>
+              {[50000, 100000, 500000].map(q => (
+                <button key={q} type="button" onClick={() => setCalc(String(q))} style={{ border: `1px solid ${tokens.borderColor}`, borderRadius: 99, padding: '5px 12px', fontWeight: 700, fontSize: 12, background: tokens.cardBg, color: tokens.textPrimary, cursor: 'pointer' }}>₦{(q / 1000).toLocaleString('en-NG')}k</button>
+              ))}
+            </div>
+            {[['1 month', 1], ['6 months', 6], ['12 months', 12]].map(([l, m]) => (
+              <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: `1px dashed ${tokens.borderColor}`, fontSize: 14, color: tokens.textSecondary }}>
+                <span>After {l} you earn about</span>
+                <b style={{ color: tokens.success }}>₦{Math.round((Number(calc || 0) * apy / 100) * (m / 12)).toLocaleString('en-NG')}</b>
+              </div>
+            ))}
+          </div>
               <div className="rounded-2xl p-20" style={{ background: tokens.successBg }}>
                 <div className="flex items-center gap-10 mb-14">
                   <FuseSvgIcon size={20} style={{ color: tokens.success }}>heroicons-outline:information-circle</FuseSvgIcon>
@@ -285,9 +313,7 @@ export default function FinanceSavingsContent() {
                   ))}
                 </ul>
               </div>
-            </motion.div>
-          </>
-        )}
+        </motion.div>
       </motion.div>
 
       <FundWithdrawDialog

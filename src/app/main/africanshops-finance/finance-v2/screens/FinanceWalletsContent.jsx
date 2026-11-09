@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link, useOutletContext } from 'react-router-dom';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
@@ -10,88 +10,54 @@ import Alert from '@mui/material/Alert';
 import Skeleton from '@mui/material/Skeleton';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { motion } from 'framer-motion';
-import { useWallets, useOpenWallet, useCrossCurrencyTransfer, CURRENCIES, CURRENCY_SYMBOLS } from '../hooks/useFintechApi';
+import SlidePanel from './shared/SlidePanel';
+import { useWallets, useOpenWallet, useCrossCurrencyTransfer, useCurrencies, CURRENCIES, CURRENCY_SYMBOLS } from '../hooks/useFintechApi';
 import { useFinanceTheme } from '../FinanceThemeContext';
+import { fieldSx } from '../financeUiTokens';
 
-const F = {
-  sectionHead: 'clamp(1.76rem, 2.6vw, 2.2rem)',
-  body:        'clamp(1.5rem,  2.2vw, 1.9rem)',
-  label:       'clamp(1.44rem, 2vw,   1.76rem)',
-  small:       'clamp(1.3rem,  1.8vw, 1.56rem)',
-  amountLg:    'clamp(2rem,    3.2vw, 2.8rem)',
-};
+// Wallets, as in the approved preview. What each wallet card offers, the open-a-wallet list and the cross-currency
+// picker all come from the currency registry (board F13), so a new country's currency appears without a release and a
+// button is switched off, with its reason, when the currency does not allow it. The wallet and transfer calls are the
+// old ones, unchanged.
 
-function fieldSx(tokens) {
-  return {
-    '& .MuiOutlinedInput-root': {
-      borderRadius: '12px',
-      background: tokens.pageBg,
-      '& fieldset': { borderColor: tokens.borderColor },
-      '&:hover fieldset': { borderColor: tokens.accentSolid },
-      '&.Mui-focused fieldset': { borderColor: tokens.accentSolid },
-    },
-    '& input': { color: tokens.textPrimary, fontSize: 'clamp(1.5rem, 2.2vw, 1.9rem)' },
-    '& .MuiInputLabel-root': { color: tokens.textMuted, fontSize: 'clamp(1.44rem, 2vw, 1.76rem)' },
-    '& .MuiInputLabel-root.Mui-focused': { color: tokens.accentSolid },
-  };
+const FALLBACK_COLORS = ['#6366f1', '#4338ca'];
+
+/** The registry entry for a code, or a safe default when the registry has not loaded (the original ten, naira full). */
+function useRegistry() {
+  const { data: list, isLoading } = useCurrencies();
+  return useMemo(() => {
+    const entries = list && list.length ? list : CURRENCIES.map((code, i) => ({
+      code, name: code, symbol: CURRENCY_SYMBOLS[code] ?? code, flag: '🌍', country: '', status: 'LIVE', colorFrom: FALLBACK_COLORS[0], colorTo: FALLBACK_COLORS[1], rules: [], fundingMethods: [], sortOrder: i,
+      capabilities: { open: true, fund: code === 'NGN', send: true, convert: true, withdraw: code === 'NGN', earn: false },
+    }));
+    const byCode = Object.fromEntries(entries.map((c) => [c.code, c]));
+    return { entries, byCode, isLoading };
+  }, [list, isLoading]);
 }
 
-// Per-currency gradient cards stay deliberately colorful — full-bleed gradient
-// with white text works on any page background, same pattern as the hero card.
-const WALLET_COLORS = {
-  NGN: ['#f97316', '#ea580c'], GHS: ['#059669', '#047857'], KES: ['#dc2626', '#b91c1c'],
-  ZAR: ['#2563eb', '#1d4ed8'], UGX: ['#7c3aed', '#6d28d9'], TZS: ['#0891b2', '#0e7490'],
-  XOF: ['#d97706', '#b45309'], XAF: ['#16a34a', '#15803d'], EGP: ['#dc2626', '#991b1b'],
-  MAD: ['#9333ea', '#7e22ce'],
-};
+const ACTIONS = [
+  { key: 'fund', label: '＋ Fund', to: '/africanshops/finance-v2/fund-account' },
+  { key: 'send', label: '⇄ Send', to: '/africanshops/finance-v2/transfer' },
+  { key: 'convert', label: '⇆ Convert' },
+  { key: 'withdraw', label: '⬇ Withdraw', to: '/africanshops/finance-v2/withdrawal' },
+];
 
-function WalletCard({ wallet, index }) {
-  const colors = WALLET_COLORS[wallet?.currency] ?? ['#6366f1', '#4f46e5'];
-  const symbol = CURRENCY_SYMBOLS[wallet?.currency] ?? wallet?.currency;
-  const balance = parseFloat(wallet?.balance ?? 0);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.06 }}
-      whileHover={{ y: -3 }}
-      className="rounded-2xl p-20 relative overflow-hidden cursor-default"
-      style={{ background: `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)` }}
-    >
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-16">
-          <div>
-            <Typography className="font-bold uppercase tracking-widest" style={{ fontSize: F.small, color: 'rgba(255,255,255,0.7)' }}>{wallet?.currency}</Typography>
-            <Typography style={{ fontSize: F.small, color: 'rgba(255,255,255,0.55)' }}>{wallet?.accountType ?? 'Multi-Currency'}</Typography>
-          </div>
-          <div className="w-40 h-40 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.18)' }}>
-            <Typography style={{ fontSize: F.body, fontWeight: 700, color: 'white' }}>{symbol}</Typography>
-          </div>
-        </div>
-
-        <Typography style={{ fontSize: F.amountLg, fontWeight: 800, color: 'white', marginBottom: 4 }}>
-          {symbol}{balance.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        </Typography>
-
-        {wallet?.isFrozen && (
-          <div className="flex items-center gap-6 mt-8 rounded-lg px-10 py-4" style={{ background: 'rgba(0,0,0,0.2)' }}>
-            <FuseSvgIcon size={14} className="text-white">heroicons-solid:lock-closed</FuseSvgIcon>
-            <Typography style={{ fontSize: F.small, color: 'white' }}>Frozen</Typography>
-          </div>
-        )}
-
-        <Typography className="truncate mt-10" style={{ fontSize: F.small, color: 'rgba(255,255,255,0.5)' }}>
-          {wallet?.walletId ?? '—'}
-        </Typography>
-      </div>
-    </motion.div>
-  );
+// Where an action actually works today: the fund, send and withdraw screens are naira screens.
+function actionState(currency, action) {
+  const cap = currency?.capabilities?.[action.key];
+  if (!cap) return { ok: false, why: `${currency?.name ?? 'This wallet'} does not allow this yet` };
+  if (action.to && currency.code !== 'NGN') return { ok: false, why: 'This screen works with the naira wallet; use Convert to move money in' };
+  return { ok: true };
 }
+
+const walletKey = (w, i) => w?.walletId ?? `${w?.currency}-${w?.accountType ?? i}`;
+const typeLabel = (t) => (t ?? '').replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase());
+const money = (symbol, n) => `${symbol}${parseFloat(n ?? 0).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function FinanceWalletsContent() {
   const { account } = useOutletContext();
   const { tokens } = useFinanceTheme();
+  const { byCode, entries } = useRegistry();
   const card = { background: tokens.cardBg, border: `1px solid ${tokens.cardBorder}`, boxShadow: tokens.cardShadow };
   const dialogPaperSx = { borderRadius: '24px', background: tokens.cardBg, border: `1px solid ${tokens.cardBorder}`, overflow: 'hidden' };
   const { data: wallets, isLoading, refetch } = useWallets(account?.accountNumber);
@@ -103,13 +69,45 @@ export default function FinanceWalletsContent() {
   const [selectedCurrency, setSelectedCurrency] = useState('');
   const [openError, setOpenError] = useState('');
   const [openSuccess, setOpenSuccess] = useState('');
+  const [selectedWallet, setSelectedWallet] = useState(null);
 
   const [xfer, setXfer] = useState({ receiverAccountNumber: '', senderCurrency: 'NGN', receiverCurrency: 'GHS', senderAmountNGN: '', description: '' });
   const [xferError, setXferError] = useState('');
   const [xferSuccess, setXferSuccess] = useState('');
 
-  const walletList = wallets?.wallets ?? wallets ?? [];
-  const existingCurrencies = walletList.map(w => w?.currency);
+  // The main naira wallet first, then the other naira wallets, then the rest as the server lists them.
+  const walletList = useMemo(() => {
+    const all = wallets?.wallets ?? wallets ?? [];
+    const rank = (w) => {
+      if (w?.currency !== 'NGN') return 2;
+      return w?.accountType === 'CURRENT' ? 0 : 1;
+    };
+    return [...all].sort((a, b) => rank(a) - rank(b));
+  }, [wallets]);
+  const existingCurrencies = walletList.map((w) => w?.currency);
+  const convertible = entries.filter((c) => c.capabilities?.convert);
+  const openable = entries.filter((c) => !existingCurrencies.includes(c.code));
+  const chosen = walletList.find((w, i) => walletKey(w, i) === selectedWallet) ?? walletList[0];
+  const chosenCur = chosen ? byCode[chosen.currency] : null;
+  const chosenSymbol = chosenCur?.symbol ?? CURRENCY_SYMBOLS[chosen?.currency] ?? chosen?.currency ?? '';
+  const firstWhy = ACTIONS.map((x) => actionState(chosenCur, x)).find((x) => !x.ok)?.why;
+  const [copied, setCopied] = useState(false);
+
+  // Real details only: the naira wallet's bank-transfer account is the dedicated account on the profile; every other wallet shows
+  // the wallet's own reference and says so, rather than inventing a bank account the platform does not have.
+  const isNaira = chosen?.currency === 'NGN';
+  const details = isNaira
+    ? [['Account holder', account?.accountName], ['Account number', account?.dvaAccountNumber ?? account?.accountNumber], ['Bank', account?.dvaBankName ?? 'Set up under Receive Money']]
+    : [['Account holder', account?.accountName], ['Wallet reference', chosen?.walletId], ['Held with', 'AfricanShops wallet']];
+  const about = (chosenCur?.rules?.length ? chosenCur.rules : [
+    ...(chosenCur?.country ? [`${chosenCur.country}.`] : []),
+    'Use Convert to move money between your wallets. The rate and fee are shown before you confirm.',
+  ]).concat(chosenCur?.fundingMethods?.length ? [`Add money by: ${chosenCur.fundingMethods.map((m) => m.replace('_', ' ').toLowerCase()).join(', ')}.`] : []);
+
+  async function copyDetails() {
+    const text = details.map(([k, v]) => `${k}: ${v ?? ''}`).join('\n');
+    try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* clipboard blocked: nothing to do */ }
+  }
 
   async function handleOpenWallet() {
     setOpenError('');
@@ -146,138 +144,151 @@ export default function FinanceWalletsContent() {
     }
   }
 
+  function startConvert(from) {
+    setXfer((f) => ({ ...f, senderCurrency: from, receiverCurrency: from === 'NGN' ? 'GHS' : 'NGN', receiverAccountNumber: account?.accountNumber ?? '' }));
+    setTransferDialog(true);
+  }
+
+  const outlineBtn = { padding: '11px 20px', borderRadius: 14, fontWeight: 700, fontSize: 14, cursor: 'pointer', background: tokens.cardBg, border: `1px solid ${tokens.cardBorder}`, color: tokens.textPrimary };
+  const primaryBtn = { padding: '11px 20px', borderRadius: 14, fontWeight: 700, fontSize: 14, cursor: 'pointer', border: 0, background: tokens.accentGradient, color: '#fff', boxShadow: `0 6px 16px ${tokens.accentSolid}44` };
+
   return (
     <div className="w-full px-16 md:px-24 xl:px-32 py-24">
-      <div className="flex items-center justify-between mb-28">
-        <div>
-          <Typography style={{ fontSize: F.sectionHead, fontWeight: 700, color: tokens.textPrimary, marginBottom: 4 }}>Multi-Currency Wallets</Typography>
-          <Typography style={{ fontSize: F.body, color: tokens.textMuted }}>Manage your African currency accounts</Typography>
-        </div>
-        <div className="flex gap-10">
-          <Button
-            onClick={() => setTransferDialog(true)}
-            startIcon={<FuseSvgIcon size={16}>heroicons-outline:switch-horizontal</FuseSvgIcon>}
-            sx={{
-              borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: F.label,
-              color: tokens.info, border: `1px solid ${tokens.info}55`,
-              background: tokens.infoBg,
-              '&:hover': { background: tokens.infoBg, border: `1px solid ${tokens.info}` },
-            }}
-          >
-            Cross Transfer
-          </Button>
-          <Button
-            onClick={() => setOpenDialog(true)}
-            startIcon={<FuseSvgIcon size={16}>heroicons-outline:plus</FuseSvgIcon>}
-            variant="contained"
-            sx={{
-              borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: F.label,
-              background: tokens.accentGradient,
-            }}
-          >
-            New Wallet
-          </Button>
-        </div>
-      </div>
+      <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: tokens.textPrimary, letterSpacing: '-0.02em' }}>Wallets</h1>
+      <p style={{ margin: '2px 0 14px', color: tokens.textSecondary, fontSize: 14 }}>One page per currency, with its own details and rules</p>
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-16">
-          {[1,2,3].map(i => <Skeleton key={i} variant="rounded" height={160} sx={{ borderRadius: '16px' }} />)}
-        </div>
-      ) : walletList.length === 0 ? (
+      {isLoading && <Skeleton variant="rounded" height={260} sx={{ borderRadius: '22px' }} />}
+
+      {!isLoading && walletList.length === 0 && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-center py-48 rounded-3xl" style={card}>
           <FuseSvgIcon size={48} style={{ color: tokens.textMuted, margin: '0 auto 16px', display: 'block' }}>heroicons-outline:briefcase</FuseSvgIcon>
-          <Typography style={{ fontSize: F.sectionHead, fontWeight: 700, color: tokens.textPrimary, marginBottom: 8 }}>No wallets yet</Typography>
-          <Typography style={{ fontSize: F.body, color: tokens.textMuted, marginBottom: 20 }}>Open your first currency wallet to get started</Typography>
-          <Button onClick={() => setOpenDialog(true)} variant="contained" sx={{ background: tokens.accentGradient, borderRadius: '12px', textTransform: 'none', fontWeight: 700, fontSize: F.body }}>Open First Wallet</Button>
+          <Typography style={{ fontSize: 20, fontWeight: 700, color: tokens.textPrimary, marginBottom: 8 }}>No wallets yet</Typography>
+          <Typography style={{ fontSize: 15, color: tokens.textMuted, marginBottom: 20 }}>Open your first currency wallet to get started</Typography>
+          <button type="button" style={primaryBtn} onClick={() => setOpenDialog(true)}>Open First Wallet</button>
         </motion.div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-16">
-          {walletList.map((w, i) => <WalletCard key={w?.walletId ?? i} wallet={w} index={i} />)}
-        </div>
       )}
 
-      {/* Open Wallet Dialog */}
-      <Dialog
-        open={openDialog}
-        onClose={() => { setOpenDialog(false); setOpenError(''); setOpenSuccess(''); setSelectedCurrency(''); }}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: dialogPaperSx }}
-      >
-        <DialogContent sx={{ p: 3 }}>
-          <Typography style={{ fontSize: F.sectionHead, fontWeight: 700, color: tokens.textPrimary, marginBottom: 4 }}>Open New Wallet</Typography>
-          <Typography style={{ fontSize: F.body, color: tokens.textMuted, marginBottom: 20 }}>Select a currency for your new wallet</Typography>
-          <div className="grid grid-cols-4 gap-8 mb-20">
-            {CURRENCIES.filter(c => !existingCurrencies.includes(c)).map(c => (
-              <button
-                key={c}
-                onClick={() => setSelectedCurrency(c)}
-                className="rounded-xl py-10 text-center cursor-pointer transition-all duration-150"
-                style={{
-                  background: selectedCurrency === c ? `${WALLET_COLORS[c]?.[0]}22` : tokens.pageBg,
-                  border: `1px solid ${selectedCurrency === c ? (WALLET_COLORS[c]?.[0] ?? tokens.accentSolid) : tokens.borderColor}`,
-                }}
-              >
-                <Typography style={{ fontSize: F.small, fontWeight: 700, color: selectedCurrency === c ? (WALLET_COLORS[c]?.[0] ?? tokens.accentSolid) : tokens.textSecondary }}>{c}</Typography>
-                <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>{CURRENCY_SYMBOLS[c]}</Typography>
-              </button>
-            ))}
+      {!isLoading && walletList.length > 0 && chosen && (
+        <>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
+            {walletList.map((w, i) => {
+              const on = chosen === w;
+              const cur = byCode[w?.currency];
+              const dup = walletList.filter((x) => x?.currency === w?.currency).length > 1;
+              return (
+                <button key={walletKey(w, i)} type="button" onClick={() => setSelectedWallet(walletKey(w, i))}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 99, fontWeight: 700, fontSize: 13.5, cursor: 'pointer', background: on ? tokens.accentSoft : tokens.cardBg, border: `2px solid ${on ? tokens.accentSolid : tokens.cardBorder}`, color: on ? tokens.accentSolid : tokens.textPrimary }}>
+                  <span style={{ fontSize: 18 }}>{cur?.flag ?? '🌍'}</span>{w?.currency}{dup ? ` · ${typeLabel(w?.accountType)}` : ''}
+                </button>
+              );
+            })}
+            <button type="button" onClick={() => setOpenDialog(true)} style={{ padding: '9px 16px', borderRadius: 99, fontWeight: 700, fontSize: 13.5, cursor: 'pointer', background: 'transparent', border: `2px dashed ${tokens.borderColor}`, color: tokens.textSecondary }}>＋ Add new balance</button>
           </div>
-          {openSuccess && <Alert severity="success" sx={{ mb: 2, borderRadius: '10px', background: tokens.successBg, color: tokens.success, fontSize: F.small }}>{openSuccess}</Alert>}
-          {openError && <Alert severity="error" sx={{ mb: 2, borderRadius: '10px', background: tokens.dangerBg, color: tokens.danger, fontSize: F.small }}>{openError}</Alert>}
-          <Button
-            variant="contained"
-            fullWidth
-            disabled={!selectedCurrency || opening}
-            onClick={handleOpenWallet}
-            sx={{ background: tokens.accentGradient, borderRadius: '12px', fontWeight: 700, py: 1.5, textTransform: 'none', fontSize: F.body, '&:disabled': { background: tokens.borderColor, color: tokens.textMuted } }}
-          >
-            {opening ? <CircularProgress size={20} sx={{ color: 'white' }} /> : `Open ${selectedCurrency || 'Wallet'}`}
-          </Button>
-        </DialogContent>
-      </Dialog>
 
-      {/* Cross Transfer Dialog */}
-      <Dialog
-        open={transferDialog}
-        onClose={() => { setTransferDialog(false); setXferError(''); setXferSuccess(''); }}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: dialogPaperSx }}
-      >
+          <motion.div key={walletKey(chosen, 0)} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} style={{ ...card, borderRadius: 20, padding: 20 }}>
+            <div style={{ textAlign: 'center', padding: '10px 0 4px' }}>
+              <div style={{ fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', color: tokens.textMuted }}>Available balance</div>
+              <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: '-0.02em', color: tokens.textPrimary }}>{money(chosenSymbol, chosen.balance)}</div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 24, color: tokens.textSecondary, fontSize: 13, margin: '4px 0 14px', flexWrap: 'wrap' }}>
+                <span>Pending {money(chosenSymbol, chosen.pendingBalance)}</span>
+                <span>{chosenCur?.name ?? chosen.currency} · {typeLabel(chosen.accountType) || 'Wallet'}</span>
+                {chosen.isFrozen && <span>🔒 Frozen</span>}
+              </div>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                {ACTIONS.map((x) => {
+                  const st = actionState(chosenCur, x);
+                  const label = x.key === 'fund' ? '＋ Add money' : x.label;
+                  const style = x.key === 'fund' ? primaryBtn : outlineBtn;
+                  if (!st.ok) return <button key={x.key} type="button" disabled title={st.why} style={{ ...style, opacity: 0.4, cursor: 'not-allowed', boxShadow: 'none' }}>{label}</button>;
+                  if (x.to) return <Link key={x.key} to={x.to} style={{ ...style, textDecoration: 'none' }}>{label}</Link>;
+                  return <button key={x.key} type="button" style={style} onClick={() => startConvert(chosen.currency)}>{label}</button>;
+                })}
+              </div>
+              {firstWhy && <div style={{ fontSize: 12.5, color: tokens.textMuted, marginTop: 10 }}>ℹ {firstWhy}</div>}
+            </div>
+          </motion.div>
+
+          <div style={{ ...card, borderRadius: 20, padding: 20, marginTop: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: tokens.textPrimary }}>{chosenCur?.name ?? chosen.currency} account details</h3>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" style={{ ...outlineBtn, padding: '7px 14px', fontSize: 13 }} onClick={() => startConvert('NGN')}>⇄ Cross-currency transfer</button>
+                <button type="button" onClick={copyDetails} style={{ ...primaryBtn, padding: '7px 14px', fontSize: 13, boxShadow: 'none' }}>{copied ? 'Copied ✓' : 'Copy details'}</button>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10, marginBottom: 14 }}>
+              {details.map(([label, value]) => (
+                <div key={label} style={{ border: `1px solid ${tokens.borderColor}`, borderRadius: 14, padding: '12px 14px', background: tokens.pageBg }}>
+                  <div style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: tokens.textMuted }}>{label}</div>
+                  <b style={{ fontSize: 16, color: tokens.textPrimary, wordBreak: 'break-all' }}>{value || '—'}</b>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.08em', color: tokens.textMuted, marginBottom: 6 }}>ABOUT THIS ACCOUNT</div>
+            <ul style={{ margin: 0, paddingLeft: 22, fontSize: 14, color: tokens.textSecondary, lineHeight: 1.7 }}>
+              {about.map((r) => <li key={r}>{r}</li>)}
+            </ul>
+          </div>
+        </>
+      )}
+
+      {/* Open a wallet: slides in from the right; the list comes from the currency registry */}
+      <SlidePanel open={openDialog} title="Open a wallet" subtitle="Pick a currency. The list comes from the currency registry." onClose={() => { setOpenDialog(false); setOpenError(''); setOpenSuccess(''); setSelectedCurrency(''); }}>
+        <div style={{ display: 'grid', gap: 10, marginBottom: 16 }}>
+          {openable.length === 0 && <div style={{ textAlign: 'center', padding: 14, color: tokens.textMuted, fontSize: 14 }}>You already have a wallet in every available currency.</div>}
+          {openable.map((c) => {
+            const canOpen = c.capabilities?.open && c.status !== 'SOON';
+            const sel = selectedCurrency === c.code;
+            return (
+              <button key={c.code} type="button" disabled={!canOpen} onClick={() => setSelectedCurrency(c.code)}
+                style={{ display: 'flex', gap: 12, alignItems: 'center', textAlign: 'left', border: `2px solid ${sel ? tokens.accentSolid : tokens.borderColor}`, borderRadius: 18, padding: '12px 14px', background: canOpen ? tokens.cardBg : tokens.pageBg, opacity: canOpen ? 1 : 0.6, cursor: canOpen ? 'pointer' : 'not-allowed' }}>
+                <span style={{ fontSize: 26 }}>{c.flag}</span>
+                <span style={{ flex: 1 }}>
+                  <b style={{ display: 'block', color: tokens.textPrimary }}>{c.name} · {c.code}</b>
+                  <span style={{ fontSize: 12.5, color: tokens.textSecondary }}>{canOpen ? 'Open now' : 'Coming soon'}{c.status === 'BETA' ? ' · Beta' : ''}</span>
+                </span>
+                {canOpen
+                  ? <span style={{ fontSize: 12, fontWeight: 800, borderRadius: 99, padding: '5px 14px', background: sel ? tokens.accentSolid : tokens.accentSoft, color: sel ? '#fff' : tokens.accentSolid }}>{sel ? 'Chosen' : 'Open'}</span>
+                  : <span style={{ fontSize: 11, fontWeight: 800, borderRadius: 99, padding: '3px 10px', background: tokens.borderColor, color: tokens.textSecondary }}>SOON</span>}
+              </button>
+            );
+          })}
+        </div>
+        {openSuccess && <Alert severity="success" sx={{ mb: 2, borderRadius: '10px', background: tokens.successBg, color: tokens.success }}>{openSuccess}</Alert>}
+        {openError && <Alert severity="error" sx={{ mb: 2, borderRadius: '10px', background: tokens.dangerBg, color: tokens.danger }}>{openError}</Alert>}
+        <Button variant="contained" fullWidth disabled={!selectedCurrency || opening} onClick={handleOpenWallet} sx={{ background: tokens.accentGradient, borderRadius: '12px', fontWeight: 700, py: 1.5, textTransform: 'none', fontSize: 15, '&:disabled': { background: tokens.borderColor, color: tokens.textMuted } }}>
+          {opening ? <CircularProgress size={20} sx={{ color: 'white' }} /> : `Open ${selectedCurrency || 'wallet'}`}
+        </Button>
+      </SlidePanel>
+
+      {/* Cross Transfer Dialog: currencies that allow conversion, from the registry */}
+      <Dialog open={transferDialog} onClose={() => { setTransferDialog(false); setXferError(''); setXferSuccess(''); }} maxWidth="xs" fullWidth PaperProps={{ sx: dialogPaperSx }}>
         <DialogContent sx={{ p: 3 }}>
-          <Typography style={{ fontSize: F.sectionHead, fontWeight: 700, color: tokens.textPrimary, marginBottom: 4 }}>Cross-Currency Transfer</Typography>
-          <Typography style={{ fontSize: F.body, color: tokens.textMuted, marginBottom: 20 }}>Send money across different currencies</Typography>
+          <Typography style={{ fontSize: 20, fontWeight: 700, color: tokens.textPrimary, marginBottom: 4 }}>Cross-Currency Transfer</Typography>
+          <Typography style={{ fontSize: 14, color: tokens.textMuted, marginBottom: 16 }}>Send money across different currencies</Typography>
           <div className="space-y-12">
-            <TextField label="Receiver Account Number" value={xfer.receiverAccountNumber} onChange={e => setXfer(f => ({ ...f, receiverAccountNumber: e.target.value }))} fullWidth size="small" sx={fieldSx(tokens)} />
+            <TextField label="Receiver Account Number" value={xfer.receiverAccountNumber} onChange={(e) => setXfer((f) => ({ ...f, receiverAccountNumber: e.target.value }))} fullWidth size="small" sx={fieldSx(tokens)} />
             <div className="grid grid-cols-2 gap-10">
-              {['senderCurrency', 'receiverCurrency'].map(key => (
+              {['senderCurrency', 'receiverCurrency'].map((key) => (
                 <div key={key}>
-                  <Typography style={{ fontSize: F.small, color: tokens.textMuted, marginBottom: 6 }}>{key === 'senderCurrency' ? 'From' : 'To'}</Typography>
+                  <Typography style={{ fontSize: 13, color: tokens.textMuted, marginBottom: 6 }}>{key === 'senderCurrency' ? 'From' : 'To'}</Typography>
                   <div className="flex flex-wrap gap-4">
-                    {CURRENCIES.map(c => (
-                      <button key={c} onClick={() => setXfer(f => ({ ...f, [key]: c }))} className="rounded-lg px-8 py-4 cursor-pointer transition-all"
-                        style={{ fontSize: F.small, background: xfer[key] === c ? tokens.accentSoft : tokens.pageBg, border: `1px solid ${xfer[key] === c ? tokens.accentSolid : tokens.borderColor}`, color: xfer[key] === c ? tokens.accentSolid : tokens.textSecondary, fontWeight: xfer[key] === c ? 700 : 400 }}>
-                        {c}
+                    {convertible.map((c) => (
+                      <button key={c.code} type="button" onClick={() => setXfer((f) => ({ ...f, [key]: c.code }))} className="rounded-lg px-8 py-4 cursor-pointer transition-all"
+                        style={{ fontSize: 13, background: xfer[key] === c.code ? tokens.accentSoft : tokens.pageBg, border: `1px solid ${xfer[key] === c.code ? tokens.accentSolid : tokens.borderColor}`, color: xfer[key] === c.code ? tokens.accentSolid : tokens.textSecondary, fontWeight: xfer[key] === c.code ? 700 : 400 }}>
+                        {c.flag} {c.code}
                       </button>
                     ))}
                   </div>
                 </div>
               ))}
             </div>
-            <TextField label={`Amount (${xfer.senderCurrency})`} value={xfer.senderAmountNGN} onChange={e => setXfer(f => ({ ...f, senderAmountNGN: e.target.value.replace(/[^0-9.]/g, '') }))} fullWidth size="small" sx={fieldSx(tokens)} />
-            <TextField label="Description" value={xfer.description} onChange={e => setXfer(f => ({ ...f, description: e.target.value }))} fullWidth size="small" sx={fieldSx(tokens)} />
+            <TextField label={`Amount (${xfer.senderCurrency})`} value={xfer.senderAmountNGN} onChange={(e) => setXfer((f) => ({ ...f, senderAmountNGN: e.target.value.replace(/[^0-9.]/g, '') }))} fullWidth size="small" sx={fieldSx(tokens)} />
+            <TextField label="Description" value={xfer.description} onChange={(e) => setXfer((f) => ({ ...f, description: e.target.value }))} fullWidth size="small" sx={fieldSx(tokens)} />
           </div>
-          {xferSuccess && <Alert severity="success" sx={{ mt: 2, borderRadius: '10px', background: tokens.successBg, color: tokens.success, fontSize: F.small }}>{xferSuccess}</Alert>}
-          {xferError && <Alert severity="error" sx={{ mt: 2, borderRadius: '10px', background: tokens.dangerBg, color: tokens.danger, fontSize: F.small }}>{xferError}</Alert>}
-          <Button
-            variant="contained"
-            fullWidth
-            disabled={!xfer.receiverAccountNumber || !xfer.senderAmountNGN || transferring}
-            onClick={handleCrossTransfer}
-            sx={{ mt: 2, background: `linear-gradient(135deg, ${tokens.info} 0%, #1e3a8a 100%)`, borderRadius: '12px', fontWeight: 700, py: 1.5, textTransform: 'none', fontSize: F.body, '&:disabled': { background: tokens.borderColor, color: tokens.textMuted } }}
-          >
+          {xferSuccess && <Alert severity="success" sx={{ mt: 2, borderRadius: '10px', background: tokens.successBg, color: tokens.success }}>{xferSuccess}</Alert>}
+          {xferError && <Alert severity="error" sx={{ mt: 2, borderRadius: '10px', background: tokens.dangerBg, color: tokens.danger }}>{xferError}</Alert>}
+          <Button variant="contained" fullWidth disabled={!xfer.receiverAccountNumber || !xfer.senderAmountNGN || transferring} onClick={handleCrossTransfer} sx={{ mt: 2, background: `linear-gradient(135deg, ${tokens.info} 0%, #1e3a8a 100%)`, borderRadius: '12px', fontWeight: 700, py: 1.5, textTransform: 'none', fontSize: 15, '&:disabled': { background: tokens.borderColor, color: tokens.textMuted } }}>
             {transferring ? <CircularProgress size={20} sx={{ color: 'white' }} /> : 'Send Transfer'}
           </Button>
         </DialogContent>

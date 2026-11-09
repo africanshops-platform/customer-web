@@ -122,6 +122,60 @@ export const useFintechKycStatus = makeHook((accountNumber) =>
     : Promise.resolve(null)
 );
 
+// Wallet beneficiaries with groups (2026-11-06, board F12): accounts saved for wallet-to-wallet transfers.
+export const useWalletBeneficiaries = makeHook((accountNumber) =>
+  accountNumber
+    ? AuthApi().get(`/fintech-accounts/user/account/${accountNumber}/wallet-beneficiaries`).then(r => unwrap(r))
+    : Promise.resolve(null)
+);
+
+/** Write calls for wallet beneficiaries and their groups. Each returns the server's answer or throws with its message. */
+export function useWalletBeneficiaryActions(accountNumber) {
+  const base = `/fintech-accounts/user/account/${accountNumber}`;
+  const call = useCallback(async (run, fallback) => {
+    try {
+      return unwrap(await run());
+    } catch (err) {
+      throw new Error(err?.response?.data?.message ?? fallback);
+    }
+  }, []);
+  return {
+    add: (dto) => call(() => AuthApi().post(`${base}/wallet-beneficiaries`, dto), 'Could not save this account'),
+    update: (id, dto) => call(() => AuthApi().put(`${base}/wallet-beneficiaries/${id}`, dto), 'Could not update this account'),
+    remove: (id) => call(() => AuthApi().delete(`${base}/wallet-beneficiaries/${id}`), 'Could not remove this account'),
+    createGroup: (name) => call(() => AuthApi().post(`${base}/wallet-beneficiary-groups`, { name }), 'Could not create the group'),
+    renameGroup: (id, name) => call(() => AuthApi().put(`${base}/wallet-beneficiary-groups/${id}`, { name }), 'Could not rename the group'),
+    deleteGroup: (id) => call(() => AuthApi().delete(`${base}/wallet-beneficiary-groups/${id}`), 'Could not delete the group'),
+  };
+}
+
+// Savings plans (2026-11-06): the fixed-term deposits the server already offers (3, 6, 9 and 12 months) and every plan's rate.
+export const useAllHighYieldRates = makeHook(() =>
+  AuthApi().get('/fintech-accounts/high-yield/rates').then(r => unwrap(r))
+);
+
+export const useFixedDeposits = makeHook((accountNumber) =>
+  accountNumber
+    ? AuthApi().get(`/fintech-accounts/user/account/${accountNumber}/fixed-deposit/list`).then(r => unwrap(r))
+    : Promise.resolve(null)
+);
+
+/** Open and withdraw calls for fixed deposits. Each returns the server's answer or throws with its message. */
+export function useFixedDepositActions(accountNumber) {
+  const base = `/fintech-accounts/user/account/${accountNumber}/fixed-deposit`;
+  const call = useCallback(async (run, fallback) => {
+    try {
+      return unwrap(await run());
+    } catch (err) {
+      throw new Error(err?.response?.data?.message ?? fallback);
+    }
+  }, []);
+  return {
+    open: (productKey, amountKobo, transactionPin) => call(() => AuthApi().post(`${base}/open`, { productKey, amountKobo, transactionPin }), 'Could not open this plan'),
+    withdraw: (fixedDepositId, transactionPin) => call(() => AuthApi().post(`${base}/withdraw`, { fixedDepositId, transactionPin }), 'Could not withdraw this plan'),
+  };
+}
+
 export const useBeneficiaries = makeHook((accountNumber) =>
   accountNumber
     ? AuthApi().get(`/fintech-accounts/user/beneficiary/list/${accountNumber}`).then(r => unwrap(r) ?? [])
@@ -451,6 +505,29 @@ export function useSetTransferLimits() {
   return { mutate, isLoading, error };
 }
 
+// Step two of a limit raise: the emailed code starts the 24h wait.
+export function useConfirmTransferLimitIncrease() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const mutate = useCallback(async (accountNumber, otp) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await AuthApi().post(`/fintech-accounts/user/account/${accountNumber}/transfer-limits/confirm`, { otp });
+      return unwrap(res);
+    } catch (err) {
+      const msg = err?.response?.data?.message ?? 'Could not confirm the code';
+      setError(msg);
+      throw new Error(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { mutate, isLoading, error };
+}
+
 // Retail-8 (2026-07-12): fund default wallet via card checkout (react-paystack
 // inline popup, same component already used on bookings/marketplace/foodmart)
 export function useVerifyWalletFunding() {
@@ -705,6 +782,12 @@ export function useCrossCurrencyTransfer() {
 
   return { mutate, isLoading, error };
 }
+
+// Dynamic currency registry (2026-11-06, board F13): the currencies, their look and what can be done with each come from
+// the server. CURRENCIES and CURRENCY_SYMBOLS below stay as the fallback for screens that have not moved over yet.
+export const useCurrencies = makeHook(() =>
+  AuthApi().get('/fintech-accounts/user/currencies').then(r => unwrap(r)?.currencies ?? [])
+);
 
 export const CURRENCIES = ['NGN', 'GHS', 'KES', 'ZAR', 'UGX', 'TZS', 'XOF', 'XAF', 'EGP', 'MAD'];
 
