@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
@@ -30,9 +31,10 @@ function LimitField({ label, value, onChange, tokens }) {
 }
 
 /**
- * Transfer limits. A verified account has a daily limit (default ₦500,000) that it picks from fixed steps up to ₦5,000,000;
- * every raise is confirmed with a code emailed to the user and starts 24 hours later, lowering applies at once.
- * An account that is not verified keeps the older free-text daily cap (its real limit is the monthly allowance shown elsewhere).
+ * Transfer limits, one slider for every account (board F23, founder 10 Nov 2026). A verified account picks a daily limit (default ₦500,000)
+ * from fixed steps up to ₦5,000,000. An account that is not verified picks from ₦10,000 up to its monthly allowance (₦100,000 in any 30 days,
+ * admin-adjustable), shown as monthly with how much is used. Every raise is confirmed with a code emailed to the user and starts 24 hours
+ * later; lowering applies at once. If the server returns no steps (an older backend) the older free-text daily cap is shown instead.
  */
 export default function TransferLimitsCard({ account, tokens, card }) {
   const { data: fetched, isLoading, refetch } = useTransferLimits(account?.accountNumber);
@@ -49,7 +51,11 @@ export default function TransferLimitsCard({ account, tokens, card }) {
   const [success, setSuccess] = useState('');
 
   const steps = limits?.dailyLimitStepsKobo ?? [];
-  const verified = !!limits?.verified && steps.length > 0;
+  const hasSlider = steps.length > 0;
+  const verified = !!limits?.verified;
+  const allowance = !verified ? limits?.monthlyAllowance ?? null : null;
+  // The limit in force: a number the account set or the verified default; an unverified account with none of its own sits at its allowance.
+  const inForce = limits?.dailyTransferLimitKobo ?? limits?.defaultDailyLimitKobo ?? null;
 
   useEffect(() => {
     setLocal(null);
@@ -59,9 +65,9 @@ export default function TransferLimitsCard({ account, tokens, card }) {
     if (!limits) return;
     setPerTx(limits.perTransactionLimitKobo != null ? String(limits.perTransactionLimitKobo / 100) : '');
     setDaily(limits.dailyTransferLimitKobo != null ? String(limits.dailyTransferLimitKobo / 100) : '');
-    if (limits.verified && limits.dailyLimitStepsKobo?.length) {
+    if (limits.dailyLimitStepsKobo?.length) {
       // Sit on the increase that is waiting (for a code or for its 24 hours), otherwise on today's limit.
-      const target = limits.pendingChange?.newDailyTransferLimitKobo ?? limits.dailyTransferLimitKobo;
+      const target = limits.pendingChange?.newDailyTransferLimitKobo ?? limits.dailyTransferLimitKobo ?? limits.defaultDailyLimitKobo;
       const idx = limits.dailyLimitStepsKobo.indexOf(target);
       setStep(idx >= 0 ? idx : 0);
     }
@@ -73,8 +79,8 @@ export default function TransferLimitsCard({ account, tokens, card }) {
     try {
       const body = { perTransactionLimitKobo: perTx === '' ? null : Math.round(parseFloat(perTx) * 100) };
       // Only send the daily limit when the choice differs from what is in force or already waiting.
-      if (verified && dailyChanged) body.dailyTransferLimitKobo = steps[step];
-      else if (daily !== '') body.dailyTransferLimitKobo = Math.round(parseFloat(daily) * 100);
+      if (hasSlider && dailyChanged) body.dailyTransferLimitKobo = steps[step];
+      else if (!hasSlider && daily !== '') body.dailyTransferLimitKobo = Math.round(parseFloat(daily) * 100);
       const res = await setLimits(account?.accountNumber, body);
       if (res?.pendingChange !== undefined) setLocal(res);
       if (res?.requiresOtp) {
@@ -106,8 +112,9 @@ export default function TransferLimitsCard({ account, tokens, card }) {
 
   const pending = limits?.pendingChange;
   const pendingTarget = limits?.pendingChange?.newDailyTransferLimitKobo ?? null;
-  const dailyChanged = verified && steps[step] !== (pendingTarget ?? limits?.dailyTransferLimitKobo);
-  const raised = dailyChanged && steps[step] > (limits?.dailyTransferLimitKobo ?? 0);
+  const dailyChanged = hasSlider && steps[step] !== (pendingTarget ?? inForce);
+  const raised = dailyChanged && steps[step] > (inForce ?? 0);
+  const allowanceUsedPct = allowance && allowance.usedKobo != null && allowance.capKobo > 0 ? Math.min(100, (allowance.usedKobo / allowance.capKobo) * 100) : 0;
   let saveLabel = 'Save Limits';
   if (raised) saveLabel = 'Request increase';
 
@@ -120,7 +127,7 @@ export default function TransferLimitsCard({ account, tokens, card }) {
         <div>
           <Typography style={{ fontSize: F.label, fontWeight: 700, color: tokens.textPrimary }}>Transfer Limits</Typography>
           <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>
-            {verified ? `Daily limit now ${naira(limits.dailyTransferLimitKobo)}` : 'Optional caps for your own peace of mind'}
+            {hasSlider && inForce != null ? `Daily limit now ${naira(inForce)}` : 'Optional caps for your own peace of mind'}
           </Typography>
         </div>
       </div>
@@ -139,7 +146,26 @@ export default function TransferLimitsCard({ account, tokens, card }) {
 
           <div className="grid grid-cols-1 gap-16 max-w-lg">
             <LimitField label="Per-transaction limit" value={perTx} onChange={setPerTx} tokens={tokens} />
-            {verified ? (
+            {allowance && (
+              <div data-testid="monthly-allowance" style={{ border: `1px solid ${tokens.borderColor}`, borderRadius: 16, padding: '12px 14px', background: tokens.pageBg }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: tokens.textSecondary }}>
+                  <span>Monthly allowance (identity not verified)</span>
+                  <b style={{ color: tokens.textPrimary }}>{allowance.remainingKobo != null ? `${naira(allowance.remainingKobo)} left` : naira(allowance.capKobo)}</b>
+                </div>
+                {allowance.usedKobo != null && (
+                  <>
+                    <div style={{ height: 8, borderRadius: 99, background: tokens.borderColor, overflow: 'hidden', margin: '8px 0 6px' }}>
+                      <div style={{ width: `${Math.max(2, allowanceUsedPct)}%`, height: '100%', borderRadius: 99, background: allowanceUsedPct > 80 ? 'linear-gradient(90deg,#f59e0b,#dc2626)' : tokens.accentGradient }} />
+                    </div>
+                    <div style={{ fontSize: 13, color: tokens.textSecondary }}>{naira(allowance.usedKobo)} of {naira(allowance.capKobo)} used in the last 30 days</div>
+                  </>
+                )}
+                <Link to="/africanshops/finance-v2/kyc" style={{ display: 'inline-block', marginTop: 8, color: tokens.accentSolid, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                  Verify your identity to lift this limit
+                </Link>
+              </div>
+            )}
+            {hasSlider ? (
               <div>
                 <Typography style={{ fontSize: F.small, fontWeight: 600, color: tokens.textPrimary, marginBottom: 6 }}>
                   Daily limit: {naira(steps[step])}
@@ -159,7 +185,7 @@ export default function TransferLimitsCard({ account, tokens, card }) {
                       // only the chosen amount (shown above) is spelled out so the labels never overlap.
                       '& .MuiSlider-markLabel': { fontSize: 11, whiteSpace: 'nowrap' },
                       '& .MuiSlider-markLabel[data-index="0"]': { transform: 'translateX(-20%)' },
-                      '& .MuiSlider-markLabel[data-index="5"]': { transform: 'translateX(-80%)' },
+                      [`& .MuiSlider-markLabel[data-index="${steps.length - 1}"]`]: { transform: 'translateX(-80%)' },
                       '@media (max-width: 520px)': { '& .MuiSlider-markLabel': { display: 'none' } },
                     }}
                   />
@@ -173,7 +199,9 @@ export default function TransferLimitsCard({ account, tokens, card }) {
           <Typography style={{ fontSize: F.small, color: tokens.textMuted, marginTop: 14, maxWidth: 480, lineHeight: 1.5 }}>
             Lowering a limit applies immediately. Raising it needs a code we email you, and then takes effect 24 hours later,
             so a compromised PIN can't be used to raise your own limit and drain the account in one session.
-            {verified ? ` The highest daily limit is ${naira(limits.maxDailyLimitKobo)}.` : ' Verify your identity to raise your daily limit.'}
+            {hasSlider && verified && ` The highest daily limit is ${naira(limits.maxDailyLimitKobo)}.`}
+            {hasSlider && !verified && ` Until you verify your identity the most you can send, withdraw or put into civic payments is ${naira(limits.maxDailyLimitKobo)} in any 30 days.`}
+            {!hasSlider && ' Verify your identity to raise your daily limit.'}
           </Typography>
 
           {awaitingCode && (
