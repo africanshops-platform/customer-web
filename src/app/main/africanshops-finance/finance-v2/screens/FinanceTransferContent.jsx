@@ -4,6 +4,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTransfer, useResolveInternalAccount, useFintechKycStatus, useWalletBeneficiaries, useWalletBeneficiaryActions } from '../hooks/useFintechApi';
+import { useFinanceSwitches, switchNotice } from '../hooks/useFinanceSwitches';
 import { useFinanceTheme } from '../FinanceThemeContext';
 import { nairaFull } from '../financeFormat';
 import { exceedsMonthlyAllowance } from './shared/PartialKycAllowanceBanner';
@@ -270,8 +271,11 @@ export default function FinanceTransferContent() {
     setRecipient(null); setNotFoundError(false);
   }
 
+  // Board F17: the admin can switch internal transfers off; the button stays and says why. The server enforces it as well.
+  const { statuses: financeSwitches } = useFinanceSwitches();
+  const transferNotice = switchNotice(financeSwitches, 'internalTransfer');
   const overMonthlyAllowance = exceedsMonthlyAllowance(kycSubmission, amountNaira);
-  const canContinue = !!recipient && !isSelf && form.amount && amountNaira > 0 && amountNaira <= availableNGN && !overMonthlyAllowance;
+  const canContinue = !!recipient && !isSelf && form.amount && amountNaira > 0 && amountNaira <= availableNGN && !overMonthlyAllowance && !transferNotice;
   let amountHelper = '';
   if (amountNaira > availableNGN) amountHelper = 'Insufficient balance';
   else if (overMonthlyAllowance) amountHelper = 'Exceeds your remaining monthly allowance';
@@ -280,6 +284,7 @@ export default function FinanceTransferContent() {
   if (!form.receiverAccountNumber) continueLabel = 'Choose who to send to';
   else if (!recipient) continueLabel = 'Confirming the account…';
   else if (!(amountNaira > 0)) continueLabel = 'Enter an amount';
+  else if (transferNotice) continueLabel = 'Temporarily unavailable';
   else if (!canContinue) continueLabel = amountHelper || 'Check the details';
 
   const monthly = kycSubmission?.monthlyCapKobo != null ? kycSubmission : null;
@@ -394,6 +399,7 @@ export default function FinanceTransferContent() {
               </div>
 
               {error && <Notice kind="error" tokens={tokens}>{error}</Notice>}
+              {transferNotice && <div role="status" style={{ fontSize: 13, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '10px 12px', marginBottom: 12 }}>{transferNotice.text}</div>}
               <button type="button" disabled={!canContinue} onClick={() => setStep(STEPS.PIN)} style={primary(canContinue)}>{continueLabel}</button>
             </div>
             {summary}
