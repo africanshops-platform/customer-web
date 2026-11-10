@@ -46,6 +46,9 @@ export default function FinanceReceiveMoneyContent() {
   const dvaProvisioned = dvaJustProvisioned ?? (account?.dvaProvisioned && account?.dvaAccountNumber);
   const dvaNumber = dvaJustProvisioned?.dvaAccountNumber ?? account?.dvaAccountNumber;
   const dvaBank = dvaJustProvisioned?.dvaBankName ?? account?.dvaBankName;
+  // Founder rule 2026-11-10: a receive-money bank account is only for accounts whose identity (KYC) is verified. The server refuses an
+  // unverified account (403), so the screen says what to do instead of offering a button that cannot work.
+  const verified = account?.kycStatus === 'verified';
 
   const deposits = useMemo(() => {
     const all = txData?.transactions ?? txData ?? [];
@@ -84,7 +87,14 @@ export default function FinanceReceiveMoneyContent() {
           <div style={{ position: 'relative' }}>
             <div style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Your account for bank transfers</div>
             <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>Any Nigerian bank can send money here, straight into your wallet.</div>
-            {!dvaProvisioned ? (
+            {!dvaProvisioned && !verified && (
+              <div style={{ marginTop: 18 }} data-testid="verify-first">
+                <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.85)', margin: '0 0 6px', fontWeight: 700 }}>Verify your identity to get a receive-money account</p>
+                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', margin: '0 0 14px' }}>A bank account number for receiving money is only given to verified accounts. It takes a few minutes, and your other limits go up as well.</p>
+                <Link to="/africanshops/finance-v2/kyc" style={{ display: 'inline-block', padding: '12px 22px', borderRadius: 14, fontWeight: 700, background: tokens.accentGradient, color: '#fff', textDecoration: 'none' }}>Verify my identity</Link>
+              </div>
+            )}
+            {!dvaProvisioned && verified && (
               <div style={{ marginTop: 18 }}>
                 <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.8)', margin: '0 0 14px' }}>You don't have a receive-money account yet. Set one up to get a number of your own.</p>
                 {provisionError && <p style={{ fontSize: 13, color: '#fca5a5', margin: '0 0 12px' }}>{provisionError}</p>}
@@ -92,7 +102,8 @@ export default function FinanceReceiveMoneyContent() {
                   {provisioning ? 'Setting up…' : 'Set Up My Receive-Money Account'}
                 </button>
               </div>
-            ) : (
+            )}
+            {dvaProvisioned && (
               <>
                 <CopyRow label="Account number" value={dvaNumber} />
                 <CopyRow label="Bank" value={dvaBank} mono={false} />

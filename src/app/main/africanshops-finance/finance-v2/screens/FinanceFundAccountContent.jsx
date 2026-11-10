@@ -6,6 +6,7 @@ import { selectUser } from 'src/app/auth/user/store/userSlice';
 import CircularProgress from '@mui/material/CircularProgress';
 import { motion } from 'framer-motion';
 import { useVerifyWalletFunding, useTransactionHistory } from '../hooks/useFintechApi';
+import { useWalletFundingReadiness } from '../hooks/useFinanceSwitches';
 import { useFinanceTheme } from '../FinanceThemeContext';
 import { describeTx, isCredit, nairaFull, shortDate } from '../financeFormat';
 
@@ -48,6 +49,14 @@ export default function FinanceFundAccountContent() {
   // A unique reference per payment, prefixed so the server can tell wallet funding apart from other Paystack payments.
   const reference = `AFSHFUND${account?.accountNumber ?? ''}${Date.now()}`;
 
+  // Board F17: the admin can switch wallet funding to MAINTENANCE/DISABLED, and the payment services must be up. The button stays visible and
+  // says why it cannot be used.
+  const { blocked: fundingBlocked, message: fundingMessage } = useWalletFundingReadiness();
+  const canFund = amountValid && !fundingBlocked;
+  let fundLabel = 'Enter an amount (minimum ₦100)';
+  if (fundingBlocked) fundLabel = 'Temporarily unavailable';
+  else if (amountValid) fundLabel = `Fund ₦${amountNaira.toLocaleString('en-NG')}`;
+
   const initializePayment = usePaystackPayment({
     reference,
     email: user?.email,
@@ -70,7 +79,7 @@ export default function FinanceFundAccountContent() {
   }
 
   function handleFundClick() {
-    if (!amountValid || !user?.email) return;
+    if (!amountValid || fundingBlocked || !user?.email) return;
     initializePayment({ onSuccess: handleSuccess, onClose: () => undefined });
   }
 
@@ -145,12 +154,13 @@ export default function FinanceFundAccountContent() {
             <button
               type="button"
               onClick={handleFundClick}
-              disabled={!amountValid}
-              style={{ width: '100%', padding: 15, borderRadius: 14, fontWeight: 700, fontSize: 15, border: 0, background: amountValid ? tokens.accentGradient : tokens.borderColor, color: amountValid ? '#fff' : tokens.textMuted, cursor: amountValid ? 'pointer' : 'not-allowed', boxShadow: amountValid ? `0 6px 16px ${tokens.accentSolid}44` : 'none' }}
+              disabled={!canFund}
+              style={{ width: '100%', padding: 15, borderRadius: 14, fontWeight: 700, fontSize: 15, border: 0, background: canFund ? tokens.accentGradient : tokens.borderColor, color: amountValid ? '#fff' : tokens.textMuted, cursor: amountValid ? 'pointer' : 'not-allowed', boxShadow: amountValid ? `0 6px 16px ${tokens.accentSolid}44` : 'none' }}
             >
-              {amountValid ? `Fund ₦${amountNaira.toLocaleString('en-NG')}` : 'Enter an amount (minimum ₦100)'}
+              {fundLabel}
             </button>
           )}
+          {fundingBlocked && <div role="status" style={{ fontSize: 13, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '10px 12px', marginTop: 12 }}>{fundingMessage}</div>}
           <div style={{ fontSize: 13, color: tokens.textMuted, marginTop: 14, lineHeight: 1.5 }}>Funds land in your default wallet immediately after the payment confirms.</div>
         </motion.div>
         </div>

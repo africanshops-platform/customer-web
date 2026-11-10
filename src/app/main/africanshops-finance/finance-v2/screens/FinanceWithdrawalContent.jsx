@@ -9,6 +9,7 @@ import Checkbox from '@mui/material/Checkbox';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWithdrawalInitiate, useWithdrawalConfirm, useBanksList, useDeleteBeneficiary, useFintechKycStatus } from '../hooks/useFintechApi';
+import { useFinanceSwitches, switchNotice } from '../hooks/useFinanceSwitches';
 import { useFinanceTheme } from '../FinanceThemeContext';
 import { F, fieldSx } from '../financeUiTokens';
 import OtpTimer from './shared/OtpTimer';
@@ -51,6 +52,9 @@ export default function FinanceWithdrawalContent() {
 
   const availableNGN = parseFloat(balance?.availableBalance ?? 0) / 100;
   const amountNGN = parseFloat(form.amountNGN || 0);
+  // Board F17: the admin can switch withdrawals and bank transfers off; the button stays and says why. The server enforces it as well.
+  const { statuses: financeSwitches } = useFinanceSwitches();
+  const externalNotice = switchNotice(financeSwitches, 'externalTransfer');
   const overMonthlyAllowance = exceedsMonthlyAllowance(kycSubmission, amountNGN);
   let amountHelperText = 'Paystack + platform fees are added on top and shown at confirmation';
   if (amountNGN > availableNGN && amountNGN > 0) amountHelperText = 'Exceeds available balance';
@@ -155,15 +159,16 @@ export default function FinanceWithdrawalContent() {
               />
 
               {error && <Alert severity="error" sx={{ ...errorAlertSx, mt: 2 }}>{error}</Alert>}
+              {externalNotice && <Alert severity="warning" role="status" sx={{ mt: 2 }}>{externalNotice.text}</Alert>}
 
               <Button
                 variant="contained"
                 fullWidth
-                disabled={!form.amountNGN || !beneficiary || amountNGN > availableNGN || amountNGN <= 0 || overMonthlyAllowance}
+                disabled={!form.amountNGN || !beneficiary || amountNGN > availableNGN || amountNGN <= 0 || overMonthlyAllowance || !!externalNotice}
                 onClick={() => setStep('confirm')}
                 sx={{ background: tokens.accentGradient, borderRadius: '12px', fontWeight: 700, py: 1.5, textTransform: 'none', fontSize: F.body, '&:disabled': { background: tokens.borderColor, color: tokens.textMuted } }}
               >
-                Continue
+                {externalNotice ? 'Temporarily unavailable' : 'Continue'}
               </Button>
               </div>
 
