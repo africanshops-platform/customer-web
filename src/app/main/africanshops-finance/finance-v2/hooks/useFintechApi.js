@@ -530,6 +530,54 @@ export function useConfirmTransferLimitIncrease() {
 
 // Retail-8 (2026-07-12): fund default wallet via card checkout (react-paystack
 // inline popup, same component already used on bookings/marketplace/foodmart)
+// Board F18: a card top-up starts with a server-made intent (reference + quote). The error keeps the response so the screen can tell an
+// older backend (404, no such route) from a refusal (switch off, rate limit) and show the gateway's own sentence.
+export function useCreateFundingIntent() {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const mutate = useCallback(async (accountNumber, amountKobo) => {
+    setIsLoading(true);
+    try {
+      const res = await AuthApi().post(`/fintech-accounts/user/account/${accountNumber}/fund/intent`, { amountKobo });
+      return unwrap(res);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { mutate, isLoading };
+}
+
+// What a top-up costs on one channel, from the server's fee policies. Waits for the typing to settle, and does nothing for an amount the
+// server would refuse.
+export function useFeeQuote(operation, amountKobo) {
+  const [state, setState] = useState({ data: null, isFetching: false, error: null });
+  const valid = Number.isInteger(amountKobo) && amountKobo >= 10000 && amountKobo <= 1000000000;
+
+  useEffect(() => {
+    if (!valid) {
+      setState({ data: null, isFetching: false, error: null });
+      return undefined;
+    }
+    let alive = true;
+    setState((cur) => ({ ...cur, isFetching: true, error: null }));
+    const timer = setTimeout(async () => {
+      try {
+        const res = await AuthApi().post('/fintech-accounts/user/fees/quote', { operation, amountKobo });
+        if (alive) setState({ data: unwrap(res), isFetching: false, error: null });
+      } catch (err) {
+        if (alive) setState({ data: null, isFetching: false, error: err });
+      }
+    }, 400);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [operation, amountKobo, valid]);
+
+  return state;
+}
+
 export function useVerifyWalletFunding() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
