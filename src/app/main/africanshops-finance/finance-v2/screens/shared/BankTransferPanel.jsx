@@ -130,14 +130,14 @@ export default function BankTransferPanel({ amount, onAmountChange, showAmountIn
           )}
           {showAmountInput && (
             <div style={{ display: 'grid', gap: 6 }}>
-              <label htmlFor="bank-transfer-amount" style={{ fontSize: 13, fontWeight: 700, color: tokens.textPrimary }}>How much do you want in your wallet?</label>
+              <span id="bank-transfer-amount-label" style={{ fontSize: 13, fontWeight: 700, color: tokens.textPrimary }}>How much do you want in your wallet?</span>
               <input
                 id="bank-transfer-amount"
                 value={amount}
                 onChange={(e) => onAmountChange?.(e.target.value.replace(/[^0-9.]/g, ''))}
                 inputMode="decimal"
                 placeholder="0"
-                aria-label="Amount you want in your wallet, in naira"
+                aria-labelledby="bank-transfer-amount-label"
                 style={{ border: `2px solid ${tokens.borderColor}`, borderRadius: 14, padding: '10px 14px', fontSize: 20, fontWeight: 800, background: tokens.cardBg, color: tokens.textPrimary }}
               />
             </div>
