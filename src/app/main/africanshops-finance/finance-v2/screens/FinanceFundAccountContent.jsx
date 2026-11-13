@@ -5,27 +5,56 @@ import { useAppSelector } from 'app/store/hooks';
 import { selectUser } from 'src/app/auth/user/store/userSlice';
 import CircularProgress from '@mui/material/CircularProgress';
 import { motion } from 'framer-motion';
-import { useVerifyWalletFunding, useTransactionHistory } from '../hooks/useFintechApi';
+import { useVerifyWalletFunding, useTransactionHistory, useCreateFundingIntent, useFeeQuote } from '../hooks/useFintechApi';
 import { useWalletFundingReadiness } from '../hooks/useFinanceSwitches';
 import { useFinanceTheme } from '../FinanceThemeContext';
 import { describeTx, isCredit, nairaFull, shortDate } from '../financeFormat';
+import { fundingErrorMessage, isIntentRouteMissing, legacyFundingReference, transferSaving } from '../fundingHelpers';
+import PaymentSummary from './shared/PaymentSummary';
+import BankTransferPanel from './shared/BankTransferPanel';
 
-// Fund account, as in the approved preview: the default wallet, a choice of card or bank transfer, a large amount
-// field with quick amounts. The card payment is the old one, unchanged: Paystack inline checkout with the same reference
-// format, the payment verified on the server before the balance moves, the same minimum (100 naira).
+// Fund account, as in the approved preview: the default wallet, a choice of bank transfer or card, a large amount
+// field with quick amounts.
+//
+// Board F18: the screen opens on bank transfer (the lower-charge way) when the account has a receive-money account, with the card as the
+// second choice and a live comparison. The card flow is: amount, Continue, the server makes the reference and the quote (fund/intent), the
+// Payment summary shows what the wallet receives, the charge and what you pay, Pay opens Paystack with the server's reference and total on
+// the card channel, then the server verifies by that reference (the webhook credits the same intent, so closing the tab after paying is safe).
+// Against an older backend with no intent route (404) it falls back to the previous flow.
 
 const container = { show: { transition: { staggerChildren: 0.08 } } };
 const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 const QUICK = [5000, 10000, 50000, 100000];
+
+/** Both ways to add the same amount side by side, with the saving, from the server's quotes. */
+function FundComparison({ amountKobo, tokens }) {
+  const card = useFeeQuote('FUND_CARD', amountKobo).data;
+  const transfer = useFeeQuote('FUND_TRANSFER', amountKobo).data;
+  if (!card || !transfer || card.wantedKobo !== amountKobo || transfer.wantedKobo !== amountKobo) return null;
+  const saving = transferSaving(card, transfer);
+  return (
+    <div data-testid="fund-comparison" style={{ border: `1px solid ${tokens.cardBorder}`, borderRadius: 14, padding: 14, margin: '0 0 16px', display: 'grid', gap: 6, fontSize: 14, color: tokens.textSecondary }}>
+      <b style={{ color: tokens.textPrimary }}>For {nairaFull(amountKobo)} in your wallet</b>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Bank transfer: send</span><b style={{ color: tokens.textPrimary }}>{nairaFull(transfer.grossKobo)}</b></div>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Card: pay</span><b style={{ color: tokens.textPrimary }}>{nairaFull(card.grossKobo)}</b></div>
+      {saving > 0 && <b data-testid="transfer-saving" style={{ color: tokens.success, fontSize: 13 }}>Bank transfer saves you {nairaFull(saving)}</b>}
+    </div>
+  );
+}
 
 export default function FinanceFundAccountContent() {
   const { account, balance, balanceLoading, refetchFinanceData } = useOutletContext();
   const { tokens } = useFinanceTheme();
   const user = useAppSelector(selectUser);
   const { mutate: verifyFunding, isLoading: verifying, error: verifyError } = useVerifyWalletFunding();
+  const { mutate: createIntent, isLoading: creating } = useCreateFundingIntent();
 
   const [amount, setAmount] = useState('');
   const [success, setSuccess] = useState('');
+  const [intent, setIntent] = useState(null);
+  const [intentError, setIntentError] = useState('');
+  const [picked, setPicked] = useState(null);
+  const [paying, setPaying] = useState(null); // the reference being paid, to verify by the same one
 
   // The right-hand column reads the same transaction feed as the Overview: top-ups are the credits titled "Wallet top-up".
   const { data: txData, refetch: refetchTx } = useTransactionHistory({ accountNumber: account?.accountNumber, limit: 60 });
@@ -46,21 +75,23 @@ export default function FinanceFundAccountContent() {
   const card = { background: tokens.cardBg, border: `1px solid ${tokens.cardBorder}`, boxShadow: tokens.cardShadow, borderRadius: 20, padding: 20 };
   const amountNaira = parseFloat(amount);
   const amountValid = amountNaira >= 100;
-  // A unique reference per payment, prefixed so the server can tell wallet funding apart from other Paystack payments.
-  const reference = `AFSHFUND${account?.accountNumber ?? ''}${Date.now()}`;
+  const amountKobo = amountValid ? Math.round(amountNaira * 100) : 0;
+  const hasBank = !!(account?.dvaProvisioned && account?.dvaAccountNumber);
+  const method = hasBank ? (picked ?? 'bank') : 'card';
+  const verifiedKyc = account?.kycStatus === 'verified';
 
   // Board F17: the admin can switch wallet funding to MAINTENANCE/DISABLED, and the payment services must be up. The button stays visible and
   // says why it cannot be used.
   const { blocked: fundingBlocked, message: fundingMessage } = useWalletFundingReadiness();
-  const canFund = amountValid && !fundingBlocked;
+  const canContinue = amountValid && !fundingBlocked && !creating;
   let fundLabel = 'Enter an amount (minimum ₦100)';
   if (fundingBlocked) fundLabel = 'Temporarily unavailable';
-  else if (amountValid) fundLabel = `Fund ₦${amountNaira.toLocaleString('en-NG')}`;
+  else if (amountValid) fundLabel = 'Continue';
 
+  // The reference and amount are set per payment (from the server's intent) when the popup opens.
   const initializePayment = usePaystackPayment({
-    reference,
     email: user?.email,
-    amount: amountValid ? Math.round(amountNaira * 100) : 0,
+    amount: 0,
     publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
   });
 
@@ -68,9 +99,13 @@ export default function FinanceFundAccountContent() {
   async function handleSuccess(paystackResponse) {
     setSuccess('');
     try {
-      await verifyFunding(account?.accountNumber, paystackResponse.reference);
-      setSuccess('Payment confirmed. Your balance has been updated.');
+      const result = await verifyFunding(account?.accountNumber, paystackResponse?.reference ?? paying);
+      const credited = typeof result?.amountKobo === 'number' ? nairaFull(result.amountKobo) : null;
+      const base = credited ? `Payment confirmed. ${credited} has been added to your wallet.` : 'Payment confirmed. Your balance has been updated.';
+      // A different amount from the quote is settled on what arrived; say so in one sentence.
+      setSuccess(result?.adjusted ? `${base} You paid ${nairaFull(result.adjusted.paidKobo)} instead of ${nairaFull(result.adjusted.quotedGrossKobo)}, so the amount added was adjusted.` : base);
       setAmount('');
+      setIntent(null);
       refetchFinanceData?.();
       refetchTx?.();
     } catch {
@@ -78,9 +113,39 @@ export default function FinanceFundAccountContent() {
     }
   }
 
-  function handleFundClick() {
-    if (!amountValid || fundingBlocked || !user?.email) return;
-    initializePayment({ onSuccess: handleSuccess, onClose: () => undefined });
+  function changeAmount(raw) {
+    setAmount(raw);
+    setIntent(null); // a new amount is a new quote
+    setIntentError('');
+  }
+
+  async function handleContinue() {
+    setSuccess('');
+    setIntentError('');
+    if (!canContinue || !user?.email || !account?.accountNumber) return;
+    try {
+      setIntent(await createIntent(account.accountNumber, amountKobo));
+    } catch (err) {
+      if (isIntentRouteMissing(err)) {
+        // Older backend: the previous flow, with the browser's own reference and the typed amount.
+        const reference = legacyFundingReference(account.accountNumber);
+        setPaying(reference);
+        initializePayment({ config: { reference, amount: amountKobo, email: user.email }, onSuccess: handleSuccess, onClose: () => undefined });
+        return;
+      }
+      setIntentError(fundingErrorMessage(err, 'We could not start this payment. Please try again.'));
+    }
+  }
+
+  function handlePay() {
+    if (!intent || fundingBlocked || !user?.email) return;
+    if (new Date(intent.expiresAt).getTime() < Date.now()) {
+      setIntent(null);
+      setIntentError('This quote has expired. Choose Continue to get a fresh one.');
+      return;
+    }
+    setPaying(intent.reference);
+    initializePayment({ config: { reference: intent.reference, amount: intent.grossKobo, email: user.email, channels: ['card'] }, onSuccess: handleSuccess, onClose: () => undefined });
   }
 
   const shown = amount ? Number(amount.split('.')[0] || 0).toLocaleString('en-NG') + (amount.includes('.') ? `.${amount.split('.')[1]}` : '') : '';
@@ -107,28 +172,37 @@ export default function FinanceFundAccountContent() {
         </motion.div>
 
         <motion.div variants={item} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <div style={optionStyle(true)}>
+          {hasBank ? (
+            <button type="button" data-testid="pick-bank" aria-pressed={method === 'bank'} onClick={() => setPicked('bank')} style={optionStyle(method === 'bank')}>
+              <i style={iconBox}>🏦</i>
+              <b style={{ display: 'block', fontSize: 16, color: tokens.textPrimary }}>Bank transfer</b>
+              <span style={{ color: tokens.textSecondary, fontSize: 13 }}>The lower-charge way, from any Nigerian bank.</span>
+            </button>
+          ) : (
+            <Link to={verifiedKyc ? '/africanshops/finance-v2/receive-money' : '/africanshops/finance-v2/kyc'} data-testid="fund-for-less" style={optionStyle(false)}>
+              <i style={iconBox}>🏦</i>
+              <b style={{ display: 'block', fontSize: 16, color: tokens.textPrimary }}>{verifiedKyc ? 'Set up bank transfer to fund for less' : 'Verify your identity to fund for less'}</b>
+              <span style={{ color: tokens.textSecondary, fontSize: 13 }}>Funding by bank transfer has a lower charge than card.</span>
+            </Link>
+          )}
+          <button type="button" data-testid="pick-card" aria-pressed={method === 'card'} onClick={() => setPicked('card')} disabled={!hasBank} style={{ ...optionStyle(method === 'card'), cursor: hasBank ? 'pointer' : 'default' }}>
             <i style={iconBox}>💳</i>
             <b style={{ display: 'block', fontSize: 16, color: tokens.textPrimary }}>Pay with card</b>
             <span style={{ color: tokens.textSecondary, fontSize: 13 }}>Instant, through Paystack. Minimum ₦100.</span>
-          </div>
-          <Link to="/africanshops/finance-v2/receive-money" style={optionStyle(false)}>
-            <i style={iconBox}>🏦</i>
-            <b style={{ display: 'block', fontSize: 16, color: tokens.textPrimary }}>Bank transfer</b>
-            <span style={{ color: tokens.textSecondary, fontSize: 13 }}>Send to your own account number from any bank. See your details.</span>
-          </Link>
+          </button>
         </motion.div>
 
         <motion.div variants={item} style={card}>
           {success && <div style={{ background: tokens.successBg, color: tokens.success, borderRadius: 14, padding: '10px 14px', marginBottom: 14, fontSize: 14 }}>{success}</div>}
           {verifyError && <div style={{ background: tokens.dangerBg, color: tokens.danger, borderRadius: 14, padding: '10px 14px', marginBottom: 14, fontSize: 14 }}>{verifyError}</div>}
+          {intentError && <div data-testid="intent-error" role="alert" style={{ background: tokens.dangerBg, color: tokens.danger, borderRadius: 14, padding: '10px 14px', marginBottom: 14, fontSize: 14 }}>{intentError}</div>}
 
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6, color: tokens.textPrimary }}>Amount to add</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, border: `2px solid ${tokens.borderColor}`, borderRadius: 18, padding: '12px 18px', background: tokens.cardBg }}>
             <b style={{ fontSize: 28, color: tokens.textMuted }}>₦</b>
             <input
               value={shown}
-              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+              onChange={(e) => changeAmount(e.target.value.replace(/[^0-9.]/g, ''))}
               inputMode="decimal"
               placeholder="0"
               aria-label="Amount in naira"
@@ -137,28 +211,47 @@ export default function FinanceFundAccountContent() {
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '10px 0 16px' }}>
             {QUICK.map((q) => (
-              <button key={q} type="button" onClick={() => setAmount(String(q))} style={{ border: `1px solid ${tokens.borderColor}`, borderRadius: 99, padding: '6px 14px', fontWeight: 700, fontSize: 13, background: tokens.cardBg, color: tokens.textPrimary, cursor: 'pointer' }}>
+              <button key={q} type="button" onClick={() => changeAmount(String(q))} style={{ border: `1px solid ${tokens.borderColor}`, borderRadius: 99, padding: '6px 14px', fontWeight: 700, fontSize: 13, background: tokens.cardBg, color: tokens.textPrimary, cursor: 'pointer' }}>
                 ₦{q.toLocaleString('en-NG')}
               </button>
             ))}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: tokens.textSecondary, padding: '6px 0' }}><span>Fee</span><b style={{ color: tokens.textPrimary }}>₦0.00</b></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: tokens.textSecondary, padding: '6px 0 16px' }}><span>You will receive</span><b style={{ color: tokens.textPrimary }}>{amountValid ? nairaFull(amountNaira * 100) : '₦0.00'}</b></div>
+          {hasBank && amountValid && <FundComparison amountKobo={amountKobo} tokens={tokens} />}
 
-          {verifying ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', padding: 14 }}>
-              <CircularProgress size={20} sx={{ color: tokens.accentSolid }} />
-              <span style={{ fontSize: 14, color: tokens.textMuted }}>Confirming payment…</span>
-            </div>
+          {method === 'bank' ? (
+            <BankTransferPanel
+              amount={amount}
+              onAmountChange={changeAmount}
+              dva={{ accountNumber: account?.dvaAccountNumber, bankName: account?.dvaBankName, accountName: account?.accountName }}
+              balanceKobo={balance?.availableBalance}
+              refetch={refetchFinanceData}
+              onReceived={() => refetchTx?.()}
+            />
           ) : (
-            <button
-              type="button"
-              onClick={handleFundClick}
-              disabled={!canFund}
-              style={{ width: '100%', padding: 15, borderRadius: 14, fontWeight: 700, fontSize: 15, border: 0, background: canFund ? tokens.accentGradient : tokens.borderColor, color: amountValid ? '#fff' : tokens.textMuted, cursor: amountValid ? 'pointer' : 'not-allowed', boxShadow: amountValid ? `0 6px 16px ${tokens.accentSolid}44` : 'none' }}
-            >
-              {fundLabel}
-            </button>
+            <>
+              {intent && (
+                <div style={{ margin: '0 0 16px', display: 'grid', gap: 8 }}>
+                  <PaymentSummary lines={intent.lines} totalLabel="You pay" totalKobo={intent.grossKobo} />
+                  <button type="button" data-testid="change-amount" onClick={() => setIntent(null)} style={{ justifySelf: 'center', border: 0, background: 'none', fontSize: 13, color: tokens.textMuted, cursor: 'pointer' }}>Change amount</button>
+                </div>
+              )}
+
+              {verifying ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', padding: 14 }}>
+                  <CircularProgress size={20} sx={{ color: tokens.accentSolid }} />
+                  <span style={{ fontSize: 14, color: tokens.textMuted }}>Confirming payment…</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={intent ? handlePay : handleContinue}
+                  disabled={intent ? fundingBlocked : !canContinue}
+                  style={{ width: '100%', padding: 15, borderRadius: 14, fontWeight: 700, fontSize: 15, border: 0, background: (intent ? !fundingBlocked : canContinue) ? tokens.accentGradient : tokens.borderColor, color: amountValid ? '#fff' : tokens.textMuted, cursor: amountValid ? 'pointer' : 'not-allowed', boxShadow: amountValid ? `0 6px 16px ${tokens.accentSolid}44` : 'none' }}
+                >
+                  {intent && !fundingBlocked ? `Pay ${nairaFull(intent.grossKobo)}` : fundLabel}
+                </button>
+              )}
+            </>
           )}
           {fundingBlocked && <div role="status" style={{ fontSize: 13, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '10px 12px', marginTop: 12 }}>{fundingMessage}</div>}
           <div style={{ fontSize: 13, color: tokens.textMuted, marginTop: 14, lineHeight: 1.5 }}>Funds land in your default wallet immediately after the payment confirms.</div>
@@ -175,7 +268,7 @@ export default function FinanceFundAccountContent() {
                 <div style={{ fontSize: 12, color: tokens.textMuted, fontWeight: 700, letterSpacing: '0.08em', margin: '14px 0 6px' }}>ADD AGAIN</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {lastAmounts.map((q) => (
-                    <button key={q} type="button" onClick={() => setAmount(String(q))} style={{ border: `1px solid ${tokens.accentSolid}`, borderRadius: 99, padding: '6px 14px', fontWeight: 700, fontSize: 13, background: tokens.accentSoft, color: tokens.accentSolid, cursor: 'pointer' }}>
+                    <button key={q} type="button" onClick={() => changeAmount(String(q))} style={{ border: `1px solid ${tokens.accentSolid}`, borderRadius: 99, padding: '6px 14px', fontWeight: 700, fontSize: 13, background: tokens.accentSoft, color: tokens.accentSolid, cursor: 'pointer' }}>
                       ₦{q.toLocaleString('en-NG')}
                     </button>
                   ))}
@@ -207,8 +300,8 @@ export default function FinanceFundAccountContent() {
             {[
               ['⚡', 'Instant', 'Your wallet is credited as soon as the payment is confirmed.'],
               ['🔒', 'Secure', 'Card details go straight to Paystack. We never see or store them.'],
-              ['₦0', 'No fee', 'Adding money costs nothing. The minimum is ₦100.'],
-              ['🏦', 'Prefer a transfer?', 'Send from any bank to your own account number. See Receive Money.'],
+              ['₦', 'Clear charges', 'You see exactly what you pay before you pay. The minimum is ₦100.'],
+              ['🏦', 'Lower charge by transfer', 'Sending from any bank to your own account number costs less than a card. See Receive Money.'],
             ].map(([icon, title, text]) => (
               <div key={title} style={{ display: 'flex', gap: 12, padding: '8px 0' }}>
                 <div style={{ width: 32, height: 32, borderRadius: 10, background: tokens.cardBg, display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 800, color: tokens.accentSolid, flex: 'none' }}>{icon}</div>
