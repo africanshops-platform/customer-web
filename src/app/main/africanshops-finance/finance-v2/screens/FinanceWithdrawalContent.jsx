@@ -224,7 +224,7 @@ export default function FinanceWithdrawalContent() {
                 {quote && (
                   <>
                     <PaymentSummary lines={quote.lines} amountLabel="You withdraw" totalLabel="Total from your wallet" totalKobo={quote.grossKobo} testId="payout-summary" />
-                    <Typography data-testid="balance-after" style={{ fontSize: F.small, color: tokens.textMuted, textAlign: 'right', marginTop: -6 }}>
+                    <Typography data-testid="balance-after" style={{ fontSize: F.small, color: tokens.textMuted, textAlign: 'right', marginTop: 2 }}>
                       Balance after: <b style={{ color: tokens.textPrimary }}>{nairaFull(Math.max(availableKobo - quote.grossKobo, 0))}</b>
                     </Typography>
                     {quote.requiresOtp && (
