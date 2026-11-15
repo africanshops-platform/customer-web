@@ -41,19 +41,7 @@ export default function PaymentSummary({ lines, totalLabel, totalKobo, amountLab
               <b style={{ color: free ? tokens.success : tokens.textPrimary }}>{free ? 'Free' : nairaFull(l.amountKobo)}</b>
             </div>
             {open === l.code && !!l.explain && (
-              <div data-testid={`explain-text-${l.code}`} style={{ fontSize: 12.5, color: tokens.textMuted, marginTop: 4, lineHeight: 1.45 }}>
-                {l.explain}
-                {Array.isArray(l.parts) && l.parts.length > 1 && (
-                  <div data-testid={`parts-${l.code}`} style={{ marginTop: 6, display: 'grid', gap: 2 }}>
-                    {l.parts.map((p) => (
-                      <div key={p.code} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                        <span>{p.label}</span>
-                        <span>{nairaFull(p.amountKobo)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <div data-testid={`explain-text-${l.code}`} style={{ fontSize: 12.5, color: tokens.textMuted, marginTop: 4, lineHeight: 1.45 }}>{l.explain}</div>
             )}
           </div>
         );

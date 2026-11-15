@@ -33,9 +33,7 @@ const quote = (over = {}) => ({
 	operation: "PAYOUT", kind: "WITHDRAWAL", wantedKobo: 2000000, grossKobo: 2009000, chargeKobo: 9000, requiresOtp: false,
 	lines: [
 		{ code: "AMOUNT", label: "You withdraw", kind: "AMOUNT", amountKobo: 2000000, explain: "" },
-		{ code: "TRANSFER_FEE", label: "Transfer fee", kind: "CHARGE", amountKobo: 4000, explain: "Covers sending your money to the bank.", parts: [
-			{ code: "PLATFORM_FEE", label: "AfricanShops fee", amountKobo: 1000 }, { code: "BANK_TRANSFER_CHARGE", label: "Bank transfer charge", amountKobo: 2500 }, { code: "TXN_MARGIN_PAYOUT", label: "Service charge", amountKobo: 500 },
-		] },
+		{ code: "TRANSFER_FEE", label: "Transaction fee", kind: "CHARGE", amountKobo: 4000, explain: "Covers sending your money to the bank." },
 		{ code: "PAYOUT_STAMP_DUTY", label: "Stamp duty", kind: "LEVY", amountKobo: 5000, explain: "Government levy on transfers of N10,000 or more." },
 	],
 	...over,
@@ -56,17 +54,19 @@ describe("Withdraw with the server's Payment summary (F18)", () => {
 		expect(mockQuoteHook).toHaveBeenLastCalledWith("WITHDRAWAL", 2000000);
 	});
 
-	it("the confirm step shows the server's lines, ONE Transfer fee with its parts, the stamp duty, the total and the balance after", async () => {
+	it("the confirm step shows the server's lines, ONE Transaction fee that is never itemized, the stamp duty, the total and the balance after", async () => {
 		renderIt();
 		await goToConfirm();
 		expect(screen.getByTestId("payout-summary")).toBeInTheDocument();
-		expect(screen.getByText("Transfer fee")).toBeInTheDocument();
+		expect(screen.getByText("Transaction fee")).toBeInTheDocument();
 		expect(screen.getByText("Stamp duty")).toBeInTheDocument();
 		expect(screen.getByTestId("payout-summary-total")).toHaveTextContent("₦20090.00");
 		expect(screen.getByTestId("balance-after")).toHaveTextContent("₦29910.00");
+		// trade secret (founder 15 Nov): tapping "What is this?" explains the fee but never lists or names its parts
 		fireEvent.click(screen.getByTestId("explain-TRANSFER_FEE"));
-		expect(screen.getByTestId("parts-TRANSFER_FEE")).toHaveTextContent("AfricanShops fee");
-		expect(screen.getByTestId("parts-TRANSFER_FEE")).toHaveTextContent("Bank transfer charge");
+		expect(screen.getByTestId("explain-text-TRANSFER_FEE")).toHaveTextContent("Covers sending your money to the bank.");
+		expect(screen.queryByTestId("parts-TRANSFER_FEE")).not.toBeInTheDocument();
+		expect(document.body.textContent).not.toMatch(/AfricanShops fee|Platform fee|Bank transfer charge/i);
 	});
 
 	it("Confirm shows the total and stays disabled until a 6-digit PIN is typed; it sends the typed amount, not the total", async () => {

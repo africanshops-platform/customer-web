@@ -198,7 +198,7 @@ export default function FinanceWithdrawalContent() {
                   ['🪪', 'Your own account only', 'Withdrawals go to a bank account in your own name, matched to your verified identity.'],
                   ['✅', 'Name checked first', 'We confirm the account name with the bank before you withdraw.'],
                   ['🔐', 'PIN, and a code for larger amounts', 'You always enter your PIN; bigger withdrawals also ask for a code we email you.'],
-                  ['🧾', 'Fees before you commit', 'One clear Transfer fee, and the total, are shown before anything leaves your wallet.'],
+                  ['🧾', 'Fees before you commit', 'One clear Transaction fee, and the total, are shown before anything leaves your wallet.'],
                 ]}
               />
             </motion.div>
