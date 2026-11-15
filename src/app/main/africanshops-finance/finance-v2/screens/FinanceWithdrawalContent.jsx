@@ -198,7 +198,7 @@ export default function FinanceWithdrawalContent() {
                   ['🪪', 'Your own account only', 'Withdrawals go to a bank account in your own name, matched to your verified identity.'],
                   ['✅', 'Name checked first', 'We confirm the account name with the bank before you withdraw.'],
                   ['🔐', 'PIN, and a code for larger amounts', 'You always enter your PIN; bigger withdrawals also ask for a code we email you.'],
-                  ['🧾', 'Fees before you commit', 'One clear Transfer fee, and the total, are shown before anything leaves your wallet.'],
+                  ['🧾', 'Fees before you commit', 'One clear Transaction fee, and the total, are shown before anything leaves your wallet.'],
                 ]}
               />
             </motion.div>
@@ -224,7 +224,7 @@ export default function FinanceWithdrawalContent() {
                 {quote && (
                   <>
                     <PaymentSummary lines={quote.lines} amountLabel="You withdraw" totalLabel="Total from your wallet" totalKobo={quote.grossKobo} testId="payout-summary" />
-                    <Typography data-testid="balance-after" style={{ fontSize: F.small, color: tokens.textMuted, textAlign: 'right', marginTop: -6 }}>
+                    <Typography data-testid="balance-after" style={{ fontSize: F.small, color: tokens.textMuted, textAlign: 'right', marginTop: 2 }}>
                       Balance after: <b style={{ color: tokens.textPrimary }}>{nairaFull(Math.max(availableKobo - quote.grossKobo, 0))}</b>
                     </Typography>
                     {quote.requiresOtp && (
@@ -279,11 +279,11 @@ export default function FinanceWithdrawalContent() {
                     <Typography style={{ fontSize: F.small, color: tokens.textSecondary }}>Account</Typography>
                     <Typography style={{ fontSize: F.body, color: tokens.textPrimary, fontFamily: 'monospace' }}>{beneficiary?.beneficiaryAccountNumber}</Typography>
                   </div>
-                  {typeof btxData?.commissionKobo === 'number' && (
+                  {typeof btxData?.feeKobo === 'number' && (
                     <>
                       <div className="flex justify-between mb-8 pt-8" style={{ borderTop: `1px dashed ${tokens.borderColor}` }}>
-                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Fees</Typography>
-                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>+{nairaFull(btxData.totalDebitKobo - Math.round(amountNGN * 100))}</Typography>
+                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Transaction fee</Typography>
+                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>+{nairaFull(btxData.feeKobo)}</Typography>
                       </div>
                       <div className="flex justify-between">
                         <Typography style={{ fontSize: F.small, fontWeight: 700, color: tokens.textPrimary }}>Total debited</Typography>
