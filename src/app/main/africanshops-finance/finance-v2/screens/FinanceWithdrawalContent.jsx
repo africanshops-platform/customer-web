@@ -279,11 +279,11 @@ export default function FinanceWithdrawalContent() {
                     <Typography style={{ fontSize: F.small, color: tokens.textSecondary }}>Account</Typography>
                     <Typography style={{ fontSize: F.body, color: tokens.textPrimary, fontFamily: 'monospace' }}>{beneficiary?.beneficiaryAccountNumber}</Typography>
                   </div>
-                  {typeof btxData?.commissionKobo === 'number' && (
+                  {typeof btxData?.feeKobo === 'number' && (
                     <>
                       <div className="flex justify-between mb-8 pt-8" style={{ borderTop: `1px dashed ${tokens.borderColor}` }}>
-                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Fees</Typography>
-                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>+{nairaFull(btxData.totalDebitKobo - Math.round(amountNGN * 100))}</Typography>
+                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Transaction fee</Typography>
+                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>+{nairaFull(btxData.feeKobo)}</Typography>
                       </div>
                       <div className="flex justify-between">
                         <Typography style={{ fontSize: F.small, fontWeight: 700, color: tokens.textPrimary }}>Total debited</Typography>

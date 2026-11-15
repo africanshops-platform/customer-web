@@ -82,6 +82,18 @@ describe("Withdraw with the server's Payment summary (F18)", () => {
 		expect(mockInitiate).toHaveBeenCalledWith(expect.objectContaining({ amountKobo: 2000000, beneficiaryId: "b1", transactionPin: "123456" }));
 	});
 
+	it("the code step shows ONE Transaction fee from the server's feeKobo and never a Platform fee or Paystack fee (trade secret, F18n)", async () => {
+		mockInitiate.mockResolvedValue({ requiresOtp: true, btxId: "b", amountKobo: 2000000, feeKobo: 3500, totalDebitKobo: 2003500, expiresAt: new Date(Date.now() + 600000).toISOString() });
+		renderIt();
+		await goToConfirm();
+		fireEvent.change(screen.getByTestId("pin"), { target: { value: "123456" } });
+		await act(async () => { fireEvent.click(screen.getByRole("button", { name: /^Confirm/ })); });
+		expect(screen.getByText("Transaction fee")).toBeInTheDocument();
+		expect(document.body.textContent).toContain("₦35.00");
+		expect(document.body.textContent).toContain("₦20,035.00");
+		expect(document.body.textContent).not.toMatch(/Platform fee|Paystack fee|AfricanShops fee/i);
+	});
+
 	it("says up front that an emailed code will be needed when the server says so", async () => {
 		mockQuoteHook.mockReturnValue({ data: quote({ requiresOtp: true }), isFetching: false, error: null });
 		renderIt();

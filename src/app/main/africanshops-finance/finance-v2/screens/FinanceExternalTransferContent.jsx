@@ -63,7 +63,7 @@ export default function FinanceExternalTransferContent() {
   const { statuses: financeSwitches } = useFinanceSwitches();
   const externalNotice = switchNotice(financeSwitches, 'externalTransfer');
   const overMonthlyAllowance = exceedsMonthlyAllowance(kycSubmission, amountNGN);
-  let amountHelperText = 'Paystack + platform fees are added on top and shown at confirmation';
+  let amountHelperText = 'Fees are added on top and shown before you confirm';
   if (amountNGN > availableNGN && amountNGN > 0) amountHelperText = 'Exceeds available balance';
   else if (overMonthlyAllowance) amountHelperText = 'Exceeds your remaining monthly allowance';
 
@@ -217,7 +217,7 @@ export default function FinanceExternalTransferContent() {
                     <Typography style={{ fontSize: F.small, color: tokens.textPrimary }}>{bankName} · {beneficiary?.beneficiaryAccountNumber}</Typography>
                   </div>
                   <Typography style={{ fontSize: F.small, color: tokens.textMuted, marginTop: 10 }}>
-                    Paystack + platform fees will be added on top of this amount — you'll see the exact breakdown once confirmed.
+                    A transaction fee will be added on top of this amount. You'll see the exact total before anything leaves your wallet.
                   </Typography>
                 </div>
 
@@ -258,15 +258,11 @@ export default function FinanceExternalTransferContent() {
                     <Typography style={{ fontSize: F.small, color: tokens.textSecondary }}>Account</Typography>
                     <Typography style={{ fontSize: F.body, color: tokens.textPrimary, fontFamily: 'monospace' }}>{beneficiary?.beneficiaryAccountNumber}</Typography>
                   </div>
-                  {typeof btxData?.commissionKobo === 'number' && (
+                  {typeof btxData?.feeKobo === 'number' && (
                     <>
                       <div className="flex justify-between mb-6 pt-8" style={{ borderTop: `1px dashed ${tokens.borderColor}` }}>
-                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Platform fee</Typography>
-                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>+₦{(btxData.commissionKobo / 100).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</Typography>
-                      </div>
-                      <div className="flex justify-between mb-8">
-                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Paystack fee</Typography>
-                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>+₦{(btxData.paystackFeeKobo / 100).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</Typography>
+                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Transaction fee</Typography>
+                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>+₦{(btxData.feeKobo / 100).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</Typography>
                       </div>
                       <div className="flex justify-between">
                         <Typography style={{ fontSize: F.small, fontWeight: 700, color: tokens.textPrimary }}>Total debited</Typography>
