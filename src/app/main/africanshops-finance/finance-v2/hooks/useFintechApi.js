@@ -578,6 +578,36 @@ export function useFeeQuote(operation, amountKobo) {
   return state;
 }
 
+// Board F18 phase 4: what a bank payout costs, from the server (one combined Transfer fee, the stamp duty on its own line, the total taken and
+// whether an emailed code will be needed). A quote only: it moves nothing. Waits for the typing to settle, ignores an amount the server would refuse.
+export function usePayoutQuote(kind, amountKobo) {
+  const [state, setState] = useState({ data: null, isFetching: false, error: null });
+  const valid = Number.isInteger(amountKobo) && amountKobo >= 10000 && amountKobo <= 1000000000;
+
+  useEffect(() => {
+    if (!valid) {
+      setState({ data: null, isFetching: false, error: null });
+      return undefined;
+    }
+    let alive = true;
+    setState((cur) => ({ ...cur, isFetching: true, error: null }));
+    const timer = setTimeout(async () => {
+      try {
+        const res = await AuthApi().post('/fintech-accounts/user/payout/quote', { kind, amountKobo });
+        if (alive) setState({ data: unwrap(res), isFetching: false, error: null });
+      } catch (err) {
+        if (alive) setState({ data: null, isFetching: false, error: err });
+      }
+    }, 400);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [kind, amountKobo, valid]);
+
+  return state;
+}
+
 export function useVerifyWalletFunding() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
