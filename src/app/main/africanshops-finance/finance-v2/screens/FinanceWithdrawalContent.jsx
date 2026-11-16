@@ -8,10 +8,12 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Checkbox from '@mui/material/Checkbox';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useWithdrawalInitiate, useWithdrawalConfirm, useBanksList, useDeleteBeneficiary, useFintechKycStatus } from '../hooks/useFintechApi';
+import { useWithdrawalInitiate, useWithdrawalConfirm, useBanksList, useDeleteBeneficiary, useFintechKycStatus, usePayoutQuote } from '../hooks/useFintechApi';
 import { useFinanceSwitches, switchNotice } from '../hooks/useFinanceSwitches';
 import { useFinanceTheme } from '../FinanceThemeContext';
 import { F, fieldSx } from '../financeUiTokens';
+import { nairaFull } from '../financeFormat';
+import PaymentSummary from './shared/PaymentSummary';
 import OtpTimer from './shared/OtpTimer';
 import BeneficiaryPicker from './shared/BeneficiaryPicker';
 import { BankStepper, AmountField, SideColumn } from './shared/BankFlowParts';
@@ -56,7 +58,15 @@ export default function FinanceWithdrawalContent() {
   const { statuses: financeSwitches } = useFinanceSwitches();
   const externalNotice = switchNotice(financeSwitches, 'externalTransfer');
   const overMonthlyAllowance = exceedsMonthlyAllowance(kycSubmission, amountNGN);
-  let amountHelperText = 'Paystack + platform fees are added on top and shown at confirmation';
+  // Board F18 phase 4: the Payment summary comes from the server's quote, so the total shown is the total taken. Asked for as soon as the amount
+  // is typed (the side column shows it live) and again for the confirm step; nothing here adds a fee itself.
+  const amountKobo = Math.round(amountNGN * 100);
+  const { data: quote, error: quoteError } = usePayoutQuote('WITHDRAWAL', step === 'form' || step === 'confirm' ? amountKobo : 0);
+  const totalKobo = quote?.grossKobo;
+  const availableKobo = Math.round(availableNGN * 100);
+  const quoteOverBalance = typeof totalKobo === 'number' && totalKobo > availableKobo;
+  const confirmLabel = quote ? `Confirm · ${nairaFull(quote.grossKobo)}` : 'Confirm Withdrawal';
+  let amountHelperText = 'Fees are added on top and shown before you confirm';
   if (amountNGN > availableNGN && amountNGN > 0) amountHelperText = 'Exceeds available balance';
   else if (overMonthlyAllowance) amountHelperText = 'Exceeds your remaining monthly allowance';
 
@@ -181,13 +191,14 @@ export default function FinanceWithdrawalContent() {
                   ['Bank', bankName ?? '—'],
                   ['Account', beneficiary?.beneficiaryAccountNumber ?? '—'],
                   ['Amount', `₦${amountNGN.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`],
-                  ['Fees', 'Added on top, shown next'],
+                  ['Fees', quote ? nairaFull(quote.chargeKobo) : 'Added on top, shown next'],
+                  ...(quote ? [['Total from your wallet', nairaFull(quote.grossKobo)]] : []),
                 ]}
                 facts={[
                   ['🪪', 'Your own account only', 'Withdrawals go to a bank account in your own name, matched to your verified identity.'],
                   ['✅', 'Name checked first', 'We confirm the account name with the bank before you withdraw.'],
                   ['🔐', 'PIN, and a code for larger amounts', 'You always enter your PIN; bigger withdrawals also ask for a code we email you.'],
-                  ['🧾', 'Fees before you commit', 'The exact fee is shown on the next step, before anything leaves your wallet.'],
+                  ['🧾', 'Fees before you commit', 'One clear Transaction fee, and the total, are shown before anything leaves your wallet.'],
                 ]}
               />
             </motion.div>
@@ -209,10 +220,27 @@ export default function FinanceWithdrawalContent() {
                     <Typography style={{ fontSize: F.small, color: tokens.textSecondary }}>Bank</Typography>
                     <Typography style={{ fontSize: F.small, color: tokens.textPrimary }}>{bankName} · {beneficiary?.beneficiaryAccountNumber}</Typography>
                   </div>
-                  <Typography style={{ fontSize: F.small, color: tokens.textMuted, marginTop: 10 }}>
-                    Paystack + platform fees will be added on top of this amount — you'll see the exact breakdown once confirmed.
-                  </Typography>
                 </div>
+                {quote && (
+                  <>
+                    <PaymentSummary lines={quote.lines} amountLabel="You withdraw" totalLabel="Total from your wallet" totalKobo={quote.grossKobo} testId="payout-summary" />
+                    <Typography data-testid="balance-after" style={{ fontSize: F.small, color: tokens.textMuted, textAlign: 'right', marginTop: 2 }}>
+                      Balance after: <b style={{ color: tokens.textPrimary }}>{nairaFull(Math.max(availableKobo - quote.grossKobo, 0))}</b>
+                    </Typography>
+                    {quote.requiresOtp && (
+                      <Alert data-testid="otp-notice" severity="info" icon={false} sx={{ borderRadius: '10px', fontSize: F.small }}>
+                        For your safety we will email you a 6-digit code to confirm this one, after your PIN.
+                      </Alert>
+                    )}
+                    {quoteOverBalance && (
+                      <Alert data-testid="over-balance" severity="error" sx={errorAlertSx}>
+                        With the fees, this needs {nairaFull(quote.grossKobo)} and your wallet has {nairaFull(availableKobo)}. Lower the amount a little.
+                      </Alert>
+                    )}
+                  </>
+                )}
+                {!quote && quoteError && <Alert severity="error" sx={errorAlertSx}>We could not load the fees. Go back and try again.</Alert>}
+                {!quote && !quoteError && <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Working out the fees…</Typography>}
 
                 <TransactionPinField value={pin} onChange={setPin} tokens={tokens} />
                 <Button onClick={() => setForgotPinOpen(true)} sx={{ color: tokens.textMuted, textTransform: 'none', fontSize: F.small, width: '100%', mt: -1 }}>
@@ -224,11 +252,11 @@ export default function FinanceWithdrawalContent() {
                 <Button
                   variant="contained"
                   fullWidth
-                  disabled={pin.length < 6 || initiating}
+                  disabled={pin.length < 6 || initiating || !quote || quoteOverBalance}
                   onClick={handleConfirmPin}
                   sx={{ background: tokens.accentGradient, borderRadius: '12px', fontWeight: 700, py: 1.5, textTransform: 'none', fontSize: F.body, '&:disabled': { background: tokens.borderColor, color: tokens.textMuted } }}
                 >
-                  {initiating ? <CircularProgress size={20} sx={{ color: 'white' }} /> : 'Confirm Withdrawal'}
+                  {initiating ? <CircularProgress size={20} sx={{ color: 'white' }} /> : confirmLabel}
                 </Button>
                 <Button onClick={() => setStep('form')} sx={{ color: tokens.textMuted, textTransform: 'none', width: '100%', fontSize: F.small }}>Back</Button>
               </div>
@@ -251,15 +279,11 @@ export default function FinanceWithdrawalContent() {
                     <Typography style={{ fontSize: F.small, color: tokens.textSecondary }}>Account</Typography>
                     <Typography style={{ fontSize: F.body, color: tokens.textPrimary, fontFamily: 'monospace' }}>{beneficiary?.beneficiaryAccountNumber}</Typography>
                   </div>
-                  {typeof btxData?.commissionKobo === 'number' && (
+                  {typeof btxData?.feeKobo === 'number' && (
                     <>
-                      <div className="flex justify-between mb-6 pt-8" style={{ borderTop: `1px dashed ${tokens.borderColor}` }}>
-                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Platform fee</Typography>
-                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>+₦{(btxData.commissionKobo / 100).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</Typography>
-                      </div>
-                      <div className="flex justify-between mb-8">
-                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Paystack fee</Typography>
-                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>+₦{(btxData.paystackFeeKobo / 100).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</Typography>
+                      <div className="flex justify-between mb-8 pt-8" style={{ borderTop: `1px dashed ${tokens.borderColor}` }}>
+                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>Transaction fee</Typography>
+                        <Typography style={{ fontSize: F.small, color: tokens.textMuted }}>+{nairaFull(btxData.feeKobo)}</Typography>
                       </div>
                       <div className="flex justify-between">
                         <Typography style={{ fontSize: F.small, fontWeight: 700, color: tokens.textPrimary }}>Total debited</Typography>
