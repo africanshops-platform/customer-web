@@ -2,7 +2,6 @@ import _ from "@lodash";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { usePaystackPayment } from "react-paystack";
-import PaystackPop from "@paystack/inline-js";
 import { useNavigate } from "react-router";
 import { toast } from "react-toastify";
 import {
@@ -10,16 +9,8 @@ import {
   useCalculateFoodCartShipping,
 } from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
 import { useFoodCheckoutReadiness } from "app/configs/data/server-calls/auth/paystack-payments/usePaystackPaymentsRepo";
-import { createFoodCheckoutIntentApi, confirmCheckoutIntentApi } from "app/configs/data/client/RepositoryAuthClient";
-import {
-  buildIntentOrder,
-  clearPendingPayment,
-  confirmUntilBooked,
-  describeIntent,
-  isIntentNotAvailable,
-  loadPendingPayment,
-  savePendingPayment,
-} from "./checkoutIntentFlow";
+import { createFoodCheckoutIntentApi } from "app/configs/data/client/RepositoryAuthClient";
+import useCheckoutIntentPay from "../../checkout-intent/useCheckoutIntentPay";
 import { useAppSelector } from "app/store/hooks";
 import { useQueryClient } from "react-query";
 import { selectUser } from "../../../../auth/user/store/userSlice";
@@ -190,12 +181,9 @@ function FoodCartSummaryAndPay({
   };
 
   // ── F28: pay through a server-made checkout intent (docs/designs/F28-paid-order-recovery.md) ─────────────────────────────────────────
-  // The server makes the Paystack transaction (one reference per cart attempt, never swapped), so a lost confirm call can no longer leave a
-  // paid cart without an order, and a second Pay reopens the SAME transaction instead of starting a new one. When the server has intents
-  // switched off it answers "not switched on" and the old Pay flow below carries on exactly as before.
+  // One reference per CART SESSION, made by the server, so a lost confirm call can never leave a paid cart without an order and a second Pay reopens
+  // the SAME transaction. When the server has intents switched off it answers "not switched on" and the old Pay flow above runs exactly as before.
   const navigate = useNavigate();
-  const [payPhase, setPayPhase] = useState("idle"); // idle | starting | confirming | pending | failed
-  const [payRef, setPayRef] = useState(null);
   const legacyPay = usePaystackPayment({
     reference: `AFSHFMKT${cartSession?.id || generateClientUID()}`,
     email: user?.email,
@@ -203,74 +191,21 @@ function FoodCartSummaryAndPay({
     publicKey,
     metadata: { userId: user?.id, foodCartSessionId: cartSession?.id },
   });
-
-  const finishBooked = (orderId, deliveryCode = null) => {
-    clearPendingPayment();
-    toast.success("Order placed successfully!");
-    queryClient.invalidateQueries(["__foodcart"]);
-    queryClient.refetchQueries("__foodcart", { force: true });
-    // The delivery code is shown once on the success page when this page placed the order; if the webhook placed it, the code is emailed.
-    navigate(`/foodmarts/${orderId}/payment-success`, { state: { deliveryCode } });
-  };
-
-  const runConfirm = async (reference, { silentWaiting = false } = {}) => {
-    setPayPhase("confirming");
-    setPayRef(reference);
-    savePendingPayment(cartSession?.id, reference);
-    const result = await confirmUntilBooked({
-      confirm: async () => (await confirmCheckoutIntentApi(reference))?.data,
-    });
-    if (result.outcome === "BOOKED") return finishBooked(result.orderId);
-    if (result.outcome === "WAITING") {
-      // Paystack has no payment for it: the customer closed the window. They may pay again and it reopens the same transaction.
-      clearPendingPayment();
-      setPayPhase("idle");
-      if (!silentWaiting) toast.info("The payment was not completed. You can try again; you will not be charged twice.");
-      return;
-    }
-    // The money is there but the order is not placed yet (PENDING) or could not be placed (FAILED): never ask the customer to pay again.
-    setPayPhase(result.outcome === "PENDING" ? "pending" : "failed");
-  };
-
-  const openPaystack = (intent) => {
-    new PaystackPop().resumeTransaction(intent.accessCode, {
-      onSuccess: () => runConfirm(intent.reference),
-      // A closed window is NOT proof of no payment (a "network error" can hide a paid one): ask the server before saying anything.
-      onCancel: () => runConfirm(intent.reference, { silentWaiting: true }),
-      onError: (err) => {
-        toast.error(err?.message || "We could not open the payment window. Please try again.");
-        setPayPhase("idle");
-      },
-    });
-  };
-
-  const handlePay = async () => {
-    if (isFormIncomplete) return;
-    setPayPhase("starting");
-    try {
-      const res = await createFoodCheckoutIntentApi({ cartSessionId: cartSession?.id, order: buildIntentOrder(buildOrderBase()) });
-      const next = describeIntent(res?.data);
-      if (next.step === "OPEN") return openPaystack(next);
-      if (next.step === "CONFIRM") return runConfirm(next.reference); // already paid: never open Paystack again
-      toast.error("We could not start the payment. Please try again.");
-      setPayPhase("idle");
-    } catch (error) {
-      if (isIntentNotAvailable(error)) {
-        setPayPhase("idle");
-        legacyPay({ onSuccess: (ref) => onSuccess(ref), onClose: () => onClose() });
-        return;
-      }
-      toast.error(error?.response?.data?.message || "We could not start the payment. Please try again.");
-      setPayPhase("idle");
-    }
-  };
-
-  // A reload or a return visit after paying resumes the confirming instead of showing a fresh Pay button.
-  useEffect(() => {
-    const pending = loadPendingPayment(cartSession?.id);
-    if (pending?.reference) runConfirm(pending.reference, { silentWaiting: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cartSession?.id]);
+  const { payPhase, payRef, handlePay } = useCheckoutIntentPay({
+    cartKey: cartSession?.id,
+    createIntentApi: createFoodCheckoutIntentApi,
+    buildOrder: buildOrderBase,
+    startLegacy: () => legacyPay({ onSuccess: (ref) => onSuccess(ref), onClose: () => onClose() }),
+    onBooked: (orderId) => {
+      toast.success("Order placed successfully!");
+      queryClient.invalidateQueries(["__foodcart"]);
+      queryClient.refetchQueries("__foodcart", { force: true });
+      // The delivery code is on screen only when this page places the order; when the webhook does, it is emailed.
+      navigate(orderId ? `/foodmarts/${orderId}/payment-success` : "/foodmarts/user/food-orders", { state: { deliveryCode: null } });
+    },
+    onCartRefresh: () => queryClient.invalidateQueries(["__foodcart"]),
+    canPay: () => !isFormIncomplete,
+  });
 
   const isFormIncomplete =
     _.isEmpty(dirtyFields) ||
