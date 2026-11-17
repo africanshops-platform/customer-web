@@ -482,7 +482,15 @@ const CartSummaryAndPay = ({
               )}
               {payPhase === "pending" && (
                 <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#ea580c" }} data-testid="market-pay-pending">
-                  We received your payment and are placing your order. You do not need to pay again. Check My Orders in a few minutes.
+                  We received your payment and are placing your order. You do not need to pay again. It will appear in{" "}
+                  <a href="/marketplace/user/orders" style={{ textDecoration: "underline" }}>My Orders</a> shortly; we keep checking.
+                  {payRef ? ` Reference: ${payRef}` : ""}
+                </p>
+              )}
+              {payPhase === "unsure" && (
+                <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#ea580c" }} data-testid="market-pay-unsure">
+                  We could not reach our servers to confirm your payment. Please do not pay again. If you were charged, your order will appear in{" "}
+                  <a href="/marketplace/user/orders" style={{ textDecoration: "underline" }}>My Orders</a>. We keep checking, and you can reload this page to check again.
                   {payRef ? ` Reference: ${payRef}` : ""}
                 </p>
               )}
