@@ -7,7 +7,17 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "integration": false
+      "integration": false,
+      "feat/**": false,
+      "fix/**": false,
+      "chore/**": false,
+      "docs/**": false,
+      "promote/**": false,
+      "sync/**": false,
+      "hotfix/**": false,
+      "refactor/**": false,
+      "release/**": false
     }
-  }
+  },
+  "$schema": "https://openapi.vercel.sh/vercel.json"
 }
