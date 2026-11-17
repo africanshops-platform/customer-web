@@ -2,11 +2,31 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { motion } from "framer-motion";
 
 /**
- * F28: the loading state shown INSIDE the order summary card while the page confirms a payment with the server (confirming, still placing the order, or
- * the server could not be reached). The same look as the full-page "Processing Payment..." overlay (orange ring around the logo, pulsing words), at card size,
- * so the rest of the page stays usable. Shown for as long as the page is still asking; it is never shown once the customer is told it failed.
+ * F28: the loading state shown INSIDE the order summary card while the page follows a payment to an order. The same look as the full-page "Processing
+ * Payment..." overlay (orange ring around the logo, pulsing words) at card size, plus three steps so the customer sees where it is:
+ *   Payment received -> Placing your order -> Order confirmed
+ * stage: checking (nothing known yet) | received (the money is there) | placing (the order is being made) | unsure (our servers could not be reached; no steps shown,
+ * because we do not know). The server drives the stage; the page only shows it.
  */
-export default function PaymentCheckingLoader({ title = "Confirming your payment...", subtitle = "Please do not pay again", testId = "pay-checking-loader" }) {
+const WORDS = {
+  checking: { title: "Confirming your payment...", subtitle: "Please do not pay again" },
+  received: { title: "Payment received", subtitle: "Getting your order ready..." },
+  placing: { title: "Placing your order...", subtitle: "Your payment was received" },
+  unsure: { title: "Still checking your payment...", subtitle: "Please do not pay again" },
+};
+
+/** Which of the three steps is done / active / waiting for a stage. */
+export function stepStates(stage) {
+  if (stage === "received" || stage === "placing") return ["done", "active", "todo"];
+  if (stage === "checking") return ["active", "todo", "todo"];
+  return null; // unsure: no steps
+}
+
+const STEP_LABELS = ["Payment received", "Placing your order", "Order confirmed"];
+
+export default function PaymentCheckingLoader({ stage = "checking", title, subtitle, testId = "pay-checking-loader" }) {
+  const words = WORDS[stage] || WORDS.checking;
+  const steps = stepStates(stage);
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -17,6 +37,7 @@ export default function PaymentCheckingLoader({ title = "Confirming your payment
       role="status"
       aria-live="polite"
       data-testid={testId}
+      data-stage={stage}
     >
       <div className="relative" style={{ width: 72, height: 72 }}>
         <CircularProgress size={72} thickness={3} sx={{ color: "#ea580c", position: "absolute", top: 0, left: 0 }} />
@@ -42,9 +63,24 @@ export default function PaymentCheckingLoader({ title = "Confirming your payment
         />
       </div>
       <motion.div animate={{ opacity: [0.7, 1, 0.7] }} transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }} className="text-center">
-        <p className="text-sm font-extrabold" style={{ color: "#ea580c" }}>{title}</p>
-        <p className="text-xs font-medium" style={{ color: "#6b7280" }}>{subtitle}</p>
+        <p className="text-sm font-extrabold" style={{ color: "#ea580c" }}>{title || words.title}</p>
+        <p className="text-xs font-medium" style={{ color: "#6b7280" }}>{subtitle || words.subtitle}</p>
       </motion.div>
+      {steps && (
+        <ol className="w-full max-w-[260px] space-y-1.5" data-testid={testId + "-steps"}>
+          {steps.map((state, i) => (
+            <li key={STEP_LABELS[i]} className="flex items-center gap-2 text-xs" data-state={state} style={{ color: state === "todo" ? "#9ca3af" : state === "done" ? "#16a34a" : "#ea580c", fontWeight: state === "active" ? 700 : 500 }}>
+              <span
+                className="inline-flex items-center justify-center rounded-full"
+                style={{ width: 16, height: 16, fontSize: 10, background: state === "done" ? "#16a34a" : "transparent", color: state === "done" ? "#fff" : "inherit", border: state === "done" ? "none" : "2px solid currentColor" }}
+              >
+                {state === "done" ? "\u2713" : ""}
+              </span>
+              {STEP_LABELS[i]}
+            </li>
+          ))}
+        </ol>
+      )}
     </motion.div>
   );
 }

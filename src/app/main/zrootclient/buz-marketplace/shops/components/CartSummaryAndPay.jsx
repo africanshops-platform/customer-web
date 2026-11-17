@@ -160,7 +160,7 @@ const CartSummaryAndPay = ({
     publicKey,
     metadata: { userId: user?.id, cartSessionId: cartSessionPayload?.id },
   });
-  const { payPhase, payRef, handlePay } = useCheckoutIntentPay({
+  const { payPhase, payRef, payStage, handlePay } = useCheckoutIntentPay({
     cartKey: cartSessionPayload?.id,
     createIntentApi: createMarketplaceCheckoutIntentApi,
     // A function, not the value: buildOrderBase is a const declared further down, and reading it here at render time crashed the page (temporal dead zone).
@@ -474,14 +474,16 @@ const CartSummaryAndPay = ({
                   ? "Starting your payment..."
                   : payPhase === "confirming"
                     ? "Confirming your payment..."
-                    : `🔒 Pay ₦${formatCurrency(grandTotal)}`}
+                    : payPhase === "pending" || payPhase === "unsure"
+                      ? "Checking your payment..."
+                      : `🔒 Pay ₦${formatCurrency(grandTotal)}`}
               </button>
               {payPhase === "confirming" && (
-                <PaymentCheckingLoader title="Confirming your payment..." subtitle="Please do not pay again" testId="market-pay-confirming" />
+                <PaymentCheckingLoader stage={payPhase === "unsure" ? "unsure" : payStage} testId="market-pay-confirming" />
               )}
               {payPhase === "pending" && (
                 <>
-                <PaymentCheckingLoader title="Placing your order..." subtitle="Your payment was received" testId="market-pay-pending-loader" />
+                <PaymentCheckingLoader stage={payPhase === "unsure" ? "unsure" : payStage} testId="market-pay-pending-loader" />
                 <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#ea580c" }} data-testid="market-pay-pending">
                   We received your payment and are placing your order. You do not need to pay again. It will appear in{" "}
                   <a href="/marketplace/user/orders" style={{ textDecoration: "underline" }}>My Orders</a> shortly; we keep checking.
@@ -491,7 +493,7 @@ const CartSummaryAndPay = ({
               )}
               {payPhase === "unsure" && (
                 <>
-                <PaymentCheckingLoader title="Still checking your payment..." subtitle="Please do not pay again" testId="market-pay-unsure-loader" />
+                <PaymentCheckingLoader stage={payPhase === "unsure" ? "unsure" : payStage} testId="market-pay-unsure-loader" />
                 <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#ea580c" }} data-testid="market-pay-unsure">
                   We could not reach our servers to confirm your payment. Please do not pay again. If you were charged, your order will appear in{" "}
                   <a href="/marketplace/user/orders" style={{ textDecoration: "underline" }}>My Orders</a>. We keep checking, and you can reload this page to check again.
