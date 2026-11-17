@@ -79,6 +79,11 @@ describe('confirmUntilBooked', () => {
 		expect(calls).toHaveBeenCalledTimes(1);
 	});
 
+	it('a server that never answers is UNSURE at the time limit: never "not paid", never "the payment was not completed"', async () => {
+		const { confirm } = sequence(new Error('Network Error'));
+		expect(await confirmUntilBooked({ confirm, wait: noWait, maxMs: 0 })).toEqual({ outcome: 'UNSURE' });
+	});
+
 	it('money there but no order yet after the time limit is PENDING (do not pay again), never WAITING', async () => {
 		const { confirm } = sequence({ status: 'PAID' });
 		expect(await confirmUntilBooked({ confirm, wait: noWait, maxMs: 0 })).toEqual({ outcome: 'PENDING' });
