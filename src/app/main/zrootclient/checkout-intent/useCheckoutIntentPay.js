@@ -31,16 +31,22 @@ import {
 export default function useCheckoutIntentPay({ cartKey, createIntentApi, buildOrder, startLegacy, onBooked, onCartRefresh, canPay = () => true }) {
 	const [payPhase, setPayPhase] = useState('idle');
 	const [payRef, setPayRef] = useState(null);
+	// where the payment is, as far as the server has told us: checking (nothing known yet) | received (the money is there) | placing (the order is being made) | unsure (server unreachable)
+	const [payStage, setPayStage] = useState('checking');
 	const latest = useRef({});
 	const alive = useRef(true);
 	useEffect(() => () => { alive.current = false; }, []);
 	latest.current = { cartKey, createIntentApi, buildOrder, startLegacy, onBooked, onCartRefresh, canPay };
 
-	const runConfirm = async (reference, { silentWaiting = false } = {}) => {
+	const stageOfStatus = (status) => (status === 'PAID' ? 'received' : status === 'BOOKING' ? 'placing' : status === 'UNREACHABLE' ? 'unsure' : null);
+	const trackStage = (status) => { const st = stageOfStatus(status); if (st) setPayStage(st); };
+
+	const runConfirm = async (reference, { silentWaiting = false, paidInPopup = false } = {}) => {
+		setPayStage(paidInPopup ? 'received' : 'checking');
 		setPayPhase('confirming');
 		setPayRef(reference);
 		savePendingPayment(latest.current.cartKey, reference);
-		const result = await confirmUntilBooked({ confirm: async () => (await confirmCheckoutIntentApi(reference))?.data });
+		const result = await confirmUntilBooked({ confirm: async () => (await confirmCheckoutIntentApi(reference))?.data, onStatus: trackStage });
 		if (result.outcome === 'BOOKED') {
 			clearPendingPayment();
 			setPayPhase('idle');
@@ -70,7 +76,8 @@ export default function useCheckoutIntentPay({ cartKey, createIntentApi, buildOr
 			confirm: async () => (await confirmCheckoutIntentApi(reference))?.data,
 			intervalMs: LATE_POLL_MS,
 			maxMs: LATE_MAX_MS,
-			quietWaiting: true
+			quietWaiting: true,
+			onStatus: trackStage
 		});
 		if (!alive.current) return;
 		if (result.outcome === 'BOOKED') {
@@ -85,7 +92,7 @@ export default function useCheckoutIntentPay({ cartKey, createIntentApi, buildOr
 
 	const openPaystack = (intent) => {
 		new PaystackPop().resumeTransaction(intent.accessCode, {
-			onSuccess: () => runConfirm(intent.reference),
+			onSuccess: () => runConfirm(intent.reference, { paidInPopup: true }),
 			// A closed window is NOT proof of no payment (a "network error" can hide a paid one): ask the server before saying anything.
 			onCancel: () => runConfirm(intent.reference, { silentWaiting: true }),
 			onError: (err) => {
@@ -125,5 +132,5 @@ export default function useCheckoutIntentPay({ cartKey, createIntentApi, buildOr
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [cartKey]);
 
-	return { payPhase, payRef, handlePay };
+	return { payPhase, payRef, payStage, handlePay };
 }
