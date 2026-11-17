@@ -165,4 +165,23 @@ describe('useCheckoutIntentPay', () => {
 		await waitFor(() => expect(props.onBooked).toHaveBeenCalledWith('o3'));
 		expect(confirmCheckoutIntentApi).toHaveBeenCalledWith('AFSHCIFcart1');
 	});
+
+	it('a server that stays unreachable ends as UNSURE: no "payment was not completed" message, no new Pay, the reference is kept', async () => {
+		confirmReplies(new Error('Network Error'));
+		const { result } = setup();
+		await pay(result);
+		await act(async () => { await lastPopup().callbacks.onSuccess(); });
+		await waitFor(() => expect(result.current.payPhase).toBe('unsure'));
+		expect(toast.info).not.toHaveBeenCalled();
+		expect(result.current.payRef).toBe('AFSHCIFcart1');
+	});
+
+	it('PENDING is not a dead end: the page keeps checking and goes to the order the moment it exists', async () => {
+		confirmReplies({ status: 'PAID' }, { status: 'PAID' }, { status: 'PAID' }, { status: 'PAID' }, { status: 'PAID' }, { status: 'PAID' }, { status: 'PAID' }, { status: 'PAID' }, { status: 'BOOKED', orderId: 'o9' });
+		const { props, result } = setup();
+		await pay(result);
+		await act(async () => { await lastPopup().callbacks.onSuccess(); });
+		await waitFor(() => expect(props.onBooked).toHaveBeenCalledWith('o9'), { timeout: 3000 });
+		expect(result.current.payPhase).toBe('idle');
+	});
 });
