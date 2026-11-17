@@ -11,6 +11,7 @@ import {
 import { useFoodCheckoutReadiness } from "app/configs/data/server-calls/auth/paystack-payments/usePaystackPaymentsRepo";
 import { createFoodCheckoutIntentApi } from "app/configs/data/client/RepositoryAuthClient";
 import useCheckoutIntentPay from "../../checkout-intent/useCheckoutIntentPay";
+import PaymentCheckingLoader from "../../checkout-intent/PaymentCheckingLoader";
 import { useAppSelector } from "app/store/hooks";
 import { useQueryClient } from "react-query";
 import { selectUser } from "../../../../auth/user/store/userSlice";
@@ -382,23 +383,27 @@ function FoodCartSummaryAndPay({
                     : `🔒 Pay ₦${formatCurrency(grandTotal)}`}
               </button>
               {payPhase === "confirming" && (
-                <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#ea580c" }} data-testid="food-pay-confirming">
-                  Confirming your payment. Please do not pay again.
-                </p>
+                <PaymentCheckingLoader title="Confirming your payment..." subtitle="Please do not pay again" testId="food-pay-confirming" />
               )}
               {payPhase === "pending" && (
+                <>
+                <PaymentCheckingLoader title="Placing your order..." subtitle="Your payment was received" testId="food-pay-pending-loader" />
                 <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#ea580c" }} data-testid="food-pay-pending">
                   We received your payment and are placing your order. You do not need to pay again. It will appear in{" "}
                   <a href="/foodmarts/user/food-orders" style={{ textDecoration: "underline" }}>My Orders</a> shortly; we keep checking.
                   {payRef ? ` Reference: ${payRef}` : ""}
                 </p>
+                </>
               )}
               {payPhase === "unsure" && (
+                <>
+                <PaymentCheckingLoader title="Still checking your payment..." subtitle="Please do not pay again" testId="food-pay-unsure-loader" />
                 <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#ea580c" }} data-testid="food-pay-unsure">
                   We could not reach our servers to confirm your payment. Please do not pay again. If you were charged, your order will appear in{" "}
                   <a href="/foodmarts/user/food-orders" style={{ textDecoration: "underline" }}>My Orders</a>. We keep checking, and you can reload this page to check again.
                   {payRef ? ` Reference: ${payRef}` : ""}
                 </p>
+                </>
               )}
               {payPhase === "failed" && (
                 <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#dc2626" }} data-testid="food-pay-failed">
@@ -416,7 +421,7 @@ function FoodCartSummaryAndPay({
                   We can't confirm order services are ready to process payment right now. Please try again shortly.
                 </p>
               )}
-              {isFormIncomplete && (
+              {payPhase === "idle" && isFormIncomplete && (
                 <div className="mt-3 text-center">
                   <div
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg"
