@@ -8,6 +8,7 @@ import {
 import { useMarketplaceCheckoutReadiness } from "app/configs/data/server-calls/auth/paystack-payments/usePaystackPaymentsRepo";
 import { createMarketplaceCheckoutIntentApi } from "app/configs/data/client/RepositoryAuthClient";
 import useCheckoutIntentPay from "../../../checkout-intent/useCheckoutIntentPay";
+import PaymentCheckingLoader from "../../../checkout-intent/PaymentCheckingLoader";
 import { useAppSelector } from "app/store/hooks";
 import { usePaystackPayment } from "react-paystack";
 import { useNavigate } from "react-router";
@@ -476,23 +477,27 @@ const CartSummaryAndPay = ({
                     : `🔒 Pay ₦${formatCurrency(grandTotal)}`}
               </button>
               {payPhase === "confirming" && (
-                <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#ea580c" }} data-testid="market-pay-confirming">
-                  Confirming your payment. Please do not pay again.
-                </p>
+                <PaymentCheckingLoader title="Confirming your payment..." subtitle="Please do not pay again" testId="market-pay-confirming" />
               )}
               {payPhase === "pending" && (
+                <>
+                <PaymentCheckingLoader title="Placing your order..." subtitle="Your payment was received" testId="market-pay-pending-loader" />
                 <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#ea580c" }} data-testid="market-pay-pending">
                   We received your payment and are placing your order. You do not need to pay again. It will appear in{" "}
                   <a href="/marketplace/user/orders" style={{ textDecoration: "underline" }}>My Orders</a> shortly; we keep checking.
                   {payRef ? ` Reference: ${payRef}` : ""}
                 </p>
+                </>
               )}
               {payPhase === "unsure" && (
+                <>
+                <PaymentCheckingLoader title="Still checking your payment..." subtitle="Please do not pay again" testId="market-pay-unsure-loader" />
                 <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#ea580c" }} data-testid="market-pay-unsure">
                   We could not reach our servers to confirm your payment. Please do not pay again. If you were charged, your order will appear in{" "}
                   <a href="/marketplace/user/orders" style={{ textDecoration: "underline" }}>My Orders</a>. We keep checking, and you can reload this page to check again.
                   {payRef ? ` Reference: ${payRef}` : ""}
                 </p>
+                </>
               )}
               {payPhase === "failed" && (
                 <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#dc2626" }} data-testid="market-pay-failed">
@@ -510,7 +515,7 @@ const CartSummaryAndPay = ({
                   We can't confirm order services are ready to process payment right now. Please try again shortly.
                 </p>
               )}
-              {isPayDisabled && !deliveryError && (
+              {payPhase === "idle" && isPayDisabled && !deliveryError && (
                 <div className="mt-3 text-center">
                   <div
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg"
