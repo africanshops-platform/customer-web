@@ -46,7 +46,7 @@ export function buildIntentOrder(orderData) {
  *  UNSURE   -> the server could not be reached for the whole time: we do not know; do not pay again, check My Orders, we keep checking
  *  FAILED   -> the money is there but the order could not be made; a person will review it and refund if needed
  */
-export async function confirmUntilBooked({ confirm, wait = (ms) => new Promise((r) => setTimeout(r, ms)), intervalMs = CONFIRM_POLL_MS, maxMs = CONFIRM_MAX_MS, quietWaiting = false }) {
+export async function confirmUntilBooked({ confirm, wait = (ms) => new Promise((r) => setTimeout(r, ms)), intervalMs = CONFIRM_POLL_MS, maxMs = CONFIRM_MAX_MS, quietWaiting = false, onStatus }) {
 	const started = Date.now();
 	let attempt = 0;
 	// eslint-disable-next-line no-constant-condition
@@ -60,6 +60,7 @@ export async function confirmUntilBooked({ confirm, wait = (ms) => new Promise((
 			out = { status: 'UNREACHABLE', message: err?.response?.data?.message };
 		}
 		const status = out?.status;
+		try { onStatus?.(status); } catch { /* a display callback must never break the confirming */ }
 		if (status === 'BOOKED') return { outcome: 'BOOKED', orderId: out.orderId ?? null };
 		if (status === 'NEEDS_ATTENTION') return { outcome: 'FAILED', message: out?.message };
 		if (status === 'WAITING') {

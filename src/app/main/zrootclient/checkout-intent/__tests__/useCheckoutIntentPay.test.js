@@ -184,4 +184,26 @@ describe('useCheckoutIntentPay', () => {
 		await waitFor(() => expect(props.onBooked).toHaveBeenCalledWith('o9'), { timeout: 3000 });
 		expect(result.current.payPhase).toBe('idle');
 	});
+
+	it('follows the server stage by stage: the pop-up says paid (received), the server says PAID then BOOKING (placing), then the order', async () => {
+		confirmReplies({ status: 'PAID' }, { status: 'BOOKING' }, { status: 'BOOKING' }, { status: 'BOOKED', orderId: 'o7' });
+		const { props, result } = setup();
+		await pay(result);
+		await act(async () => { await lastPopup().callbacks.onSuccess(); });
+		await waitFor(() => expect(result.current.payStage).toBe('placing'));
+		await waitFor(() => expect(props.onBooked).toHaveBeenCalledWith('o7'), { timeout: 3000 });
+	});
+
+	it('starts at "checking" when nothing is known (a closed window, a reload) and at "received" when the pop-up itself said paid', async () => {
+		confirmReplies({ status: 'WAITING' });
+		const a = setup();
+		await pay(a.result);
+		await act(async () => { await lastPopup().callbacks.onCancel(); });
+		expect(a.result.current.payStage).toBe('checking');
+		confirmReplies({ status: 'BOOKED', orderId: 'o8' });
+		const b = setup();
+		await pay(b.result);
+		await act(async () => { await lastPopup().callbacks.onSuccess(); });
+		await waitFor(() => expect(b.props.onBooked).toHaveBeenCalledWith('o8'));
+	});
 });

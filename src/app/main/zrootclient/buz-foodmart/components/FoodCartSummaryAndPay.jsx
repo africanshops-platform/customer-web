@@ -192,7 +192,7 @@ function FoodCartSummaryAndPay({
     publicKey,
     metadata: { userId: user?.id, foodCartSessionId: cartSession?.id },
   });
-  const { payPhase, payRef, handlePay } = useCheckoutIntentPay({
+  const { payPhase, payRef, payStage, handlePay } = useCheckoutIntentPay({
     cartKey: cartSession?.id,
     createIntentApi: createFoodCheckoutIntentApi,
     buildOrder: buildOrderBase,
@@ -380,14 +380,16 @@ function FoodCartSummaryAndPay({
                   ? "Starting your payment..."
                   : payPhase === "confirming"
                     ? "Confirming your payment..."
-                    : `🔒 Pay ₦${formatCurrency(grandTotal)}`}
+                    : payPhase === "pending" || payPhase === "unsure"
+                      ? "Checking your payment..."
+                      : `🔒 Pay ₦${formatCurrency(grandTotal)}`}
               </button>
               {payPhase === "confirming" && (
-                <PaymentCheckingLoader title="Confirming your payment..." subtitle="Please do not pay again" testId="food-pay-confirming" />
+                <PaymentCheckingLoader stage={payPhase === "unsure" ? "unsure" : payStage} testId="food-pay-confirming" />
               )}
               {payPhase === "pending" && (
                 <>
-                <PaymentCheckingLoader title="Placing your order..." subtitle="Your payment was received" testId="food-pay-pending-loader" />
+                <PaymentCheckingLoader stage={payPhase === "unsure" ? "unsure" : payStage} testId="food-pay-pending-loader" />
                 <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#ea580c" }} data-testid="food-pay-pending">
                   We received your payment and are placing your order. You do not need to pay again. It will appear in{" "}
                   <a href="/foodmarts/user/food-orders" style={{ textDecoration: "underline" }}>My Orders</a> shortly; we keep checking.
@@ -397,7 +399,7 @@ function FoodCartSummaryAndPay({
               )}
               {payPhase === "unsure" && (
                 <>
-                <PaymentCheckingLoader title="Still checking your payment..." subtitle="Please do not pay again" testId="food-pay-unsure-loader" />
+                <PaymentCheckingLoader stage={payPhase === "unsure" ? "unsure" : payStage} testId="food-pay-unsure-loader" />
                 <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#ea580c" }} data-testid="food-pay-unsure">
                   We could not reach our servers to confirm your payment. Please do not pay again. If you were charged, your order will appear in{" "}
                   <a href="/foodmarts/user/food-orders" style={{ textDecoration: "underline" }}>My Orders</a>. We keep checking, and you can reload this page to check again.
