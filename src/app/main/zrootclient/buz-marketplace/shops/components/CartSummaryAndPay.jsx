@@ -162,7 +162,8 @@ const CartSummaryAndPay = ({
   const { payPhase, payRef, handlePay } = useCheckoutIntentPay({
     cartKey: cartSessionPayload?.id,
     createIntentApi: createMarketplaceCheckoutIntentApi,
-    buildOrder: buildOrderBase,
+    // A function, not the value: buildOrderBase is a const declared further down, and reading it here at render time crashed the page (temporal dead zone).
+    buildOrder: () => buildOrderBase(),
     startLegacy: () => legacyPay({ onSuccess: (ref) => onSuccess(ref), onClose: () => onClose() }),
     onBooked: (orderId) => {
       toast.success("Order placed successfully!");
