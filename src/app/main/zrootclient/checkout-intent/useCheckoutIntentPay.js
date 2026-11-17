@@ -8,6 +8,8 @@ import {
 	confirmUntilBooked,
 	describeIntent,
 	isIntentNotAvailable,
+	LATE_MAX_MS,
+	LATE_POLL_MS,
 	loadPendingPayment,
 	savePendingPayment
 } from './checkoutIntentFlow';
@@ -23,12 +25,15 @@ import {
  *  - if the cart changed after payment was started, the server refuses (409) and moves the customer to a NEW cart session.
  * When the server has intents switched off it answers "not switched on" and `startLegacy` runs the old Pay flow exactly as before.
  *
- * phases: idle | starting | confirming | pending (money there, order still being placed) | failed (money there, order could not be placed)
+ * phases: idle | starting | confirming | pending (money there, order still being placed) | unsure (server unreachable, nothing known) | failed (money there, order could not be placed)
+ * pending and unsure are not dead ends: the page keeps checking every 15 s for 10 more minutes and goes to the order the moment it exists.
  */
 export default function useCheckoutIntentPay({ cartKey, createIntentApi, buildOrder, startLegacy, onBooked, onCartRefresh, canPay = () => true }) {
 	const [payPhase, setPayPhase] = useState('idle');
 	const [payRef, setPayRef] = useState(null);
 	const latest = useRef({});
+	const alive = useRef(true);
+	useEffect(() => () => { alive.current = false; }, []);
 	latest.current = { cartKey, createIntentApi, buildOrder, startLegacy, onBooked, onCartRefresh, canPay };
 
 	const runConfirm = async (reference, { silentWaiting = false } = {}) => {
@@ -49,8 +54,33 @@ export default function useCheckoutIntentPay({ cartKey, createIntentApi, buildOr
 			if (!silentWaiting) toast.info('The payment was not completed. You can try again; you will not be charged twice.');
 			return;
 		}
-		// The money is there but the order is not placed yet (PENDING) or could not be placed (FAILED): never ask the customer to pay again.
-		setPayPhase(result.outcome === 'PENDING' ? 'pending' : 'failed');
+		// The money is there but the order is not placed yet (PENDING), the server could not say (UNSURE), or the order could not be placed (FAILED):
+		// never ask the customer to pay again.
+		if (result.outcome === 'FAILED') {
+			setPayPhase('failed');
+			return;
+		}
+		setPayPhase(result.outcome === 'UNSURE' ? 'unsure' : 'pending');
+		keepChecking(reference);
+	};
+
+	// Not a dead end: keep asking slowly after the first minute and a half, and move on as soon as the order exists.
+	const keepChecking = async (reference) => {
+		const result = await confirmUntilBooked({
+			confirm: async () => (await confirmCheckoutIntentApi(reference))?.data,
+			intervalMs: LATE_POLL_MS,
+			maxMs: LATE_MAX_MS,
+			quietWaiting: true
+		});
+		if (!alive.current) return;
+		if (result.outcome === 'BOOKED') {
+			clearPendingPayment();
+			setPayPhase('idle');
+			latest.current.onBooked?.(result.orderId);
+		} else if (result.outcome === 'FAILED') {
+			setPayPhase('failed');
+		}
+		// otherwise it stays as it is: the banner already says what to do, and a reload resumes from the saved reference
 	};
 
 	const openPaystack = (intent) => {

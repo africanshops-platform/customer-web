@@ -8,6 +8,9 @@
 
 export const CONFIRM_POLL_MS = 3000;
 export const CONFIRM_MAX_MS = 90000;
+/** After the first minute and a half the page keeps checking quietly, slowly, for a few more minutes (the webhook or the booking job may still place the order). */
+export const LATE_POLL_MS = 15000;
+export const LATE_MAX_MS = 600000;
 const PENDING_KEY = 'afs.pendingCheckout.v1';
 
 /** What the confirm call returned, as the page's next step. */
@@ -40,6 +43,7 @@ export function buildIntentOrder(orderData) {
  *  BOOKED   -> go to the success page
  *  WAITING  -> the customer did not pay (they closed the window); they may pay again and it reopens the same transaction
  *  PENDING  -> the money is there but the order is still being made; do not pay again, we keep trying
+ *  UNSURE   -> the server could not be reached for the whole time: we do not know; do not pay again, check My Orders, we keep checking
  *  FAILED   -> the money is there but the order could not be made; a person will review it and refund if needed
  */
 export async function confirmUntilBooked({ confirm, wait = (ms) => new Promise((r) => setTimeout(r, ms)), intervalMs = CONFIRM_POLL_MS, maxMs = CONFIRM_MAX_MS, quietWaiting = false }) {
@@ -62,7 +66,12 @@ export async function confirmUntilBooked({ confirm, wait = (ms) => new Promise((
 			// Right after the popup closes Paystack may not have the result yet: look a few times before saying the customer did not pay.
 			if (quietWaiting || attempt >= 3) return { outcome: 'WAITING' };
 		}
-		if (Date.now() - started >= maxMs) return { outcome: status === 'WAITING' || status === 'UNREACHABLE' ? 'WAITING' : 'PENDING' };
+		if (Date.now() - started >= maxMs) {
+			// Out of time. Only a clear "Paystack has no payment" is WAITING. A server that could not answer proves nothing either way (the money may be
+			// there), so it is UNSURE: tell the customer exactly that, never "the payment was not completed".
+			if (status === 'WAITING') return { outcome: 'WAITING' };
+			return { outcome: status === 'UNREACHABLE' ? 'UNSURE' : 'PENDING' };
+		}
 		await wait(intervalMs);
 	}
 }
