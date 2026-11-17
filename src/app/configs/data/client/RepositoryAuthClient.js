@@ -389,6 +389,13 @@ export const payAndPlaceFoodOrderApi = (formData) => {
 	return AuthApi().post(`${API_ENDPOINTS.CREATE_FOOD_ORDER}`, formData);
 }; // (Mcsvs => Done)
 
+/** F28: the Pay click. The server prices the cart and answers OPEN (new), REOPEN (same transaction) or CONFIRMED (already paid: do not open Paystack). */
+export const createFoodCheckoutIntentApi = (body) => AuthApi().post(`${API_ENDPOINTS.CREATE_FOOD_CHECKOUT_INTENT}`, body);
+export const createMarketplaceCheckoutIntentApi = (body) => AuthApi().post(`${API_ENDPOINTS.CREATE_MARKETPLACE_CHECKOUT_INTENT}`, body);
+/** F28: asks the server whether the payment has become an order. Safe to repeat. */
+export const confirmCheckoutIntentApi = (reference) =>
+	AuthApi().post(`${API_ENDPOINTS.CONFIRM_CHECKOUT_INTENT}/${encodeURIComponent(reference)}/confirm`);
+
 export const getUserFoodInvoicesEnpoint = () => AuthApi().get(`${API_ENDPOINTS.GET_USER_FOOD_ORDER_LIST}`); // (Mcsvs => Done)
 
 /** Completed (sealed) food orders — finished orders live here, never in the active list */
