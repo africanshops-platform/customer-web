@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
  * stage: checking (nothing known yet) | received (the money is there) | placing (the order is being made) | unsure (our servers could not be reached; no steps shown,
  * because we do not know). The server drives the stage; the page only shows it.
  */
-const WORDS = {
+export const WORDS = {
   checking: { title: "Confirming your payment...", subtitle: "Please do not pay again" },
   received: { title: "Payment received", subtitle: "Getting your order ready..." },
   placing: { title: "Placing your order...", subtitle: "Your payment was received" },
@@ -22,7 +22,7 @@ export function stepStates(stage) {
   return null; // unsure: no steps
 }
 
-const STEP_LABELS = ["Payment received", "Placing your order", "Order confirmed"];
+export const STEP_LABELS = ["Payment received", "Placing your order", "Order confirmed"];
 
 export default function PaymentCheckingLoader({ stage = "checking", title, subtitle, testId = "pay-checking-loader" }) {
   const words = WORDS[stage] || WORDS.checking;

@@ -281,6 +281,11 @@ export const getMarketplaceCheckoutReadiness = () => {
 	return AuthApi().get(`checkout-readiness/marketplace`);
 };
 
+/** Founder 2026-11-18: how the checkout shows a payment being confirmed ('overlay' | 'inline'); an admin chooses. Display only. */
+export const getCheckoutProcessingStyle = () => {
+	return AuthApi().get(`checkout-readiness/processing-style`);
+};
+
 export const getFoodCheckoutReadiness = () => {
 	return AuthApi().get(`checkout-readiness/food`);
 };
