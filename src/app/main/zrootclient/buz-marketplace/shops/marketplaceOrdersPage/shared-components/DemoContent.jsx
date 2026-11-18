@@ -8,7 +8,7 @@ import OrderCard from "../../components/OrderCard";
  * Marketplace Orders Content - Production Ready
  */
 function DemoContent(props) {
-  const { isLoading, isError, userCreatedOrders } = props;
+  const { isLoading, isError, userCreatedOrders, sealedItems } = props;
   const [activeTab, setActiveTab] = useState("active");
 
   // Filter orders based on status
@@ -24,6 +24,7 @@ function DemoContent(props) {
         order?.status === "cancelled" || order?.status === "refunded" || order?.status === "failed",
     ) || [];
 
+  const historyItems = sealedItems || [];
   const displayedOrders = activeTab === "active" ? activeOrders : cancelledOrders;
 
   if (isLoading) {
@@ -379,12 +380,83 @@ function DemoContent(props) {
                 />
               )}
             </motion.button>
+            <motion.button
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setActiveTab("history")}
+              className={`px-4 sm:px-6 py-3 font-semibold text-sm sm:text-base transition-all relative ${
+                activeTab === "history" ? "text-orange-600" : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                Order History
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                    activeTab === "history" ? "bg-orange-100 text-orange-600" : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  {historyItems.length}
+                </span>
+              </span>
+              {activeTab === "history" && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5"
+                  style={{ background: "linear-gradient(90deg, #f97316 0%, #ea580c 100%)" }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
+            </motion.button>
           </div>
         </motion.div>
 
+        {activeTab === "history" ? (
+          <div className="space-y-3 sm:space-y-4" data-testid="order-history">
+            {historyItems.length === 0 ? (
+              <Typography className="text-gray-600 text-center py-16">
+                Finished orders appear here once the seller has been paid out.
+              </Typography>
+            ) : (
+              historyItems.map((row) => {
+                const it = row.sealedOrderItem || {};
+                const when = row.cashesOutAndSealedAt ? new Date(row.cashesOutAndSealedAt) : null;
+                let label = "Completed · Settled";
+                if (it.isCanceled) label = "Cancelled";
+                else if (it.isReturned) label = "Returned";
+                return (
+                  <div
+                    key={row.id}
+                    className="bg-white rounded-2xl shadow-md p-4 flex items-center gap-4"
+                    style={{ border: "1px solid rgba(229, 231, 235, 1)" }}
+                  >
+                    {it.image ? (
+                      <img src={it.image} alt={it.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-16 h-16 rounded-xl bg-gray-100 flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-900 truncate">{it.name}</p>
+                      <p className="text-sm text-gray-500">
+                        {it.quantity} × ₦{Number(it.price || 0).toLocaleString("en-NG")}
+                        {when ? ` · ${when.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}` : ""}
+                      </p>
+                    </div>
+                    <span
+                      className="text-xs font-bold px-3 py-1 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: "#f0fdf4", color: "#16a34a" }}
+                    >
+                      {label}
+                    </span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        ) : null}
+
         {/* Orders List */}
         <AnimatePresence mode="wait">
-          {displayedOrders?.length > 0 ? (
+          {activeTab === "history" ? null : displayedOrders?.length > 0 ? (
             <motion.div
               key={activeTab}
               initial={{ opacity: 0, y: 20 }}
