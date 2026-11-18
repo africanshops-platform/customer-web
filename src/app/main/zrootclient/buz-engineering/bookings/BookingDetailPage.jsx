@@ -2,7 +2,6 @@ import { styled } from "@mui/material/styles";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Box,
   Chip,
   CircularProgress,
   Button,
@@ -26,7 +25,7 @@ import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { PaystackButton } from "react-paystack";
 import FuseSvgIcon from "@fuse/core/FuseSvgIcon";
-import { ProcessingState } from "app/shared-components/loading";
+import PaymentProcessingOverlay from "app/shared-components/payment/PaymentProcessingOverlay";
 import FusePageSimpleWithMargin from "@fuse/core/FusePageSimple/FusePageSimpleWithMargin";
 import useThemeMediaQuery from "@fuse/hooks/useThemeMediaQuery";
 import { useAppSelector } from "app/store/hooks";
@@ -255,14 +254,8 @@ function PayInvoiceSection({ booking, repairJob, user }) {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-5">
-      {/* The card has been charged and we are confirming it with the server: block the screen and say so (loading state A, same moment as the hotel booking's "Processing Payment"). */}
-      {(verifyPayment.isLoading || (verifyPayment.isSuccess && !booking.isPaid)) && (
-        <Box
-          sx={{ position: "fixed", inset: 0, zIndex: (theme) => theme.zIndex.modal + 1000, display: "grid", placeItems: "center", bgcolor: "rgba(255,255,255,0.92)", backdropFilter: "blur(4px)" }}
-        >
-          <ProcessingState title="Processing payment" subtitle="Please wait while we confirm your payment. Do not close or refresh this page." />
-        </Box>
-      )}
+      {/* Card charged, confirming with the server: the same "Processing Payment..." cover the hotel booking shows. Held until the booking reads as paid so the Pay button never flashes back. */}
+      <PaymentProcessingOverlay open={verifyPayment.isLoading || (verifyPayment.isSuccess && !booking.isPaid)} />
       <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
         <ReceiptLongIcon sx={{ fontSize: "1.15rem", color: "#ea580c" }} /> Pay this invoice to start work
       </h3>
