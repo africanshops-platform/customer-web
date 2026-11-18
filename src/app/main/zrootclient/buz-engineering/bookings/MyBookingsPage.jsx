@@ -18,6 +18,7 @@ import useThemeMediaQuery from "@fuse/hooks/useThemeMediaQuery";
 import { useAppSelector } from "app/store/hooks";
 import { selectUser } from "src/app/auth/user/store/userSlice";
 import { useGetMyServiceBookings, useGetMySealedServiceBookings } from "app/configs/data/server-calls/engineering/useServiceBookingRepo";
+import SealedDetailDrawer, { ngn, shortDate } from "app/shared-components/sealed/SealedDetailDrawer";
 import { useGetMyRegisteredMachines } from "app/configs/data/server-calls/engineering/useMyMachinesRepo";
 import useGetEngineeringShops from "app/configs/data/server-calls/engineering/useEngineeringShopsRepo";
 
@@ -268,6 +269,7 @@ function MyBookingsPage() {
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(!isMobile);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(!isMobile);
   const [selectedStatus, setSelectedStatus] = useState(null);
+  const [selectedSealed, setSelectedSealed] = useState(null);
 
   useEffect(() => {
     if (!currentUser?.name) navigate("/sign-in");
@@ -361,6 +363,50 @@ function MyBookingsPage() {
             </div>
           )}
 
+          <SealedDetailDrawer
+            open={Boolean(selectedSealed)}
+            onClose={() => setSelectedSealed(null)}
+            detail={
+              selectedSealed
+                ? (() => {
+                    const job = selectedSealed.repairJob || {};
+                    const parts = Array.isArray(job.partsUsed) ? job.partsUsed : [];
+                    const kobo = (v) => (typeof v === "number" ? ngn(v / 100) : null);
+                    return {
+                      title: shopsById[selectedSealed.shopId]?.name || "Repair shop",
+                      subtitle: machinesById[selectedSealed.machineId]?.nickname || "Your machine",
+                      headline: { label: "You paid", value: kobo(job.totalCostKobo) || "" },
+                      timeline: [
+                        { label: "Service requested", date: shortDate(selectedSealed.createdAt) },
+                        { label: "Job completed", date: shortDate(selectedSealed.completedAt) },
+                        { label: "Settled", date: shortDate(selectedSealed.escrowReleasedAt) },
+                      ],
+                      sections: [
+                        {
+                          title: "The job",
+                          rows: [
+                            { label: "Service", value: selectedSealed.serviceType },
+                            { label: "Requested for", value: shortDate(selectedSealed.requestedDate) },
+                            { label: "Diagnosis", value: job.diagnosisNotes },
+                            { label: "Your notes", value: selectedSealed.customerNotes },
+                          ],
+                        },
+                        {
+                          title: "Cost",
+                          rows: [
+                            { label: "Labour", value: kobo(job.laborCostKobo) },
+                            { label: "Total", value: kobo(job.totalCostKobo), strong: true },
+                          ],
+                        },
+                      ],
+                      items: parts.map((p) => ({ name: p.partName, qty: p.quantity, amount: kobo(p.unitCostKobo * p.quantity) })),
+                      note: "A finished job: completed and settled. This record is read-only.",
+                    };
+                  })()
+                : null
+            }
+          />
+
           {bookings.length > 0 && (
             <div className="grid sm:grid-cols-2 gap-5">
               {bookings.map((b) => (
@@ -369,7 +415,7 @@ function MyBookingsPage() {
                   booking={b}
                   shop={shopsById[b.shopId]}
                   machine={machinesById[b.machineId]}
-                  onClick={() => navigate(`/engineering/my-bookings/${b.id}`)}
+                  onClick={() => (b.isSealed ? setSelectedSealed(b) : navigate(`/engineering/my-bookings/${b.id}`))}
                 />
               ))}
             </div>
