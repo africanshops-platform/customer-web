@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
+import SealedDetailDrawer, { ngn, shortDate as sd } from "app/shared-components/sealed/SealedDetailDrawer";
 import { useState } from "react";
 import { CircularProgress, Typography, Button } from "@mui/material";
 import { CheckCircle, Cancel, CalendarToday, EventAvailable, Refresh } from "@mui/icons-material";
@@ -14,6 +15,7 @@ import { useRequestRefundForUserCancelledReservation } from "app/configs/data/se
 function DemoContent(props) {
   const { isLoading, isError, reservations, cancelledReservations, sealedReservations } = props;
   const [activeTab, setActiveTab] = useState("active");
+  const [selectedSealed, setSelectedSealed] = useState(null);
 
   // Loading State
   if (isLoading) {
@@ -207,7 +209,11 @@ function DemoContent(props) {
                   return (
                     <div
                       key={row.id}
-                      className="bg-white rounded-2xl shadow-md p-4 flex items-center justify-between gap-4"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedSealed(row)}
+                      onKeyDown={(e) => e.key === "Enter" && setSelectedSealed(row)}
+                      className="bg-white rounded-2xl shadow-md p-4 flex items-center justify-between gap-4 cursor-pointer hover:shadow-lg transition-shadow"
                       style={{ border: "1px solid rgba(229, 231, 235, 1)" }}
                     >
                       <div className="min-w-0">
@@ -230,6 +236,47 @@ function DemoContent(props) {
             </div>
           )}
         </AnimatePresence>
+        <SealedDetailDrawer
+          open={Boolean(selectedSealed)}
+          onClose={() => setSelectedSealed(null)}
+          detail={
+            selectedSealed
+              ? (() => {
+                  const r = selectedSealed.sealedBookedReservation || {};
+                  return {
+                    title: r.paymentdatas?.bookingName || "Reservation",
+                    subtitle: `${sd(r.startDate)} – ${sd(r.endDate)}`,
+                    headline: { label: "You paid", value: r.totalPrice != null ? ngn(r.totalPrice) : "" },
+                    timeline: [
+                      { label: "Booked and paid", date: sd(r.PaidAt || r.createdAt) },
+                      { label: "Checked in", date: sd(r.checkedInAt) },
+                      { label: "Checked out", date: sd(r.checkedOutAt) },
+                    ],
+                    sections: [
+                      {
+                        title: "Your stay",
+                        rows: [
+                          { label: "Check-in", value: sd(r.startDate) },
+                          { label: "Check-out", value: sd(r.endDate) },
+                          { label: "Address", value: r.paymentdatas?.bookingAddress },
+                        ],
+                      },
+                      {
+                        title: "Payment",
+                        rows: [
+                          { label: "Method", value: r.paymentdatas?.paymentMethod },
+                          { label: "Reference", value: r.paymentResult?.reference },
+                          { label: "Tax", value: r.taxPrice ? ngn(r.taxPrice) : null },
+                          { label: "Total", value: r.totalPrice != null ? ngn(r.totalPrice) : null, strong: true },
+                        ],
+                      },
+                    ],
+                    note: "A finished stay. This record is read-only.",
+                  };
+                })()
+              : null
+          }
+        />
       </div>
     </div>
   );

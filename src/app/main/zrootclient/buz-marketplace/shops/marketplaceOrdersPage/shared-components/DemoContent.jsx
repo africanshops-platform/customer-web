@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Typography } from "@mui/material";
 import ClienttErrorPage from "src/app/main/zrootclient/components/ClienttErrorPage";
 import OrderCard from "../../components/OrderCard";
+import SealedDetailDrawer, { ngn, shortDate } from "app/shared-components/sealed/SealedDetailDrawer";
 
 /**
  * Marketplace Orders Content - Production Ready
@@ -10,6 +11,7 @@ import OrderCard from "../../components/OrderCard";
 function DemoContent(props) {
   const { isLoading, isError, userCreatedOrders, sealedItems } = props;
   const [activeTab, setActiveTab] = useState("active");
+  const [selectedSealed, setSelectedSealed] = useState(null);
 
   // Filter orders based on status
   const activeOrders =
@@ -426,7 +428,11 @@ function DemoContent(props) {
                 return (
                   <div
                     key={row.id}
-                    className="bg-white rounded-2xl shadow-md p-4 flex items-center gap-4"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedSealed(row)}
+                    onKeyDown={(e) => e.key === "Enter" && setSelectedSealed(row)}
+                    className="bg-white rounded-2xl shadow-md p-4 flex items-center gap-4 cursor-pointer hover:shadow-lg transition-shadow"
                     style={{ border: "1px solid rgba(229, 231, 235, 1)" }}
                   >
                     {it.image ? (
@@ -453,6 +459,44 @@ function DemoContent(props) {
             )}
           </div>
         ) : null}
+
+        <SealedDetailDrawer
+          open={Boolean(selectedSealed)}
+          onClose={() => setSelectedSealed(null)}
+          detail={
+            selectedSealed
+              ? (() => {
+                  const it = selectedSealed.sealedOrderItem || {};
+                  const total = Number(it.price || 0) * Number(it.quantity || 1);
+                  return {
+                    title: it.name || "Order item",
+                    subtitle: it.orderId ? `Order ${String(it.orderId).slice(-8).toUpperCase()}` : undefined,
+                    image: it.image,
+                    headline: { label: "You paid", value: ngn(total) },
+                    timeline: [
+                      { label: "Ordered", date: shortDate(it.createdAt) },
+                      { label: "Delivered and settled", date: shortDate(selectedSealed.cashesOutAndSealedAt) },
+                    ],
+                    sections: [
+                      {
+                        title: "Item",
+                        rows: [
+                          { label: "Quantity", value: it.quantity },
+                          { label: "Unit price", value: ngn(it.price) },
+                          { label: "Item total", value: ngn(total), strong: true },
+                        ],
+                      },
+                      {
+                        title: "Status",
+                        rows: [{ label: "Outcome", value: it.isCanceled ? "Cancelled" : it.isReturned ? "Returned" : "Delivered" }],
+                      },
+                    ],
+                    note: "A finished order: delivered and settled. This record is read-only.",
+                  };
+                })()
+              : null
+          }
+        />
 
         {/* Orders List */}
         <AnimatePresence mode="wait">
