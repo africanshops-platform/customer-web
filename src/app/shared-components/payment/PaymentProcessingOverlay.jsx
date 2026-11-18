@@ -1,5 +1,9 @@
 import { motion } from "framer-motion";
 import { Backdrop, CircularProgress, Typography } from "@mui/material";
+import { STEP_LABELS, WORDS, stepStates } from "app/main/zrootclient/checkout-intent/PaymentCheckingLoader";
+
+const STEP_TEXT = { done: "#86efac", active: "#ffffff", todo: "#9ca3af" };
+const STEP_RING = { active: "#ea580c", todo: "#6b7280" };
 
 /**
  * The full-screen "Processing Payment..." cover shown while a card payment is being confirmed with the server.
@@ -7,8 +11,12 @@ import { Backdrop, CircularProgress, Typography } from "@mui/material";
  * Moved out of ReviewReservation.jsx unchanged (2026-11-18).
  *
  * @param {boolean} open Show the cover.
+ * @param {string} [stage] Only for the intent checkouts (food, marketplace): checking | received | placing | unsure. Adds the second line for that
+ *   stage and the three steps (Payment received, Placing your order, Order confirmed). Without it the cover is exactly the hotel booking's.
  */
-function PaymentProcessingOverlay({ open = false }) {
+function PaymentProcessingOverlay({ open = false, stage }) {
+  const words = stage ? WORDS[stage] || WORDS.checking : null;
+  const steps = stage ? stepStates(stage) : null;
   return (
     <Backdrop
       sx={{
@@ -110,9 +118,43 @@ function PaymentProcessingOverlay({ open = false }) {
               fontWeight: 500,
             }}
           >
-            Please wait while we verify your payment
+            {words ? words.subtitle : "Please wait while we verify your payment"}
           </Typography>
         </motion.div>
+
+        {words && (
+          <Typography variant="body1" sx={{ color: "#fed7aa", fontSize: { xs: "1rem", sm: "1.15rem" }, fontWeight: 700 }} data-testid="pay-overlay-title" data-stage={stage}>
+            {words.title}
+          </Typography>
+        )}
+
+        {steps && (
+          <ol className="w-full max-w-[280px] space-y-2" data-testid="pay-overlay-steps">
+            {steps.map((state, i) => (
+              <li
+                key={STEP_LABELS[i]}
+                className="flex items-center gap-3 text-sm font-semibold"
+                data-state={state}
+                style={{ color: STEP_TEXT[state] }}
+              >
+                <span
+                  className="inline-flex items-center justify-center rounded-full"
+                  style={{
+                    width: 20,
+                    height: 20,
+                    fontSize: 12,
+                    background: state === "done" ? "#16a34a" : "transparent",
+                    color: "#ffffff",
+                    border: state === "done" ? "none" : `2px solid ${STEP_RING[state]}`,
+                  }}
+                >
+                  {state === "done" ? "\u2713" : ""}
+                </span>
+                {STEP_LABELS[i]}
+              </li>
+            ))}
+          </ol>
+        )}
 
         {/* Security Icons with Animation */}
         <motion.div
