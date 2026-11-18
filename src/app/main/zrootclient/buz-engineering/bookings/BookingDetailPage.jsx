@@ -25,6 +25,7 @@ import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { PaystackButton } from "react-paystack";
 import FuseSvgIcon from "@fuse/core/FuseSvgIcon";
+import PaymentProcessingOverlay from "app/shared-components/payment/PaymentProcessingOverlay";
 import FusePageSimpleWithMargin from "@fuse/core/FusePageSimple/FusePageSimpleWithMargin";
 import useThemeMediaQuery from "@fuse/hooks/useThemeMediaQuery";
 import { useAppSelector } from "app/store/hooks";
@@ -253,6 +254,8 @@ function PayInvoiceSection({ booking, repairJob, user }) {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-5">
+      {/* Card charged, confirming with the server: the same "Processing Payment..." cover the hotel booking shows. Held until the booking reads as paid so the Pay button never flashes back. */}
+      <PaymentProcessingOverlay open={verifyPayment.isLoading || (verifyPayment.isSuccess && !booking.isPaid)} />
       <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
         <ReceiptLongIcon sx={{ fontSize: "1.15rem", color: "#ea580c" }} /> Pay this invoice to start work
       </h3>
