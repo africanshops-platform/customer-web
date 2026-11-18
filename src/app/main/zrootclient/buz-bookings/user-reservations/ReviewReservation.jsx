@@ -904,7 +904,7 @@ function ReviewReservation() {
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                           }}
-                          reference={`BK${reservationId}`}
+                          reference={`BK-${reservationId}`}
                           email={email}
                           amount={totalPrice * 1.075 * 100}
                           vat={vatRate}
