@@ -7,6 +7,7 @@ import {
 	getUseTripByReservationId,
 	getUserCancelledTrips,
 	getUserTrips,
+	getUserSealedTrips,
 	requestRefundForReservationApi,
 	updateReservationOnMakingPayment
 } from 'app/configs/data/client/RepositoryAuthClient';
@@ -162,6 +163,11 @@ export function useCreateReservationOnRoom() {
 export function useUserTrips() {
 	return useQuery(['__trips'], () => getUserTrips());
 } // (Done => Msvs)
+
+/** History: my finished (settled and sealed) reservations */
+export function useUserSealedTrips() {
+	return useQuery(['__sealedTrips'], () => getUserSealedTrips(), { staleTime: 15000 });
+}
 
 /** * 3) GET_USER_SINGLE_TRIP by servaevation_ID =>  Done for Africanshops */ // (Done => Msvs)
 export function useGetUserSingleTrip(params) {

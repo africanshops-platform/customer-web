@@ -89,7 +89,7 @@ function BookingDetailHeader({ booking, shop, onToggleFilters, onToggleMap }) {
             <div className="flex items-center gap-3 mb-2 flex-wrap">
               <BuildIcon sx={{ fontSize: "1.75rem" }} />
               <h1 className="text-2xl sm:text-3xl font-black">{shop?.name || "Repair shop"}</h1>
-              <Chip label={meta.label} sx={{ backgroundColor: "rgba(255,255,255,0.2)", color: "white", fontWeight: 700 }} />
+              <Chip label={booking.isSealed ? "Completed · Settled" : meta.label} sx={{ backgroundColor: "rgba(255,255,255,0.2)", color: "white", fontWeight: 700 }} />
             </div>
           </div>
         </div>

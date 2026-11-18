@@ -201,6 +201,9 @@ export const onSuccessENairaPlacedOrdersPay = (id, shopFormData) =>
 	AuthApi().put(`/userorders/successenairapay/${id}`, shopFormData);
 
 export const getUserInvoices = () => AuthApi().get(`/user-orders/my-orders`); // (Msvs => Done)
+/** History: my finished (settled and sealed) marketplace order items */
+export const getUserSealedOrderItems = (limit = 50, offset = 0) =>
+	AuthApi().get(`/user-orders/my-orders/sealed`, { params: { limit, offset } });
 
 export const cancelUserItemInInvoiceApi = (id) => {
 	return AuthApi().put(`/userorders/${id}/cancel-orderitem`);
@@ -330,6 +333,11 @@ export const listingReservationUpdateOnPayment = (reservationId, formData) => {
 export const getUserTrips = () => {
 	return AuthApi().get(`${API_ENDPOINTS.GET_USER_TRIPS}`);
 }; // (Done => Msvs)
+
+/** *History: my finished (settled and sealed) apartment reservations */
+export const getUserSealedTrips = (limit = 50, offset = 0) => {
+	return AuthApi().get(`/reservations/get-user-sealed-reservations`, { params: { limit, offset } });
+};
 
 export const getUseTripByReservationId = (reservationId) => {
 	return AuthApi().get(`${API_ENDPOINTS.GET_USER_SINGLE_TRIP}/${reservationId}`);
@@ -765,6 +773,11 @@ export const createServiceBookingApi = (formData) => {
 /** *Get all of the current user's own service bookings (Phase E6d) */
 export const getMyServiceBookingsApi = () => {
 	return AuthApi().get(`/engineering/my-bookings`);
+};
+
+/** *History: my finished (settled and sealed) service bookings */
+export const getMySealedServiceBookingsApi = (limit = 50, offset = 0) => {
+	return AuthApi().get(`/engineering/my-bookings/sealed`, { params: { limit, offset } });
 };
 
 /** *Get a single service booking (customer-owned) */
