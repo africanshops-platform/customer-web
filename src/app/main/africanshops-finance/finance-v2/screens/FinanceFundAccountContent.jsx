@@ -5,13 +5,14 @@ import { useAppSelector } from 'app/store/hooks';
 import { selectUser } from 'src/app/auth/user/store/userSlice';
 import CircularProgress from '@mui/material/CircularProgress';
 import { motion } from 'framer-motion';
-import { useVerifyWalletFunding, useTransactionHistory, useCreateFundingIntent, useFeeQuote } from '../hooks/useFintechApi';
+import { useVerifyWalletFunding, useTransactionHistory, useCreateFundingIntent, useFeeQuote, createBankTransferFunding } from '../hooks/useFintechApi';
 import { useWalletFundingReadiness } from '../hooks/useFinanceSwitches';
 import { useFinanceTheme } from '../FinanceThemeContext';
 import { describeTx, isCredit, nairaFull, shortDate } from '../financeFormat';
 import { fundingErrorMessage, isIntentRouteMissing, legacyFundingReference, transferSaving } from '../fundingHelpers';
 import PaymentSummary from './shared/PaymentSummary';
 import BankTransferPanel from './shared/BankTransferPanel';
+import { PayByBankTransfer, useBankTransferInfo, checkTransferAmount } from 'app/shared-components/payment/bank-transfer';
 
 // Fund account, as in the approved preview: the default wallet, a choice of bank transfer or card, a large amount
 // field with quick amounts.
@@ -77,8 +78,15 @@ export default function FinanceFundAccountContent() {
   const amountValid = amountNaira >= 100;
   const amountKobo = amountValid ? Math.round(amountNaira * 100) : 0;
   const hasBank = !!(account?.dvaProvisioned && account?.dvaAccountNumber);
-  const method = hasBank ? (picked ?? 'bank') : 'card';
   const verifiedKyc = account?.kycStatus === 'verified';
+  // ONE "Bank transfer" option. Inside it there are up to two ways: the wallet's own account number (credited automatically, the lower-charge way)
+  // and the company account (a receipt we confirm, no card limits, up to ₦100,000,000). A switch appears only when both exist.
+  const transferInfo = useBankTransferInfo();
+  const companyAvailable = !!transferInfo?.enabled && verifiedKyc;
+  const bankAvailable = hasBank || companyAvailable;
+  const [bankKind, setBankKind] = useState(null);
+  const kind = hasBank && companyAvailable ? (bankKind ?? 'own') : hasBank ? 'own' : 'company';
+  const method = bankAvailable ? (picked ?? 'bank') : 'card';
 
   // Board F17: the admin can switch wallet funding to MAINTENANCE/DISABLED, and the payment services must be up. The button stays visible and
   // says why it cannot be used.
@@ -172,11 +180,11 @@ export default function FinanceFundAccountContent() {
         </motion.div>
 
         <motion.div variants={item} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          {hasBank ? (
+          {bankAvailable ? (
             <button type="button" data-testid="pick-bank" aria-pressed={method === 'bank'} onClick={() => setPicked('bank')} style={optionStyle(method === 'bank')}>
               <i style={iconBox}>🏦</i>
               <b style={{ display: 'block', fontSize: 16, color: tokens.textPrimary }}>Bank transfer</b>
-              <span style={{ color: tokens.textSecondary, fontSize: 13 }}>The lower-charge way, from any Nigerian bank.</span>
+              <span style={{ color: tokens.textSecondary, fontSize: 13 }}>{hasBank ? 'The lower-charge way, from any Nigerian bank.' : 'Send from your bank and upload the receipt. For large amounts, up to ₦100,000,000.'}</span>
             </button>
           ) : (
             <Link to={verifiedKyc ? '/africanshops/finance-v2/receive-money' : '/africanshops/finance-v2/kyc'} data-testid="fund-for-less" style={optionStyle(false)}>
@@ -185,7 +193,7 @@ export default function FinanceFundAccountContent() {
               <span style={{ color: tokens.textSecondary, fontSize: 13 }}>Funding by bank transfer has a lower charge than card.</span>
             </Link>
           )}
-          <button type="button" data-testid="pick-card" aria-pressed={method === 'card'} onClick={() => setPicked('card')} disabled={!hasBank} style={{ ...optionStyle(method === 'card'), cursor: hasBank ? 'pointer' : 'default' }}>
+          <button type="button" data-testid="pick-card" aria-pressed={method === 'card'} onClick={() => setPicked('card')} disabled={!bankAvailable} style={{ ...optionStyle(method === 'card'), cursor: hasBank ? 'pointer' : 'default' }}>
             <i style={iconBox}>💳</i>
             <b style={{ display: 'block', fontSize: 16, color: tokens.textPrimary }}>Pay with card</b>
             <span style={{ color: tokens.textSecondary, fontSize: 13 }}>Instant, through Paystack. Minimum ₦100.</span>
@@ -219,6 +227,19 @@ export default function FinanceFundAccountContent() {
           {hasBank && amountValid && <FundComparison amountKobo={amountKobo} tokens={tokens} />}
 
           {method === 'bank' ? (
+            <>
+              {hasBank && companyAvailable && (
+                <div role="tablist" aria-label="Bank transfer to" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 14px' }}>
+                  {[['own', 'My account number'], ['company', 'Our company account']].map(([k, text]) => (
+                    <button key={k} type="button" role="tab" aria-selected={kind === k} data-testid={`bank-kind-${k}`} onClick={() => setBankKind(k)}
+                      style={{ border: `1px solid ${kind === k ? tokens.accentSolid : tokens.borderColor}`, background: kind === k ? tokens.accentSoft : 'none', color: kind === k ? tokens.accentSolid : tokens.textSecondary, borderRadius: 99, padding: '6px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                      {text}
+                    </button>
+                  ))}
+                  <span style={{ fontSize: 12, color: tokens.textMuted, alignSelf: 'center' }}>{kind === 'own' ? 'Credited automatically. Best for everyday amounts.' : 'We confirm your receipt, usually within an hour. For large amounts.'}</span>
+                </div>
+              )}
+              {kind === 'own' ? (
             <BankTransferPanel
               amount={amount}
               onAmountChange={changeAmount}
@@ -227,6 +248,19 @@ export default function FinanceFundAccountContent() {
               refetch={refetchFinanceData}
               onReceived={() => refetchTx?.()}
             />
+              ) : (
+                <PayByBankTransfer
+                  flow="fund"
+                  amountKobo={amountKobo}
+                  validate={() => (amountValid ? checkTransferAmount(amount, transferInfo?.minAmountKobo).message : 'Enter an amount (minimum ₦100).')}
+                  startClaim={() => createBankTransferFunding(account.accountNumber, amountKobo)}
+                  senderName={account?.accountName ?? ''}
+                  onCompleted={() => { refetchFinanceData?.(); refetchTx?.(); }}
+                  doneLabel="has been added to your wallet"
+                  tokens={tokens}
+                />
+              )}
+            </>
           ) : (
             <>
               {intent && (

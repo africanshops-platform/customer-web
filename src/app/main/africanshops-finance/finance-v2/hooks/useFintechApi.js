@@ -548,6 +548,12 @@ export function useCreateFundingIntent() {
   return { mutate, isLoading };
 }
 
+// B1a/B1b: start a top-up by direct bank transfer to the company account. The server prices the exact amount and makes the claim that the shared
+// <PayByBankTransfer /> then shows; the reply is { claim, amountToTransferKobo, walletReceivesKobo }.
+export async function createBankTransferFunding(accountNumber, amountKobo) {
+  return unwrap(await AuthApi().post(`/fintech-accounts/user/account/${accountNumber}/fund/bank-transfer`, { amountKobo }));
+}
+
 // What a top-up costs on one channel, from the server's fee policies. Waits for the typing to settle, and does nothing for an amount the
 // server would refuse.
 export function useFeeQuote(operation, amountKobo) {
