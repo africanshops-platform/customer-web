@@ -15,6 +15,11 @@ const messageOf = (e, fallback) => {
 };
 const STEPS = ['Send the money', 'Upload your receipt', 'We confirm it'];
 
+/** The warning and the declaration the customer must accept before a receipt can be sent (founder, 19 Nov 2026). The server requires the declaration too. */
+export const FALSE_CLAIM_NOTICE =
+  'Only submit a genuine receipt for a transfer you really made. Submitting a false, altered or reused receipt is fraud. It will lead to disciplinary action on your account, including suspension.';
+export const DECLARATION_TEXT = 'I confirm this receipt is genuine and I understand that false claims lead to suspension of my account.';
+
 function Copy({ value, tokens }) {
   const [done, setDone] = useState(false);
   return (
@@ -51,6 +56,7 @@ export default function PayByBankTransfer({ flow, amountKobo, startClaim, valida
   const [form, setForm] = useState({ senderAccountName: senderName, senderBank: '', bankReference: '', transferredAt: nowLocalInput(), amountSentNaira: '' });
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState('');
+  const [declared, setDeclared] = useState(false);
 
   const card = { background: tokens.cardBg, border: `1px solid ${tokens.cardBorder}`, boxShadow: tokens.cardShadow, borderRadius: 18, padding: 18 };
   const input = { width: '100%', border: `1px solid ${tokens.borderColor}`, borderRadius: 12, padding: '10px 12px', fontSize: 15, background: tokens.cardBg, color: tokens.textPrimary };
@@ -80,15 +86,17 @@ export default function PayByBankTransfer({ flow, amountKobo, startClaim, valida
   async function submitReceipt() {
     const problem = receiptFormError(form, file);
     if (problem) { setSendError(problem); return; }
+    if (!declared) { setSendError('Please confirm that your receipt is genuine.'); return; }
     setSending(true);
     setSendError('');
     try {
       const receiptBase64 = await fileToDataUrl(file);
       setClaim(await sendTransferReceipt(claim.id, {
         receiptBase64, senderAccountName: form.senderAccountName.trim(), senderBank: form.senderBank.trim(), bankReference: form.bankReference.trim(),
-        transferredAt: new Date(form.transferredAt).toISOString(), amountSentNaira: nairaToKobo(form.amountSentNaira) / 100,
+        transferredAt: new Date(form.transferredAt).toISOString(), amountSentNaira: nairaToKobo(form.amountSentNaira) / 100, declarationAccepted: true,
       }));
       setFile(null);
+      setDeclared(false);
     } catch (e) {
       setSendError(messageOf(e, 'We could not send your receipt. Please try again.'));
     } finally {
@@ -182,9 +190,14 @@ export default function PayByBankTransfer({ flow, amountKobo, startClaim, valida
               {nairaToKobo(form.amountSentNaira) !== null && nairaToKobo(form.amountSentNaira) !== toTransfer && (
                 <div style={{ fontSize: 13, color: '#b45309' }}>The amount due is {naira(toTransfer)}. A transfer for a different amount cannot be accepted.</div>
               )}
+              <div data-testid="false-claim-notice" style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', borderRadius: 12, padding: '10px 14px', fontSize: 13, lineHeight: 1.5 }}>{FALSE_CLAIM_NOTICE}</div>
+              <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13, color: tokens.textSecondary, cursor: 'pointer' }}>
+                <input data-testid="declaration" type="checkbox" checked={declared} onChange={(e) => { setDeclared(e.target.checked); setSendError(''); }} style={{ marginTop: 3 }} />
+                <span>{DECLARATION_TEXT}</span>
+              </label>
               {sendError && <div role="alert" style={{ background: tokens.dangerBg, color: tokens.danger, borderRadius: 12, padding: '10px 14px', fontSize: 14 }}>{sendError}</div>}
-              <button type="button" data-testid="send-receipt" disabled={sending} onClick={submitReceipt}
-                style={{ width: '100%', padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 15, border: 0, background: sending ? '#d4d4d8' : tokens.accentGradient, color: '#fff', cursor: sending ? 'wait' : 'pointer' }}>
+              <button type="button" data-testid="send-receipt" disabled={sending || !declared} onClick={submitReceipt}
+                style={{ width: '100%', padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 15, border: 0, background: sending || !declared ? '#d4d4d8' : tokens.accentGradient, color: '#fff', cursor: sending ? 'wait' : declared ? 'pointer' : 'not-allowed' }}>
                 {sending ? 'Sending…' : 'Send my receipt'}
               </button>
             </div>
