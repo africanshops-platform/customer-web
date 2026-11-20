@@ -15,6 +15,7 @@ import { F } from '../financeUiTokens';
 import TransactionPinField from './shared/TransactionPinField';
 import ForgotPinDialog from './shared/ForgotPinDialog';
 import TransferLimitsCard from './shared/TransferLimitsCard';
+import AuthenticatorCard from './shared/AuthenticatorCard';
 
 const container = { show: { transition: { staggerChildren: 0.08 } } };
 const item      = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
@@ -143,6 +144,7 @@ export default function FinanceSettingsContent() {
       <motion.div variants={container} initial="hidden" animate="show" style={{ display: 'grid', gap: 20, gridTemplateColumns: 'minmax(0,1.5fr) minmax(0,1fr)', alignItems: 'start' }}>
         <div className="grid gap-20" style={{ minWidth: 0 }}>
           <motion.div variants={item}><ChangePinCard account={account} tokens={tokens} card={card} /></motion.div>
+          <motion.div variants={item}><AuthenticatorCard tokens={tokens} card={card} /></motion.div>
           <motion.div variants={item}><TransferLimitsCard account={account} tokens={tokens} card={card} /></motion.div>
         </div>
         <motion.div variants={item}><SecurityOverview account={account} tokens={tokens} card={card} /></motion.div>
