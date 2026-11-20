@@ -25,6 +25,7 @@ import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { PaystackButton } from "react-paystack";
 import FuseSvgIcon from "@fuse/core/FuseSvgIcon";
+import PaymentProcessingOverlay from "app/shared-components/payment/PaymentProcessingOverlay";
 import FusePageSimpleWithMargin from "@fuse/core/FusePageSimple/FusePageSimpleWithMargin";
 import useThemeMediaQuery from "@fuse/hooks/useThemeMediaQuery";
 import { useAppSelector } from "app/store/hooks";
@@ -88,7 +89,7 @@ function BookingDetailHeader({ booking, shop, onToggleFilters, onToggleMap }) {
             <div className="flex items-center gap-3 mb-2 flex-wrap">
               <BuildIcon sx={{ fontSize: "1.75rem" }} />
               <h1 className="text-2xl sm:text-3xl font-black">{shop?.name || "Repair shop"}</h1>
-              <Chip label={meta.label} sx={{ backgroundColor: "rgba(255,255,255,0.2)", color: "white", fontWeight: 700 }} />
+              <Chip label={booking.isSealed ? "Completed · Settled" : meta.label} sx={{ backgroundColor: "rgba(255,255,255,0.2)", color: "white", fontWeight: 700 }} />
             </div>
           </div>
         </div>
@@ -253,6 +254,8 @@ function PayInvoiceSection({ booking, repairJob, user }) {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-5">
+      {/* Card charged, confirming with the server: the same "Processing Payment..." cover the hotel booking shows. Held until the booking reads as paid so the Pay button never flashes back. */}
+      <PaymentProcessingOverlay open={verifyPayment.isLoading || (verifyPayment.isSuccess && !booking.isPaid)} />
       <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
         <ReceiptLongIcon sx={{ fontSize: "1.15rem", color: "#ea580c" }} /> Pay this invoice to start work
       </h3>

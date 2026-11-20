@@ -17,7 +17,8 @@ import FusePageSimpleWithMargin from "@fuse/core/FusePageSimple/FusePageSimpleWi
 import useThemeMediaQuery from "@fuse/hooks/useThemeMediaQuery";
 import { useAppSelector } from "app/store/hooks";
 import { selectUser } from "src/app/auth/user/store/userSlice";
-import { useGetMyServiceBookings } from "app/configs/data/server-calls/engineering/useServiceBookingRepo";
+import { useGetMyServiceBookings, useGetMySealedServiceBookings } from "app/configs/data/server-calls/engineering/useServiceBookingRepo";
+import SealedDetailDrawer, { ngn, shortDate } from "app/shared-components/sealed/SealedDetailDrawer";
 import { useGetMyRegisteredMachines } from "app/configs/data/server-calls/engineering/useMyMachinesRepo";
 import useGetEngineeringShops from "app/configs/data/server-calls/engineering/useEngineeringShopsRepo";
 
@@ -36,6 +37,7 @@ const FILTERS = [
   { value: "IN_PROGRESS", label: "In Progress" },
   { value: "COMPLETED", label: "Completed" },
   { value: "CANCELLED", label: "Cancelled" },
+  { value: "HISTORY", label: "History (settled)" },
 ];
 
 const NON_TERMINAL = ["REQUESTED", "CONFIRMED", "IN_PROGRESS"];
@@ -66,7 +68,7 @@ function BookingCard({ booking, shop, machine, onClick }) {
           <p className="text-sm text-gray-500 mt-0.5">{machine?.nickname || "Unnamed machine"}</p>
         </div>
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          <Chip label={meta.label} size="small" sx={{ backgroundColor: meta.bg, color: meta.fg, fontWeight: 700 }} />
+          <Chip label={booking.isSealed ? "Completed · Settled" : meta.label} size="small" sx={{ backgroundColor: meta.bg, color: meta.fg, fontWeight: 700 }} />
           {/* E7 (2026-10-01) — a CONFIRMED booking with a logged-but-unpaid
            * quote needs the customer's attention before the shop can start. */}
           {booking.status === "CONFIRMED" && !booking.isPaid && (
@@ -267,6 +269,7 @@ function MyBookingsPage() {
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(!isMobile);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(!isMobile);
   const [selectedStatus, setSelectedStatus] = useState(null);
+  const [selectedSealed, setSelectedSealed] = useState(null);
 
   useEffect(() => {
     if (!currentUser?.name) navigate("/sign-in");
@@ -279,7 +282,11 @@ function MyBookingsPage() {
 
   const isAuthed = Boolean(currentUser?.name);
   const { data: bookingsResp, isLoading, isError } = useGetMyServiceBookings(isAuthed);
-  const allBookings = bookingsResp?.data ?? [];
+  // Finished, settled jobs are kept in the sealed history, not in the live list: both are shown, sealed ones under "History".
+  const { data: sealedResp } = useGetMySealedServiceBookings(isAuthed);
+  const sealedBookings = useMemo(() => sealedResp?.data?.sealedBookings ?? [], [sealedResp]);
+  const liveBookings = useMemo(() => bookingsResp?.data ?? [], [bookingsResp]);
+  const allBookings = useMemo(() => [...liveBookings, ...sealedBookings], [liveBookings, sealedBookings]);
 
   const { data: machinesResp } = useGetMyRegisteredMachines(isAuthed);
   const machines = machinesResp?.data ?? [];
@@ -291,13 +298,20 @@ function MyBookingsPage() {
 
   const counts = useMemo(() => {
     const c = { __all: allBookings.length };
-    allBookings.forEach((b) => { c[b.status] = (c[b.status] || 0) + 1; });
+    allBookings.forEach((b) => {
+      if (b.isSealed) c.HISTORY = (c.HISTORY || 0) + 1;
+      else c[b.status] = (c[b.status] || 0) + 1;
+    });
     return c;
   }, [allBookings]);
 
   const bookings = useMemo(
     () =>
-      (selectedStatus ? allBookings.filter((b) => b.status === selectedStatus) : allBookings)
+      (() => {
+        if (!selectedStatus) return allBookings;
+        if (selectedStatus === "HISTORY") return allBookings.filter((b) => b.isSealed);
+        return allBookings.filter((b) => !b.isSealed && b.status === selectedStatus);
+      })()
         .slice()
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
     [allBookings, selectedStatus],
@@ -349,6 +363,50 @@ function MyBookingsPage() {
             </div>
           )}
 
+          <SealedDetailDrawer
+            open={Boolean(selectedSealed)}
+            onClose={() => setSelectedSealed(null)}
+            detail={
+              selectedSealed
+                ? (() => {
+                    const job = selectedSealed.repairJob || {};
+                    const parts = Array.isArray(job.partsUsed) ? job.partsUsed : [];
+                    const kobo = (v) => (typeof v === "number" ? ngn(v / 100) : null);
+                    return {
+                      title: shopsById[selectedSealed.shopId]?.name || "Repair shop",
+                      subtitle: machinesById[selectedSealed.machineId]?.nickname || "Your machine",
+                      headline: { label: "You paid", value: kobo(job.totalCostKobo) || "" },
+                      timeline: [
+                        { label: "Service requested", date: shortDate(selectedSealed.createdAt) },
+                        { label: "Job completed", date: shortDate(selectedSealed.completedAt) },
+                        { label: "Settled", date: shortDate(selectedSealed.escrowReleasedAt) },
+                      ],
+                      sections: [
+                        {
+                          title: "The job",
+                          rows: [
+                            { label: "Service", value: selectedSealed.serviceType },
+                            { label: "Requested for", value: shortDate(selectedSealed.requestedDate) },
+                            { label: "Diagnosis", value: job.diagnosisNotes },
+                            { label: "Your notes", value: selectedSealed.customerNotes },
+                          ],
+                        },
+                        {
+                          title: "Cost",
+                          rows: [
+                            { label: "Labour", value: kobo(job.laborCostKobo) },
+                            { label: "Total", value: kobo(job.totalCostKobo), strong: true },
+                          ],
+                        },
+                      ],
+                      items: parts.map((p) => ({ name: p.partName, qty: p.quantity, amount: kobo(p.unitCostKobo * p.quantity) })),
+                      note: "A finished job: completed and settled. This record is read-only.",
+                    };
+                  })()
+                : null
+            }
+          />
+
           {bookings.length > 0 && (
             <div className="grid sm:grid-cols-2 gap-5">
               {bookings.map((b) => (
@@ -357,7 +415,7 @@ function MyBookingsPage() {
                   booking={b}
                   shop={shopsById[b.shopId]}
                   machine={machinesById[b.machineId]}
-                  onClick={() => navigate(`/engineering/my-bookings/${b.id}`)}
+                  onClick={() => (b.isSealed ? setSelectedSealed(b) : navigate(`/engineering/my-bookings/${b.id}`))}
                 />
               ))}
             </div>
