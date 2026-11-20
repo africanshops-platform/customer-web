@@ -7,13 +7,13 @@ import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import CircularProgress from '@mui/material/CircularProgress';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { F } from '../../financeUiTokens';
 import { getApiAuthUser, setup2fa, confirm2fa, disable2fa, setProtectAll } from 'app/configs/data/client/RepositoryAuthClient';
 import { isSixDigits, isValidLoginCode, stepUpErrorMessage } from 'app/configs/data/stepUp/stepUp';
 import CodeBoxes from 'app/configs/data/stepUp/CodeBoxes';
 import CodeEntry from 'app/configs/data/stepUp/CodeEntry';
+import { PendingButton, ProcessingState, SectionSkeleton } from 'app/shared-components/loading';
 import AuthenticatorAppHelp from 'app/configs/data/stepUp/AuthenticatorAppHelp';
 
 const profileOf = (res) => {
@@ -35,13 +35,13 @@ export default function AuthenticatorCard({ tokens, card }) {
   const [turningOff, setTurningOff] = useState(false);
   const [password, setPassword] = useState('');
   const [offCode, setOffCode] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(''); // which action is running: 'start' | 'confirm' | 'protect' | 'off'
   const [error, setError] = useState('');
 
   const enabled = !!profile?.twoFactorEnabled;
   const refresh = () => qc.invalidateQueries(['me-authenticator']);
-  const run = async (fn) => {
-    setBusy(true);
+  const run = async (fn, action) => {
+    setBusy(action);
     setError('');
 
     try {
@@ -49,11 +49,11 @@ export default function AuthenticatorCard({ tokens, card }) {
     } catch (e) {
       setError(stepUpErrorMessage(e));
     } finally {
-      setBusy(false);
+      setBusy('');
     }
   };
 
-  const start = () => run(async () => setSetup((await setup2fa()).data));
+  const start = () => run(async () => setSetup((await setup2fa()).data), 'start');
   const confirm = () =>
     run(async () => {
       const res = await confirm2fa(code.trim());
@@ -62,12 +62,12 @@ export default function AuthenticatorCard({ tokens, card }) {
       setSetup(null);
       setCode('');
       refresh();
-    });
+    }, 'confirm');
   const toggleProtect = (checked) =>
     run(async () => {
       await setProtectAll(checked);
       refresh();
-    });
+    }, 'protect');
   const turnOff = () =>
     run(async () => {
       await disable2fa({ password, totpCode: offCode.trim() });
@@ -75,7 +75,7 @@ export default function AuthenticatorCard({ tokens, card }) {
       setPassword('');
       setOffCode('');
       refresh();
-    });
+    }, 'off');
 
   const downloadCodes = () => {
     const url = URL.createObjectURL(new Blob([`AfricanShops backup codes\n\n${backupCodes.join('\n')}\n\nEach code works once.\n`], { type: 'text/plain' }));
@@ -99,7 +99,7 @@ export default function AuthenticatorCard({ tokens, card }) {
         </div>
       </div>
 
-      {isLoading && <CircularProgress size={20} />}
+      {isLoading && <SectionSkeleton variant="form" />}
 
       {error && <Alert severity="error" className="mb-12">{error}</Alert>}
 
@@ -121,7 +121,7 @@ export default function AuthenticatorCard({ tokens, card }) {
       )}
 
       {!backupCodes && !isLoading && !enabled && !setup && (
-        <Button variant="contained" onClick={start} disabled={busy}>{busy ? 'Starting…' : 'Turn on'}</Button>
+        <PendingButton variant="contained" onClick={start} pending={busy === 'start'} pendingLabel="Starting…" disabled={!!busy}>Turn on</PendingButton>
       )}
 
       {!backupCodes && setup && (
@@ -131,9 +131,12 @@ export default function AuthenticatorCard({ tokens, card }) {
           <Typography style={{ fontSize: F.small, color: tokens.textMuted, wordBreak: 'break-all' }} className="my-8">
             Cannot scan? Enter this key by hand: <b>{setup.secret}</b>
           </Typography>
-          <CodeBoxes value={code} onChange={setCode} autoFocus disabled={busy} />
+          {/* One fixed-height area, so the card never jumps: the boxes while typing, the branded spiral while the code is checked. */}
+          <div style={{ minHeight: 190, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            {busy === 'confirm' ? <ProcessingState title="Checking your code" subtitle="" /> : <CodeBoxes value={code} onChange={setCode} autoFocus />}
+          </div>
           <div className="flex gap-12 mt-16">
-            <Button variant="contained" onClick={confirm} disabled={!isSixDigits(code) || busy}>{busy ? 'Checking…' : 'Confirm'}</Button>
+            <PendingButton variant="contained" onClick={confirm} pending={busy === 'confirm'} pendingLabel="Checking…" disabled={!isSixDigits(code) || (!!busy && busy !== 'confirm')}>Confirm</PendingButton>
             <Button onClick={() => { setSetup(null); setCode(''); setError(''); }}>Cancel</Button>
           </div>
         </div>
@@ -143,7 +146,7 @@ export default function AuthenticatorCard({ tokens, card }) {
         <div>
           <Alert severity="success" className="mb-12">Authenticator is on. Payments of ₦1,000,000 or more ask for a code.</Alert>
           <FormControlLabel
-            control={<Switch checked={!!profile?.protectAllTransactions} onChange={(e) => toggleProtect(e.target.checked)} disabled={busy} />}
+            control={<Switch checked={!!profile?.protectAllTransactions} onChange={(e) => toggleProtect(e.target.checked)} disabled={!!busy} />}
             label="Protect all my transactions (ask for a code on every payment)"
           />
           {!turningOff ? (
@@ -159,11 +162,11 @@ export default function AuthenticatorCard({ tokens, card }) {
                 <TextField size="small" type="password" label="Your password" value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
               <div className="my-12">
-                <CodeEntry value={offCode} onChange={setOffCode} onSubmit={() => password && isValidLoginCode(offCode) && turnOff()} disabled={busy} />
+                <CodeEntry value={offCode} onChange={setOffCode} onSubmit={() => password && isValidLoginCode(offCode) && turnOff()} disabled={!!busy} />
               
               </div>
               <div className="flex gap-12 mt-12">
-                <Button color="error" variant="contained" onClick={turnOff} disabled={!password || !isValidLoginCode(offCode) || busy}>{busy ? 'Turning off…' : 'Turn off'}</Button>
+                <PendingButton color="error" variant="contained" onClick={turnOff} pending={busy === 'off'} pendingLabel="Turning off…" disabled={!password || !isValidLoginCode(offCode) || (!!busy && busy !== 'off')}>Turn off</PendingButton>
                 <Button onClick={() => { setTurningOff(false); setPassword(''); setOffCode(''); setError(''); }}>Cancel</Button>
               </div>
             </div>
