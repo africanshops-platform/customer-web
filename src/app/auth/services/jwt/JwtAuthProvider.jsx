@@ -294,8 +294,9 @@ function JwtAuthProvider(props) {
     handleSignInFailure,
   ) => {
     try {
-      await adminLogIn.mutateAsync(data);
-      return null;
+      const response = await adminLogIn.mutateAsync(data);
+      // F30: an account with the authenticator on is not signed in yet; the form asks for the code with this temporary token.
+      return response?.data?.requiresTwoFactor ? { requiresTwoFactor: true, tempToken: response.data.tempToken } : null;
     } catch (error) {
       const axiosError = error;
       handleSignInFailure(axiosError);

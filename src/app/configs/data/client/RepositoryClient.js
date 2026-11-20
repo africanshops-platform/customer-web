@@ -67,6 +67,8 @@ export const clientResetPasswordFromOtp = (formData) => Api().post('/auth-user/r
 
 // /reset-password
 export const clientSigin = (formData) => Api().post('/auth-user/login', formData); // (Done => Mcsvs)
+/** F30: second step of sign-in for an account with the authenticator on (6-digit code or a backup code). */
+export const verify2faLogin = ({ tempToken, totpCode }) => Api().post('/auth-user/2fa/verify', { tempToken, totpCode });
 
 export const clientRegister = (formData) => Api().post('/authuser/register', formData);
 /** **********************************************************************************************
