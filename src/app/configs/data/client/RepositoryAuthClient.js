@@ -423,6 +423,11 @@ export const payAndPlaceFoodOrderApi = (formData) => {
 /** F28: the Pay click. The server prices the cart and answers OPEN (new), REOPEN (same transaction) or CONFIRMED (already paid: do not open Paystack). */
 export const createFoodCheckoutIntentApi = (body) => AuthApi().post(`${API_ENDPOINTS.CREATE_FOOD_CHECKOUT_INTENT}`, body);
 export const createMarketplaceCheckoutIntentApi = (body) => AuthApi().post(`${API_ENDPOINTS.CREATE_MARKETPLACE_CHECKOUT_INTENT}`, body);
+// F29 3.4: the page names only WHICH record; the server reads the price. The shared pay hook calls these with { cartSessionId, order }.
+export const createBookingCheckoutIntentApi = ({ cartSessionId, order }) =>
+	AuthApi().post(`${API_ENDPOINTS.CREATE_BOOKING_CHECKOUT_INTENT}`, { reservationId: cartSessionId, name: order?.name, phone: order?.phone, address: order?.address });
+export const createEngineeringCheckoutIntentApi = ({ cartSessionId }) =>
+	AuthApi().post(`${API_ENDPOINTS.CREATE_ENGINEERING_CHECKOUT_INTENT}`, { bookingId: cartSessionId });
 /** F28: asks the server whether the payment has become an order. Safe to repeat. */
 export const confirmCheckoutIntentApi = (reference) =>
 	AuthApi().post(`${API_ENDPOINTS.CONFIRM_CHECKOUT_INTENT}/${encodeURIComponent(reference)}/confirm`);

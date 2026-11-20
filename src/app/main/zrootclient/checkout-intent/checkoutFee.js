@@ -26,3 +26,12 @@ export function nairaText(kobo) {
 
 /** The cart total is only quotable when the server would accept it (the quote route takes N100 up to the agreed maximum). */
 export const isQuotable = (cartKobo) => Number.isSafeInteger(cartKobo) && cartKobo >= 10000 && cartKobo <= 100000000000;
+
+/** The Pay button's words while a payment is being made (the same wording on every checkout), or `idleText` when nothing is happening. */
+export function payButtonLabel(phase, idleText) {
+	if (phase === 'starting') return 'Starting your payment...';
+	if (phase === 'confirming') return 'Confirming your payment...';
+	if (phase === 'pending' || phase === 'unsure') return 'Checking your payment...';
+
+	return idleText;
+}
