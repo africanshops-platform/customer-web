@@ -1,4 +1,4 @@
-import { FEE_LABEL, feeKoboOfQuote, isQuotable, nairaText, payableKobo } from '../checkoutFee';
+import { FEE_LABEL, feeKoboOfQuote, isQuotable, nairaText, payableKobo, payButtonLabel } from '../checkoutFee';
 
 describe('checkoutFee', () => {
 	it('reads the fee from a quote, and is 0 when there is none or the answer is unusable', () => {
@@ -29,5 +29,13 @@ describe('checkoutFee', () => {
 
 	it('the line is always called Transaction fee', () => {
 		expect(FEE_LABEL).toBe('Transaction fee');
+	});
+
+	it('the Pay button says what is happening, and its own text when nothing is', () => {
+		expect(payButtonLabel('starting', 'Pay')).toBe('Starting your payment...');
+		expect(payButtonLabel('confirming', 'Pay')).toBe('Confirming your payment...');
+		expect(payButtonLabel('pending', 'Pay')).toBe('Checking your payment...');
+		expect(payButtonLabel('unsure', 'Pay')).toBe('Checking your payment...');
+		expect(payButtonLabel('idle', 'Pay ₦10')).toBe('Pay ₦10');
 	});
 });
