@@ -830,6 +830,6 @@ export function PlainAuthApi() {
 
 export const setup2fa = () => PlainAuthApi().post('/auth-user/2fa/setup');
 export const confirm2fa = (totpCode) => PlainAuthApi().post('/auth-user/2fa/confirm', { totpCode });
-export const disable2fa = (password) => PlainAuthApi().delete('/auth-user/2fa', { data: { password } });
+export const disable2fa = ({ password, totpCode }) => PlainAuthApi().delete('/auth-user/2fa', { data: { password, totpCode } });
 export const setProtectAll = (enabled) => PlainAuthApi().put('/auth-user/2fa/protect-all', { enabled });
 export const verifyStepUp = ({ challengeId, code }) => PlainAuthApi().post('/user/step-up/verify', { challengeId, code });

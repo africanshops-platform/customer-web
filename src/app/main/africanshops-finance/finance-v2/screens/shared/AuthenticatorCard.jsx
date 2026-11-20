@@ -31,6 +31,7 @@ export default function AuthenticatorCard({ tokens, card }) {
   const [saved, setSaved] = useState(false);
   const [turningOff, setTurningOff] = useState(false);
   const [password, setPassword] = useState('');
+  const [offCode, setOffCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -66,9 +67,10 @@ export default function AuthenticatorCard({ tokens, card }) {
     });
   const turnOff = () =>
     run(async () => {
-      await disable2fa(password);
+      await disable2fa({ password, totpCode: offCode.trim() });
       setTurningOff(false);
       setPassword('');
+      setOffCode('');
       refresh();
     });
 
@@ -155,10 +157,16 @@ export default function AuthenticatorCard({ tokens, card }) {
             </div>
           ) : (
             <div className="mt-12">
-              <TextField size="small" type="password" label="Your password" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <Typography style={{ fontSize: F.small, color: tokens.textSecondary }} className="mb-8">
+                To turn it off, enter your password and a current code from the app (or one of your backup codes).
+              </Typography>
+              <div className="flex flex-wrap gap-12">
+                <TextField size="small" type="password" label="Your password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <TextField size="small" label="Code or backup code" value={offCode} onChange={(e) => setOffCode(e.target.value.replace(/\s/g, ''))} inputProps={{ autoComplete: 'one-time-code', maxLength: 12 }} />
+              </div>
               <div className="flex gap-12 mt-12">
-                <Button color="error" variant="contained" onClick={turnOff} disabled={!password || busy}>{busy ? 'Turning off…' : 'Turn off'}</Button>
-                <Button onClick={() => { setTurningOff(false); setPassword(''); setError(''); }}>Cancel</Button>
+                <Button color="error" variant="contained" onClick={turnOff} disabled={!password || !offCode || busy}>{busy ? 'Turning off…' : 'Turn off'}</Button>
+                <Button onClick={() => { setTurningOff(false); setPassword(''); setOffCode(''); setError(''); }}>Cancel</Button>
               </div>
             </div>
           )}
