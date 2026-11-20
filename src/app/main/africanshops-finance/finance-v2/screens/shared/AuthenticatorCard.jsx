@@ -11,7 +11,9 @@ import CircularProgress from '@mui/material/CircularProgress';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { F } from '../../financeUiTokens';
 import { getApiAuthUser, setup2fa, confirm2fa, disable2fa, setProtectAll } from 'app/configs/data/client/RepositoryAuthClient';
-import { isSixDigits, stepUpErrorMessage } from 'app/configs/data/stepUp/stepUp';
+import { isSixDigits, isValidLoginCode, stepUpErrorMessage } from 'app/configs/data/stepUp/stepUp';
+import CodeBoxes from 'app/configs/data/stepUp/CodeBoxes';
+import CodeEntry from 'app/configs/data/stepUp/CodeEntry';
 
 const profileOf = (res) => {
   const d = res?.data;
@@ -130,14 +132,8 @@ export default function AuthenticatorCard({ tokens, card }) {
           <Typography style={{ fontSize: F.small, color: tokens.textMuted, wordBreak: 'break-all' }} className="my-8">
             Cannot scan? Enter this key by hand: <b>{setup.secret}</b>
           </Typography>
-          <TextField
-            size="small"
-            label="6-digit code"
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            inputProps={{ inputMode: 'numeric', autoComplete: 'one-time-code' }}
-          />
-          <div className="flex gap-12 mt-12">
+          <CodeBoxes value={code} onChange={setCode} autoFocus disabled={busy} />
+          <div className="flex gap-12 mt-16">
             <Button variant="contained" onClick={confirm} disabled={!isSixDigits(code) || busy}>{busy ? 'Checking…' : 'Confirm'}</Button>
             <Button onClick={() => { setSetup(null); setCode(''); setError(''); }}>Cancel</Button>
           </div>
@@ -162,10 +158,13 @@ export default function AuthenticatorCard({ tokens, card }) {
               </Typography>
               <div className="flex flex-wrap gap-12">
                 <TextField size="small" type="password" label="Your password" value={password} onChange={(e) => setPassword(e.target.value)} />
-                <TextField size="small" label="Code or backup code" value={offCode} onChange={(e) => setOffCode(e.target.value.replace(/\s/g, ''))} inputProps={{ autoComplete: 'one-time-code', maxLength: 12 }} />
+                </div>
+              <div className="my-12">
+                <CodeEntry value={offCode} onChange={setOffCode} onSubmit={() => password && isValidLoginCode(offCode) && turnOff()} disabled={busy} />
+              
               </div>
               <div className="flex gap-12 mt-12">
-                <Button color="error" variant="contained" onClick={turnOff} disabled={!password || !offCode || busy}>{busy ? 'Turning off…' : 'Turn off'}</Button>
+                <Button color="error" variant="contained" onClick={turnOff} disabled={!password || !isValidLoginCode(offCode) || busy}>{busy ? 'Turning off…' : 'Turn off'}</Button>
                 <Button onClick={() => { setTurningOff(false); setPassword(''); setOffCode(''); setError(''); }}>Cancel</Button>
               </div>
             </div>

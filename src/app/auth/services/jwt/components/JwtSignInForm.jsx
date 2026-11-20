@@ -17,6 +17,8 @@ import { toast } from "react-toastify";
 import useGetUserAppSetting from "app/configs/data/server-calls/auth/userapp/a_userapp_settings/useAppSettingDomain";
 import useJwtAuth from "../useJwtAuth";
 import { useVerify2faLogin } from "app/configs/data/server-calls/auth/admin-auth";
+import CodeEntry from "app/configs/data/stepUp/CodeEntry";
+import { isValidLoginCode } from "app/configs/data/stepUp/stepUp";
 
 const defaultValues = {
   email: "",
@@ -162,7 +164,7 @@ function JwtSignInForm() {
   if (challenge) {
     const code = totpCode.trim();
     const submitCode = () => {
-      if (!code || verify.isLoading) return;
+      if (!isValidLoginCode(code) || verify.isLoading) return;
       verify.mutate(
         { tempToken: challenge.tempToken, totpCode: code },
         {
@@ -181,21 +183,13 @@ function JwtSignInForm() {
       <div className="mt-32 flex w-full flex-col justify-center">
         <h3 className="text-xl font-bold mb-8">Enter your code</h3>
         <p className="text-sm text-gray-500 mb-24">
-          Open your authenticator app and enter the 6-digit code for AfricanShops. Lost your phone? Use one of your backup codes instead.
+          Open your authenticator app and enter the 6-digit code for AfricanShops. You can paste it too.
         </p>
-        <TextField
-          autoFocus
-          fullWidth
-          label="Authenticator or backup code"
-          value={totpCode}
-          onChange={(e) => setTotpCode(e.target.value.replace(/\s/g, ""))}
-          onKeyDown={(e) => e.key === "Enter" && submitCode()}
-          inputProps={{ autoComplete: "one-time-code", maxLength: 12 }}
-        />
+        <CodeEntry value={totpCode} onChange={setTotpCode} onSubmit={submitCode} autoFocus disabled={verify.isLoading} />
         <Button
           variant="contained"
           className="mt-16 w-full"
-          disabled={!code || verify.isLoading}
+          disabled={!isValidLoginCode(code) || verify.isLoading}
           onClick={submitCode}
           size="large"
           sx={{
