@@ -8,6 +8,8 @@ import {
 import { useMarketplaceCheckoutReadiness, useCheckoutProcessingStyle } from "app/configs/data/server-calls/auth/paystack-payments/usePaystackPaymentsRepo";
 import { createMarketplaceCheckoutIntentApi } from "app/configs/data/client/RepositoryAuthClient";
 import useCheckoutIntentPay from "../../../checkout-intent/useCheckoutIntentPay";
+import useCheckoutFeeQuote from "../../../checkout-intent/useCheckoutFeeQuote";
+import { FEE_LABEL, nairaText, payableKobo } from "../../../checkout-intent/checkoutFee";
 import PaymentCheckingLoader from "../../../checkout-intent/PaymentCheckingLoader";
 import PaymentProcessingOverlay from "app/shared-components/payment/PaymentProcessingOverlay";
 import { useAppSelector } from "app/store/hooks";
@@ -146,6 +148,9 @@ const CartSummaryAndPay = ({
 
   // Calculate grand total
   const grandTotal = parseInt(subtotal) + parseInt(deliveryFee) + parseInt(vatAmount);
+  // F29 3.4: the customer-paid Transaction fee on top of the cart. The server prices it (0 when no fee policy is on, and the line is then not drawn).
+  const feeQuote = useCheckoutFeeQuote(grandTotal * 100);
+  const payKobo = payableKobo(grandTotal * 100, feeQuote.feeKobo);
 
   const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
 
@@ -183,6 +188,7 @@ const CartSummaryAndPay = ({
   // Shared across the button's class/style/disabled + the "complete fields" warning below —
   // extracted so adding the two delivery-fee checks doesn't mean editing 5 duplicate copies.
   const isPayDisabled =
+    feeQuote.isFetching || // wait for the fee so the total on the button is the total that will be charged
     _.isEmpty(dirtyFields) ||
     !isValid ||
     !name ||
@@ -408,6 +414,13 @@ const CartSummaryAndPay = ({
             <span className="font-semibold text-gray-800">₦{formatCurrency(vatAmount)}</span>
           </div>
 
+          {feeQuote.feeKobo > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">{FEE_LABEL}</span>
+              <span className="font-semibold text-gray-800">₦{nairaText(feeQuote.feeKobo)}</span>
+            </div>
+          )}
+
           <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent" />
 
           {/* Grand Total */}
@@ -423,7 +436,7 @@ const CartSummaryAndPay = ({
                   backgroundClip: "text",
                 }}
               >
-                ₦{formatCurrency(grandTotal)}
+                ₦{nairaText(payKobo)}
               </span>
             </div>
           </div>
@@ -479,7 +492,7 @@ const CartSummaryAndPay = ({
                     ? "Confirming your payment..."
                     : payPhase === "pending" || payPhase === "unsure"
                       ? "Checking your payment..."
-                      : `🔒 Pay ₦${formatCurrency(grandTotal)}`}
+                      : `🔒 Pay ₦${nairaText(payKobo)}`}
               </button>
               {/* Overlay style: the same full-screen "Processing Payment..." cover the hotel booking shows, plus the three steps, until the order exists and we move on. */}
               <PaymentProcessingOverlay open={processingStyle === "overlay" && payPhase === "confirming"} stage={payStage} />

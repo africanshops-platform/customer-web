@@ -17,13 +17,18 @@ import {
   useGetUserSingleTrip,
   useCancelUserReservation,
 } from "app/configs/data/server-calls/auth/userapp/a_bookings/use-reservations";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { formatCurrency, formatDateUtil } from "src/app/main/vendors-shop/PosUtils";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "react-toastify";
-import { PaystackButton } from "react-paystack";
+import { usePaystackPayment } from "react-paystack";
+import { useQueryClient } from "react-query";
+import { createBookingCheckoutIntentApi } from "app/configs/data/client/RepositoryAuthClient";
+import useCheckoutIntentPay from "../../checkout-intent/useCheckoutIntentPay";
+import useCheckoutFeeQuote from "../../checkout-intent/useCheckoutFeeQuote";
+import { FEE_LABEL, nairaText, payableKobo, payButtonLabel } from "../../checkout-intent/checkoutFee";
 import PaymentProcessingOverlay from "app/shared-components/payment/PaymentProcessingOverlay";
 import { selectUser } from "src/app/auth/user/store/userSlice";
 import { useAppSelector } from "app/store/hooks";
@@ -101,6 +106,12 @@ function ReviewReservation() {
   const email = user?.email;
   const vatRate = Math.round(totalPrice * 0.075);
 
+  // F29 3.4: the same server-made intent as food and marketplace. The page names only the reservation; the server reads the price, adds the customer-paid
+  // Transaction fee when a policy is on, and the one Paystack transaction is reopened (never recreated) on a second Pay.
+  const cartKobo = Math.round(totalPrice * 1.075 * 100);
+  const feeQuote = useCheckoutFeeQuote(cartKobo);
+  const payKobo = payableKobo(cartKobo, feeQuote.feeKobo);
+
   const onSuccess = async (paystackResponse) => {
     //1. Verify payment from backend
     //2. update state of order setting isPaid=true
@@ -154,6 +165,39 @@ function ReviewReservation() {
   const onClose = () => {
     setPaymentCloseDialogOpen(true);
   };
+
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const isPayBlocked =
+    feeQuote.isFetching || // wait for the fee so the total on the button is the total charged
+    _.isEmpty(dirtyFields) ||
+    !isValid ||
+    !name ||
+    !phone ||
+    !address ||
+    verifyPayment?.isLoading ||
+    paymentFailedPermanently ||
+    readiness.data?.healthy === false;
+  // The old Pay (browser-made transaction), kept only for when the server has checkout intents switched off.
+  const legacyPay = usePaystackPayment({
+    reference: `BK-${reservationId}`,
+    email,
+    amount: totalPrice * 1.075 * 100,
+    metadata: { userId: user?.id, reservationId },
+    publicKey: VITE_PAYSTACK_PUBLIC_KEY,
+  });
+  const { payPhase, handlePay } = useCheckoutIntentPay({
+    cartKey: reservationId,
+    createIntentApi: createBookingCheckoutIntentApi,
+    buildOrder: () => ({ name, phone, address }),
+    startLegacy: () => legacyPay({ onSuccess: (ref) => onSuccess(ref), onClose: () => onClose() }),
+    onBooked: (id) => {
+      toast.success("Reservation paid successfully!");
+      queryClient.invalidateQueries(["__tripById", reservationId]);
+      navigate(`/bookings/${id ?? reservationId}/payment-success`);
+    },
+    canPay: () => !isPayBlocked,
+  });
 
   // Handle cancel reservation
   const handleCancelReservation = () => {
@@ -870,8 +914,8 @@ function ReviewReservation() {
                             }
                           `}
                         </style>
-                        <PaystackButton
-                          text={`🔒 Pay ₦${formatCurrency(totalPrice * 1.075)}`}
+                        <button
+                          type="button"
                           className={`w-full py-3 sm:py-4 rounded-xl font-bold text-sm sm:text-base md:text-lg transition-all duration-300 ${
                             !isValid || _.isEmpty(dirtyFields) || !name || !phone || !address
                               ? ""
@@ -903,28 +947,16 @@ function ReviewReservation() {
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                           }}
-                          reference={`BK-${reservationId}`}
-                          email={email}
-                          amount={totalPrice * 1.075 * 100}
-                          vat={vatRate}
-                          metadata={{
-                            userId: user?.id,
-                            reservationId,
-                          }}
-                          publicKey={VITE_PAYSTACK_PUBLIC_KEY}
-                          onSuccess={(reference) => onSuccess(reference)}
-                          onClose={() => onClose()}
-                          disabled={
-                            _.isEmpty(dirtyFields) ||
-                            !isValid ||
-                            !name ||
-                            !phone ||
-                            !address ||
-                            verifyPayment?.isLoading ||
-                            paymentFailedPermanently ||
-                            readiness.data?.healthy === false
-                          }
-                        />
+                          onClick={handlePay}
+                          disabled={isPayBlocked || payPhase !== "idle"}
+                        >
+                          {payButtonLabel(payPhase, `🔒 Pay ₦${nairaText(payKobo)}`)}
+                        </button>
+                        {feeQuote.feeKobo > 0 && (
+                          <Typography variant="caption" className="mt-2 block text-center" sx={{ color: "#6b7280" }}>
+                            Includes a ₦{nairaText(feeQuote.feeKobo)} {FEE_LABEL.toLowerCase()}
+                          </Typography>
+                        )}
                         {paymentFailedPermanently && (
                           <Typography
                             variant="body2"

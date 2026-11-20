@@ -11,6 +11,8 @@ import {
 import { useFoodCheckoutReadiness, useCheckoutProcessingStyle } from "app/configs/data/server-calls/auth/paystack-payments/usePaystackPaymentsRepo";
 import { createFoodCheckoutIntentApi } from "app/configs/data/client/RepositoryAuthClient";
 import useCheckoutIntentPay from "../../checkout-intent/useCheckoutIntentPay";
+import useCheckoutFeeQuote from "../../checkout-intent/useCheckoutFeeQuote";
+import { FEE_LABEL, nairaText, payableKobo } from "../../checkout-intent/checkoutFee";
 import PaymentCheckingLoader from "../../checkout-intent/PaymentCheckingLoader";
 import PaymentProcessingOverlay from "app/shared-components/payment/PaymentProcessingOverlay";
 import { useAppSelector } from "app/store/hooks";
@@ -127,6 +129,10 @@ function FoodCartSummaryAndPay({
   const vatAmount = Math.round(subtotal * taxInfo.rate);
 
   const grandTotal = parseInt(subtotal || 0, 10) + parseInt(deliveryFee, 10) + parseInt(vatAmount, 10);
+
+  // F29 3.4: the customer-paid Transaction fee on top of the cart. The server prices it (0 when no fee policy is on, and the line is then not drawn).
+  const feeQuote = useCheckoutFeeQuote(grandTotal * 100);
+  const payKobo = payableKobo(grandTotal * 100, feeQuote.feeKobo);
 
   const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
   const { mutate: verifyPaymentAndCreateOrder, isLoading: payFoodLoading } =
@@ -321,6 +327,13 @@ function FoodCartSummaryAndPay({
             <span className="font-semibold text-gray-800">₦{formatCurrency(vatAmount)}</span>
           </div>
 
+          {feeQuote.feeKobo > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">{FEE_LABEL}</span>
+              <span className="font-semibold text-gray-800">₦{nairaText(feeQuote.feeKobo)}</span>
+            </div>
+          )}
+
           <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent" />
 
           {/* Grand total */}
@@ -335,7 +348,7 @@ function FoodCartSummaryAndPay({
                 backgroundClip: "text",
               }}
             >
-              ₦{formatCurrency(grandTotal)}
+              ₦{nairaText(payKobo)}
             </span>
           </div>
         </div>
@@ -377,7 +390,7 @@ function FoodCartSummaryAndPay({
                 type="button"
                 className={`w-full py-3 sm:py-4 rounded-xl font-bold text-sm sm:text-base transition-all duration-300 ${isFormIncomplete ? "" : "food-paystack-enabled"}`}
                 onClick={handlePay}
-                disabled={isFormIncomplete || payFoodLoading}
+                disabled={isFormIncomplete || payFoodLoading || feeQuote.isFetching}
               >
                 {payPhase === "starting"
                   ? "Starting your payment..."
@@ -385,7 +398,7 @@ function FoodCartSummaryAndPay({
                     ? "Confirming your payment..."
                     : payPhase === "pending" || payPhase === "unsure"
                       ? "Checking your payment..."
-                      : `🔒 Pay ₦${formatCurrency(grandTotal)}`}
+                      : `🔒 Pay ₦${nairaText(payKobo)}`}
               </button>
               {/* Overlay style: the same full-screen "Processing Payment..." cover the hotel booking shows, plus the three steps, until the order exists and we move on. */}
               <PaymentProcessingOverlay open={processingStyle === "overlay" && payPhase === "confirming"} stage={payStage} />
