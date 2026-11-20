@@ -5,10 +5,11 @@ import {
   usePayAndPlaceOrder,
   useCalculateCartShipping,
 } from "app/configs/data/server-calls/auth/userapp/a_marketplace/useProductsRepo";
-import { useMarketplaceCheckoutReadiness } from "app/configs/data/server-calls/auth/paystack-payments/usePaystackPaymentsRepo";
+import { useMarketplaceCheckoutReadiness, useCheckoutProcessingStyle } from "app/configs/data/server-calls/auth/paystack-payments/usePaystackPaymentsRepo";
 import { createMarketplaceCheckoutIntentApi } from "app/configs/data/client/RepositoryAuthClient";
 import useCheckoutIntentPay from "../../../checkout-intent/useCheckoutIntentPay";
 import PaymentCheckingLoader from "../../../checkout-intent/PaymentCheckingLoader";
+import PaymentProcessingOverlay from "app/shared-components/payment/PaymentProcessingOverlay";
 import { useAppSelector } from "app/store/hooks";
 import { usePaystackPayment } from "react-paystack";
 import { useNavigate } from "react-router";
@@ -65,6 +66,8 @@ const CartSummaryAndPay = ({
   // parent's cart query refetches with the new session.
   const [paymentFailedPermanently, setPaymentFailedPermanently] = useState(false);
   const readiness = useMarketplaceCheckoutReadiness();
+  // Admin setting (founder 2026-11-18): "overlay" covers the page until the payment is verified; "inline" keeps the loader in this card.
+  const processingStyle = useCheckoutProcessingStyle();
   const {
     mutate: calculateCartShipping,
     isLoading: deliveryLoading,
@@ -478,7 +481,9 @@ const CartSummaryAndPay = ({
                       ? "Checking your payment..."
                       : `🔒 Pay ₦${formatCurrency(grandTotal)}`}
               </button>
-              {payPhase === "confirming" && (
+              {/* Overlay style: the same full-screen "Processing Payment..." cover the hotel booking shows, plus the three steps, until the order exists and we move on. */}
+              <PaymentProcessingOverlay open={processingStyle === "overlay" && payPhase === "confirming"} stage={payStage} />
+              {payPhase === "confirming" && processingStyle !== "overlay" && (
                 <PaymentCheckingLoader stage={payPhase === "unsure" ? "unsure" : payStage} testId="market-pay-confirming" />
               )}
               {payPhase === "pending" && (

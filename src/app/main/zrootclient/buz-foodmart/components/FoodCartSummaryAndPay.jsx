@@ -8,10 +8,11 @@ import {
   usePayAndPlaceFoodOrder,
   useCalculateFoodCartShipping,
 } from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
-import { useFoodCheckoutReadiness } from "app/configs/data/server-calls/auth/paystack-payments/usePaystackPaymentsRepo";
+import { useFoodCheckoutReadiness, useCheckoutProcessingStyle } from "app/configs/data/server-calls/auth/paystack-payments/usePaystackPaymentsRepo";
 import { createFoodCheckoutIntentApi } from "app/configs/data/client/RepositoryAuthClient";
 import useCheckoutIntentPay from "../../checkout-intent/useCheckoutIntentPay";
 import PaymentCheckingLoader from "../../checkout-intent/PaymentCheckingLoader";
+import PaymentProcessingOverlay from "app/shared-components/payment/PaymentProcessingOverlay";
 import { useAppSelector } from "app/store/hooks";
 import { useQueryClient } from "react-query";
 import { selectUser } from "../../../../auth/user/store/userSlice";
@@ -65,6 +66,8 @@ function FoodCartSummaryAndPay({
   // parent's food cart query refetches with the new session.
   const [paymentFailedPermanently, setPaymentFailedPermanently] = useState(false);
   const readiness = useFoodCheckoutReadiness();
+  // Admin setting (founder 2026-11-18): "overlay" covers the page until the payment is verified; "inline" keeps the loader in this card.
+  const processingStyle = useCheckoutProcessingStyle();
 
   // Build subtotal from cart items
   const checkItemsArray = (intemsInCart || []).map((el) => ({
@@ -384,7 +387,9 @@ function FoodCartSummaryAndPay({
                       ? "Checking your payment..."
                       : `🔒 Pay ₦${formatCurrency(grandTotal)}`}
               </button>
-              {payPhase === "confirming" && (
+              {/* Overlay style: the same full-screen "Processing Payment..." cover the hotel booking shows, plus the three steps, until the order exists and we move on. */}
+              <PaymentProcessingOverlay open={processingStyle === "overlay" && payPhase === "confirming"} stage={payStage} />
+              {payPhase === "confirming" && processingStyle !== "overlay" && (
                 <PaymentCheckingLoader stage={payPhase === "unsure" ? "unsure" : payStage} testId="food-pay-confirming" />
               )}
               {payPhase === "pending" && (

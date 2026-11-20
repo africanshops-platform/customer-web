@@ -1,6 +1,7 @@
 import {
 	createServiceBookingApi,
 	getMyServiceBookingsApi,
+	getMySealedServiceBookingsApi,
 	getServiceBookingByIdApi,
 	getRepairJobForBookingApi,
 	cancelServiceBookingApi,
@@ -46,6 +47,15 @@ export function useGetMyServiceBookings(enabled = true) {
 		enabled,
 		staleTime: 15000,
 		onError: (error) => reportEngineeringApiError(error, 'Failed to fetch your bookings')
+	});
+}
+
+/** History: my finished (settled and sealed) bookings. Same guest rules as useGetMyServiceBookings. */
+export function useGetMySealedServiceBookings(enabled = true) {
+	return useQuery(['__mySealedBookings'], () => getMySealedServiceBookingsApi(), {
+		enabled,
+		staleTime: 15000,
+		onError: (error) => reportEngineeringApiError(error, 'Failed to fetch your booking history')
 	});
 }
 
