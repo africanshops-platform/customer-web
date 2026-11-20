@@ -47,3 +47,21 @@ export function requestStepUp(challenge) {
 
 	return handler(challenge);
 }
+
+export const CODE_LENGTH = 6;
+
+/**
+ * The six code boxes as one string of up to six digits. `typed` lands at box `index`: one digit replaces that box, several (a paste, or an
+ * autofill that reached one box) fill from there on. Anything that is not a digit is dropped.
+ */
+export function fillDigits(current, index, typed, length = CODE_LENGTH) {
+	const digits = String(typed ?? '').replace(/\D/g, '');
+	const base = String(current ?? '').replace(/\D/g, '');
+
+	if (!digits) return base.slice(0, length);
+
+	return (base.slice(0, index) + digits + base.slice(index + (digits.length > 1 ? digits.length : 1))).slice(0, length);
+}
+
+/** A sign-in or turn-off code: the 6-digit app code, or an 8-character backup code (letters and digits). */
+export const isValidLoginCode = (value) => /^\d{6}$/.test(String(value ?? '').trim()) || /^[0-9a-zA-Z]{8}$/.test(String(value ?? '').trim());

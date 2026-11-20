@@ -4,11 +4,11 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
-import TextField from '@mui/material/TextField';
 import Alert from '@mui/material/Alert';
 import Typography from '@mui/material/Typography';
 import { verifyStepUp } from '../client/RepositoryAuthClient';
 import { isSixDigits, registerStepUpHandler, stepUpErrorMessage } from './stepUp';
+import CodeBoxes from './CodeBoxes';
 
 /**
  * F30: asks for the authenticator code when a payment needs it. Mounted once at the app root; the shared API client opens it (through the
@@ -19,6 +19,7 @@ export default function StepUpDialog() {
 	const [code, setCode] = useState('');
 	const [error, setError] = useState('');
 	const [busy, setBusy] = useState(false);
+	const [attempt, setAttempt] = useState(0); // bumps after a wrong code so the boxes clear and refocus
 	const pendingRef = useRef(null);
 
 	useEffect(
@@ -56,6 +57,8 @@ export default function StepUpDialog() {
 			setPending(null);
 		} catch (err) {
 			setError(stepUpErrorMessage(err));
+			setCode('');
+			setAttempt((n) => n + 1);
 		} finally {
 			setBusy(false);
 		}
@@ -64,18 +67,20 @@ export default function StepUpDialog() {
 	return (
 		<Dialog open={!!pending} onClose={close} maxWidth="xs" fullWidth>
 			<DialogTitle>Confirm with your authenticator</DialogTitle>
-			<DialogContent>
+			<DialogContent onKeyDown={(e) => e.key === 'Enter' && submit()}>
 				<Typography variant="body2" color="text.secondary" className="mb-16">
-					Open your authenticator app and enter the 6-digit code for AfricanShops to approve this payment.
+					Open your authenticator app and enter the 6-digit code for AfricanShops to approve this payment. You can paste it too.
 				</Typography>
-				<TextField
+				<CodeBoxes
+					key={attempt}
 					autoFocus
-					fullWidth
-					label="6-digit code"
 					value={code}
-					onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-					onKeyDown={(e) => e.key === 'Enter' && submit()}
-					inputProps={{ inputMode: 'numeric', autoComplete: 'one-time-code', maxLength: 6 }}
+					onChange={(next) => {
+						setCode(next);
+						if (error) setError('');
+					}}
+					error={!!error}
+					disabled={busy}
 				/>
 				{error && (
 					<Alert severity="error" className="mt-12">
