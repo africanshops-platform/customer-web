@@ -5,6 +5,7 @@ import { resetSessionForShopUsers } from 'app/configs/utils/authUtils';
 import jwtAuthConfig from 'src/app/auth/services/jwt/jwtAuthConfig';
 import { getAdminAccessToken } from '../utils/opsUtils';
 import { API_ENDPOINTS } from './serverEndpoints/endpoints';
+import { STEP_UP_HEADER, requestStepUp, stepUpChallengeOf } from '../stepUp/stepUp';
 
 // ─── Token-refresh state (module-level so all AuthApi() instances share it) ──
 let isRefreshing = false;
@@ -116,6 +117,23 @@ export function AuthApi() {
 					userLogOutCall();
 					toast.error('Your session has expired. Please log in again.');
 					return Promise.reject(refreshError);
+				}
+			}
+
+			// F30: a payment that needs the authenticator code. Ask for it, then repeat the same request with the approval.
+			const challenge = stepUpChallengeOf(error);
+
+			if (challenge && !originalRequest._stepUpTried) {
+				originalRequest._stepUpTried = true;
+
+				try {
+					const approvedId = await requestStepUp(challenge);
+
+					originalRequest.headers = { ...originalRequest.headers, [STEP_UP_HEADER]: approvedId };
+
+					return Api(originalRequest);
+				} catch (cancelled) {
+					return Promise.reject(error); // closed the dialog: nothing moved, no scary message
 				}
 			}
 
@@ -801,3 +819,17 @@ export const cancelServiceBookingApi = (bookingId, cancellationReason) => {
  * @returns
  * ############################################################
  */
+
+/**
+ * F30: authenticator set-up and the step-up approval. A PLAIN client: no refresh-and-logout interceptor, because a wrong code answers 401
+ * and must show "wrong code", not end the session.
+ */
+export function PlainAuthApi() {
+	return axios.create({ baseURL: baseUrl, headers: { 'Content-Type': 'application/json', userauthcredential: `${getAdminAccessToken()}` } });
+}
+
+export const setup2fa = () => PlainAuthApi().post('/auth-user/2fa/setup');
+export const confirm2fa = (totpCode) => PlainAuthApi().post('/auth-user/2fa/confirm', { totpCode });
+export const disable2fa = (password) => PlainAuthApi().delete('/auth-user/2fa', { data: { password } });
+export const setProtectAll = (enabled) => PlainAuthApi().put('/auth-user/2fa/protect-all', { enabled });
+export const verifyStepUp = ({ challengeId, code }) => PlainAuthApi().post('/user/step-up/verify', { challengeId, code });

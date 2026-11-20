@@ -16,6 +16,7 @@ import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import useGetUserAppSetting from "app/configs/data/server-calls/auth/userapp/a_userapp_settings/useAppSettingDomain";
 import useJwtAuth from "../useJwtAuth";
+import { useVerify2faLogin } from "app/configs/data/server-calls/auth/admin-auth";
 
 const defaultValues = {
   email: "",
@@ -120,6 +121,10 @@ function LoginDisabledNotice({ onRetry }) {
 function JwtSignInForm() {
   const { signIn, isLoading } = useJwtAuth();
   const [showPassword, setShowPassword] = useState(false);
+  // F30: set when the account has the authenticator on; the form then asks for the code instead of the password.
+  const [challenge, setChallenge] = useState(null);
+  const [totpCode, setTotpCode] = useState("");
+  const verify = useVerify2faLogin();
 
   // Fetch app settings — cached for 5 minutes, so this is near-instant on repeat visits
   const {
@@ -138,16 +143,82 @@ function JwtSignInForm() {
   const { isValid, dirtyFields, errors } = formState;
 
   function onSubmit({ email, password }) {
-    signIn({ email, password }).catch((error) => {
-      console.error("FormJSXError", error);
-      toast.error(error?.message);
-    });
+    signIn({ email, password })
+      .then((result) => {
+        if (result?.requiresTwoFactor) setChallenge(result);
+      })
+      .catch((error) => {
+        console.error("FormJSXError", error);
+        toast.error(error?.message);
+      });
   }
 
   // Block login only when the setting explicitly resolves to false.
   // While still loading, or on network error, we fail open (show the form).
   if (!settingsLoading && usersLoginEnabled === false) {
     return <LoginDisabledNotice onRetry={refetchSettings} />;
+  }
+
+  if (challenge) {
+    const code = totpCode.trim();
+    const submitCode = () => {
+      if (!code || verify.isLoading) return;
+      verify.mutate(
+        { tempToken: challenge.tempToken, totpCode: code },
+        {
+          onError: (error) => {
+            // The challenge is gone (expired, or too many wrong codes): start again from the password.
+            if (error?.response?.status === 429 || /challenge|login again/i.test(error?.response?.data?.message ?? "")) {
+              setChallenge(null);
+              setTotpCode("");
+            }
+          },
+        },
+      );
+    };
+
+    return (
+      <div className="mt-32 flex w-full flex-col justify-center">
+        <h3 className="text-xl font-bold mb-8">Enter your code</h3>
+        <p className="text-sm text-gray-500 mb-24">
+          Open your authenticator app and enter the 6-digit code for AfricanShops. Lost your phone? Use one of your backup codes instead.
+        </p>
+        <TextField
+          autoFocus
+          fullWidth
+          label="Authenticator or backup code"
+          value={totpCode}
+          onChange={(e) => setTotpCode(e.target.value.replace(/\s/g, ""))}
+          onKeyDown={(e) => e.key === "Enter" && submitCode()}
+          inputProps={{ autoComplete: "one-time-code", maxLength: 12 }}
+        />
+        <Button
+          variant="contained"
+          className="mt-16 w-full"
+          disabled={!code || verify.isLoading}
+          onClick={submitCode}
+          size="large"
+          sx={{
+            background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+            color: "white",
+            fontWeight: 600,
+            height: "48px",
+            "&:disabled": { background: "#e5e7eb", color: "#9ca3af" },
+          }}
+        >
+          {verify.isLoading ? "Checking..." : "Verify and sign in"}
+        </Button>
+        <Button
+          className="mt-8"
+          onClick={() => {
+            setChallenge(null);
+            setTotpCode("");
+          }}
+        >
+          Back to sign in
+        </Button>
+      </div>
+    );
   }
 
   return (
