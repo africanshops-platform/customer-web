@@ -14,6 +14,7 @@ import { getApiAuthUser, setup2fa, confirm2fa, disable2fa, setProtectAll } from 
 import { isSixDigits, isValidLoginCode, stepUpErrorMessage } from 'app/configs/data/stepUp/stepUp';
 import CodeBoxes from 'app/configs/data/stepUp/CodeBoxes';
 import CodeEntry from 'app/configs/data/stepUp/CodeEntry';
+import AuthenticatorAppHelp from 'app/configs/data/stepUp/AuthenticatorAppHelp';
 
 const profileOf = (res) => {
   const d = res?.data;
@@ -125,9 +126,7 @@ export default function AuthenticatorCard({ tokens, card }) {
 
       {!backupCodes && setup && (
         <div>
-          <Typography style={{ fontSize: F.small, color: tokens.textSecondary }} className="mb-12">
-            1. Scan this with an authenticator app (Google Authenticator, Microsoft Authenticator, Authy). 2. Enter the 6-digit code it shows.
-          </Typography>
+          <AuthenticatorAppHelp textColor={tokens.textPrimary} mutedColor={tokens.textSecondary} accentSoft={tokens.accentSoft} />
           {setup.qrCodeDataUrl && <img src={setup.qrCodeDataUrl} alt="Authenticator QR code" width={180} height={180} />}
           <Typography style={{ fontSize: F.small, color: tokens.textMuted, wordBreak: 'break-all' }} className="my-8">
             Cannot scan? Enter this key by hand: <b>{setup.secret}</b>
