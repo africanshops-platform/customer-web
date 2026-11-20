@@ -9,6 +9,7 @@ import Typography from '@mui/material/Typography';
 import { verifyStepUp } from '../client/RepositoryAuthClient';
 import { isSixDigits, registerStepUpHandler, stepUpErrorMessage } from './stepUp';
 import CodeBoxes from './CodeBoxes';
+import { PendingButton, ProcessingState } from 'app/shared-components/loading';
 
 /**
  * F30: asks for the authenticator code when a payment needs it. Mounted once at the app root; the shared API client opens it (through the
@@ -71,30 +72,44 @@ export default function StepUpDialog() {
 				<Typography variant="body2" color="text.secondary" className="mb-16">
 					Open your authenticator app and enter the 6-digit code for AfricanShops to approve this payment. You can paste it too.
 				</Typography>
-				<CodeBoxes
-					key={attempt}
-					autoFocus
-					value={code}
-					onChange={(next) => {
-						setCode(next);
-						if (error) setError('');
-					}}
-					error={!!error}
-					disabled={busy}
-				/>
-				{error && (
-					<Alert severity="error" className="mt-12">
-						{error}
-					</Alert>
-				)}
+				{/* One fixed-height area, so the dialog never jumps: the boxes (and any error) while waiting for a code, the branded spiral while it is checked. */}
+				<div style={{ minHeight: 190, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+					{busy ? (
+						<ProcessingState
+							title="Checking your code"
+							subtitle=""
+						/>
+					) : (
+						<>
+							<CodeBoxes
+								key={attempt}
+								autoFocus
+								value={code}
+								onChange={(next) => {
+									setCode(next);
+									if (error) setError('');
+								}}
+								error={!!error}
+							/>
+							{error && (
+								<Alert
+									severity="error"
+									className="mt-12"
+								>
+									{error}
+								</Alert>
+							)}
+						</>
+					)}
+				</div>
 			</DialogContent>
 			<DialogActions>
 				<Button onClick={close} disabled={busy}>
 					Cancel
 				</Button>
-				<Button variant="contained" onClick={submit} disabled={!isSixDigits(code) || busy}>
-					{busy ? 'Checking…' : 'Approve'}
-				</Button>
+				<PendingButton variant="contained" onClick={submit} disabled={!isSixDigits(code)} pending={busy} pendingLabel="Checking…">
+					Approve
+				</PendingButton>
 			</DialogActions>
 		</Dialog>
 	);

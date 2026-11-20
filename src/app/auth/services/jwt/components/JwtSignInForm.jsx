@@ -18,6 +18,7 @@ import useGetUserAppSetting from "app/configs/data/server-calls/auth/userapp/a_u
 import useJwtAuth from "../useJwtAuth";
 import { useVerify2faLogin } from "app/configs/data/server-calls/auth/admin-auth";
 import CodeEntry from "app/configs/data/stepUp/CodeEntry";
+import { PendingButton, ProcessingState } from "app/shared-components/loading";
 import { isValidLoginCode } from "app/configs/data/stepUp/stepUp";
 
 const defaultValues = {
@@ -185,11 +186,14 @@ function JwtSignInForm() {
         <p className="text-sm text-gray-500 mb-24">
           Open your authenticator app and enter the 6-digit code for AfricanShops. You can paste it too.
         </p>
-        <CodeEntry value={totpCode} onChange={setTotpCode} onSubmit={submitCode} autoFocus disabled={verify.isLoading} />
-        <Button
+        {/* One fixed-height area, so the form never jumps: the code boxes while typing, the branded spiral while the code is checked. */}
+          <div style={{ minHeight: 190, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            {verify.isLoading ? <ProcessingState title="Checking your code" subtitle="" /> : <CodeEntry value={totpCode} onChange={setTotpCode} onSubmit={submitCode} autoFocus />}
+          </div>
+        <PendingButton
           variant="contained"
           className="mt-16 w-full"
-          disabled={!isValidLoginCode(code) || verify.isLoading}
+          disabled={!isValidLoginCode(code)} pending={verify.isLoading} pendingLabel="Checking…"
           onClick={submitCode}
           size="large"
           sx={{
@@ -200,8 +204,8 @@ function JwtSignInForm() {
             "&:disabled": { background: "#e5e7eb", color: "#9ca3af" },
           }}
         >
-          {verify.isLoading ? "Checking..." : "Verify and sign in"}
-        </Button>
+          Verify and sign in
+        </PendingButton>
         <Button
           className="mt-8"
           onClick={() => {
