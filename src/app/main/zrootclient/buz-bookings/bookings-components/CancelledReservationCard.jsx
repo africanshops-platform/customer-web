@@ -3,6 +3,7 @@ import { Button, Typography } from "@mui/material";
 import { useRequestRefundForUserCancelledReservation } from "app/configs/data/server-calls/auth/userapp/a_bookings/use-reservations";
 import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
 
+import { formatStayDay } from "src/app/utils/stayDates";
 const CancelledReservationCard = ({ placedReservation }) => {
   const requestReservation = useRequestRefundForUserCancelledReservation();
 
@@ -41,11 +42,11 @@ const CancelledReservationCard = ({ placedReservation }) => {
           )}
           <p className="text-md font-mono font-bold">
             Your Check In:{" "}
-            {new Date(placedReservation?.cancelledBookedReservation?.startDate)?.toDateString()}
+            {formatStayDay(placedReservation?.cancelledBookedReservation?.startDate)}
           </p>
           <p className="text-md font-mono font-bold">
             Your Check Out:{" "}
-            {new Date(placedReservation?.cancelledBookedReservation?.endDate)?.toDateString()}
+            {formatStayDay(placedReservation?.cancelledBookedReservation?.endDate)}
           </p>
         </div>
         {placedReservation?.cancelledBookedReservation?.isPaid &&

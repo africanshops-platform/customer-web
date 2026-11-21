@@ -21,6 +21,7 @@ import { differenceInCalendarDays } from "date-fns";
 import { useCancelUserReservation } from "app/configs/data/server-calls/auth/userapp/a_bookings/use-reservations";
 import PropertyChatDialog from "./PropertyChatDialog";
 
+import { formatStayDay } from "src/app/utils/stayDates";
 /**
  * DemoContent Component
  * Beautiful reservation detail page with orange gradient branding
@@ -154,7 +155,7 @@ function DemoContent(props) {
               }}
             />
             <Typography variant="body2" className="text-gray-600">
-              Placed on {new Date(reservation?.createdAt)?.toDateString()}
+              Placed on {formatStayDay(reservation?.createdAt)}
             </Typography>
           </div>
         </motion.div>
@@ -242,7 +243,7 @@ function DemoContent(props) {
                     Check-in
                   </Typography>
                   <Typography variant="body1" className="font-semibold text-gray-900">
-                    {new Date(reservation?.startDate)?.toDateString()}
+                    {formatStayDay(reservation?.startDate)}
                   </Typography>
                 </div>
               </div>
@@ -252,7 +253,7 @@ function DemoContent(props) {
                     Check-out
                   </Typography>
                   <Typography variant="body1" className="font-semibold text-gray-900">
-                    {new Date(reservation?.endDate)?.toDateString()}
+                    {formatStayDay(reservation?.endDate)}
                   </Typography>
                 </div>
               </div>

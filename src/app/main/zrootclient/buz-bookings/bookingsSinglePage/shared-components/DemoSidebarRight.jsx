@@ -238,7 +238,7 @@ function DemoSidebarRight(props) {
                   lineHeight: 1.5,
                 }}
               >
-                Your payment is protected. Free cancellation within 24 hours.
+                Your payment is protected.
               </Typography>
             </div>
           </div>
