@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
+import SealedDetailDrawer, { ngn, shortDate as sd } from "app/shared-components/sealed/SealedDetailDrawer";
 import { useState } from "react";
 import { CircularProgress, Typography, Button } from "@mui/material";
 import { CheckCircle, Cancel, CalendarToday, EventAvailable, Refresh } from "@mui/icons-material";
@@ -7,13 +8,15 @@ import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
 import ClienttErrorPage from "src/app/main/zrootclient/components/ClienttErrorPage";
 import { useRequestRefundForUserCancelledReservation } from "app/configs/data/server-calls/auth/userapp/a_bookings/use-reservations";
 
+import { formatStayDay } from "src/app/utils/stayDates";
 /**
  * DemoContent Component
  * Beautiful and professional reservation listings with orange gradient branding
  */
 function DemoContent(props) {
-  const { isLoading, isError, reservations, cancelledReservations } = props;
+  const { isLoading, isError, reservations, cancelledReservations, sealedReservations } = props;
   const [activeTab, setActiveTab] = useState("active");
+  const [selectedSealed, setSelectedSealed] = useState(null);
 
   // Loading State
   if (isLoading) {
@@ -56,7 +59,7 @@ function DemoContent(props) {
   }
 
   // Empty State
-  if (!reservations || (reservations.length === 0 && cancelledReservations?.length === 0)) {
+  if (!reservations || (reservations.length === 0 && cancelledReservations?.length === 0 && !sealedReservations?.length)) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -102,6 +105,7 @@ function DemoContent(props) {
 
   const activeReservations = reservations || [];
   const cancelledList = cancelledReservations || [];
+  const sealedList = sealedReservations || [];
 
   return (
     <div className="flex-auto h-full overflow-hidden flex flex-col">
@@ -169,6 +173,20 @@ function DemoContent(props) {
               </span>
             </div>
           </button>
+
+          <button
+            onClick={() => setActiveTab("history")}
+            className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all ${
+              activeTab === "history" ? "text-white shadow-lg" : "text-gray-600 bg-gray-100 hover:bg-gray-200"
+            }`}
+            style={activeTab === "history" ? { background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)" } : {}}
+          >
+            <div className="flex items-center gap-2">
+              <EventAvailable sx={{ fontSize: "1.25rem" }} />
+              <span>History</span>
+              <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-white/20">{sealedList.length}</span>
+            </div>
+          </button>
         </motion.div>
       </div>
 
@@ -179,7 +197,87 @@ function DemoContent(props) {
           {activeTab === "cancelled" && (
             <CancelledReservationsList cancelledReservations={cancelledList} />
           )}
+          {activeTab === "history" && (
+            <div className="space-y-3" data-testid="reservation-history">
+              {sealedList.length === 0 ? (
+                <p className="text-gray-600 text-center py-16">
+                  Finished stays appear here once the host has been paid out.
+                </p>
+              ) : (
+                sealedList.map((row) => {
+                  const r = row.sealedBookedReservation || {};
+                  const fmt = (d) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "");
+                  return (
+                    <div
+                      key={row.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedSealed(row)}
+                      onKeyDown={(e) => e.key === "Enter" && setSelectedSealed(row)}
+                      className="bg-white rounded-2xl shadow-md p-4 flex items-center justify-between gap-4 cursor-pointer hover:shadow-lg transition-shadow"
+                      style={{ border: "1px solid rgba(229, 231, 235, 1)" }}
+                    >
+                      <div className="min-w-0">
+                        <p className="font-bold text-gray-900 truncate">{r.paymentdatas?.bookingName || "Reservation"}</p>
+                        <p className="text-sm text-gray-500">
+                          {fmt(r.startDate)} – {fmt(r.endDate)}
+                          {r.totalPrice != null ? ` · ₦${Number(r.totalPrice).toLocaleString("en-NG")}` : ""}
+                        </p>
+                      </div>
+                      <span
+                        className="text-xs font-bold px-3 py-1 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: "#f0fdf4", color: "#16a34a" }}
+                      >
+                        Completed · Settled
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
         </AnimatePresence>
+        <SealedDetailDrawer
+          open={Boolean(selectedSealed)}
+          onClose={() => setSelectedSealed(null)}
+          detail={
+            selectedSealed
+              ? (() => {
+                  const r = selectedSealed.sealedBookedReservation || {};
+                  return {
+                    title: r.paymentdatas?.bookingName || "Reservation",
+                    subtitle: `${sd(r.startDate)} – ${sd(r.endDate)}`,
+                    headline: { label: "You paid", value: r.totalPrice != null ? ngn(r.totalPrice) : "" },
+                    timeline: [
+                      { label: "Booked and paid", date: sd(r.PaidAt || r.createdAt) },
+                      { label: "Checked in", date: sd(r.checkedInAt) },
+                      { label: "Checked out", date: sd(r.checkedOutAt) },
+                    ],
+                    sections: [
+                      {
+                        title: "Your stay",
+                        rows: [
+                          { label: "Check-in", value: sd(r.startDate) },
+                          { label: "Check-out", value: sd(r.endDate) },
+                          { label: "Address", value: r.paymentdatas?.bookingAddress },
+                        ],
+                      },
+                      {
+                        title: "Payment",
+                        rows: [
+                          { label: "Method", value: r.paymentdatas?.paymentMethod },
+                          { label: "Reference", value: r.paymentResult?.reference },
+                          { label: "Tax", value: r.taxPrice ? ngn(r.taxPrice) : null },
+                          { label: "Total", value: r.totalPrice != null ? ngn(r.totalPrice) : null, strong: true },
+                        ],
+                      },
+                    ],
+                    note: "A finished stay. This record is read-only.",
+                  };
+                })()
+              : null
+          }
+        />
       </div>
     </div>
   );
@@ -262,13 +360,13 @@ function ActiveReservationsList({ reservations }) {
                     <CalendarToday sx={{ fontSize: "1rem", color: "#ea580c" }} />
                     <span className="text-sm font-medium">Check-in:</span>
                     <span className="text-sm">
-                      {new Date(reservation.startDate).toDateString()}
+                      {formatStayDay(reservation.startDate)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-700">
                     <CalendarToday sx={{ fontSize: "1rem", color: "#ea580c" }} />
                     <span className="text-sm font-medium">Check-out:</span>
-                    <span className="text-sm">{new Date(reservation.endDate).toDateString()}</span>
+                    <span className="text-sm">{formatStayDay(reservation.endDate)}</span>
                   </div>
                 </div>
               </div>
@@ -419,14 +517,14 @@ function CancelledReservationsList({ cancelledReservations }) {
                       <CalendarToday sx={{ fontSize: "1rem", color: "#ef4444" }} />
                       <span className="text-sm font-medium">Check-in:</span>
                       <span className="text-sm">
-                        {new Date(reservation?.startDate).toDateString()}
+                        {formatStayDay(reservation?.startDate)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-gray-700">
                       <CalendarToday sx={{ fontSize: "1rem", color: "#ef4444" }} />
                       <span className="text-sm font-medium">Check-out:</span>
                       <span className="text-sm">
-                        {new Date(reservation?.endDate).toDateString()}
+                        {formatStayDay(reservation?.endDate)}
                       </span>
                     </div>
                   </div>

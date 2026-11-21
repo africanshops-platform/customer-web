@@ -23,8 +23,15 @@ import NotesIcon from "@mui/icons-material/Notes";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
-import { PaystackButton } from "react-paystack";
+import { toast } from "react-toastify";
+import { usePaystackPayment } from "react-paystack";
+import { useQueryClient } from "react-query";
+import { createEngineeringCheckoutIntentApi } from "app/configs/data/client/RepositoryAuthClient";
+import useCheckoutIntentPay from "../../checkout-intent/useCheckoutIntentPay";
+import useCheckoutFeeQuote from "../../checkout-intent/useCheckoutFeeQuote";
+import { FEE_LABEL, nairaText, payableKobo, payButtonLabel } from "../../checkout-intent/checkoutFee";
 import FuseSvgIcon from "@fuse/core/FuseSvgIcon";
+import PaymentProcessingOverlay from "app/shared-components/payment/PaymentProcessingOverlay";
 import FusePageSimpleWithMargin from "@fuse/core/FusePageSimple/FusePageSimpleWithMargin";
 import useThemeMediaQuery from "@fuse/hooks/useThemeMediaQuery";
 import { useAppSelector } from "app/store/hooks";
@@ -88,7 +95,7 @@ function BookingDetailHeader({ booking, shop, onToggleFilters, onToggleMap }) {
             <div className="flex items-center gap-3 mb-2 flex-wrap">
               <BuildIcon sx={{ fontSize: "1.75rem" }} />
               <h1 className="text-2xl sm:text-3xl font-black">{shop?.name || "Repair shop"}</h1>
-              <Chip label={meta.label} sx={{ backgroundColor: "rgba(255,255,255,0.2)", color: "white", fontWeight: 700 }} />
+              <Chip label={booking.isSealed ? "Completed · Settled" : meta.label} sx={{ backgroundColor: "rgba(255,255,255,0.2)", color: "white", fontWeight: 700 }} />
             </div>
           </div>
         </div>
@@ -226,6 +233,30 @@ function PayInvoiceSection({ booking, repairJob, user }) {
   const verifyPayment = useVerifyEngineeringBookingPayment();
   const readiness = useEngineeringCheckoutReadiness();
   const { VITE_PAYSTACK_PUBLIC_KEY } = import.meta.env;
+  const queryClient = useQueryClient();
+  const invoiceKobo = repairJob?.totalCostKobo || 0;
+  // F29 3.4: the server reads the invoice itself and adds the customer-paid Transaction fee when a policy is on; the page names only the booking.
+  const feeQuote = useCheckoutFeeQuote(invoiceKobo);
+  const payKobo = payableKobo(invoiceKobo, feeQuote.feeKobo);
+  const legacyPay = usePaystackPayment({
+    reference: `EB${booking.id}`,
+    email: user?.email,
+    amount: invoiceKobo,
+    metadata: { userId: user?.id, bookingId: booking.id },
+    publicKey: VITE_PAYSTACK_PUBLIC_KEY,
+  });
+  const { payPhase, handlePay } = useCheckoutIntentPay({
+    cartKey: booking.id,
+    createIntentApi: createEngineeringCheckoutIntentApi,
+    buildOrder: () => ({}),
+    startLegacy: () => legacyPay({ onSuccess: (ref) => verifyPayment.mutate({ bookingId: booking.id, reference: ref?.reference, paymentResult: ref }), onClose: () => {} }),
+    onBooked: () => {
+      toast.success("Payment confirmed — the shop can now start work.");
+      queryClient.invalidateQueries(["__myBooking", booking.id]);
+      queryClient.invalidateQueries("__myBookings");
+    },
+    canPay: () => !(readiness.data?.healthy === false || verifyPayment.isLoading || feeQuote.isFetching),
+  });
 
   if (booking.status !== "CONFIRMED" || !repairJob) return null;
 
@@ -253,11 +284,13 @@ function PayInvoiceSection({ booking, repairJob, user }) {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-5">
+      {/* Card charged, confirming with the server: the same "Processing Payment..." cover the hotel booking shows. Held until the booking reads as paid so the Pay button never flashes back. */}
+      <PaymentProcessingOverlay open={verifyPayment.isLoading || (verifyPayment.isSuccess && !booking.isPaid)} />
       <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
         <ReceiptLongIcon sx={{ fontSize: "1.15rem", color: "#ea580c" }} /> Pay this invoice to start work
       </h3>
-      <PaystackButton
-        text={`🔒 Pay ${formatNaira(amountKobo)}`}
+      <button
+        type="button"
         className="w-full py-3 sm:py-4 rounded-xl font-bold text-sm sm:text-base transition-all duration-300"
         style={{
           background: notReady || verifyPayment.isLoading
@@ -267,15 +300,16 @@ function PayInvoiceSection({ booking, repairJob, user }) {
           border: "none",
           cursor: notReady || verifyPayment.isLoading ? "not-allowed" : "pointer",
         }}
-        reference={`EB${booking.id}`}
-        email={user?.email}
-        amount={amountKobo}
-        metadata={{ userId: user?.id, bookingId: booking.id }}
-        publicKey={VITE_PAYSTACK_PUBLIC_KEY}
-        onSuccess={onSuccess}
-        onClose={() => {}}
-        disabled={notReady || verifyPayment.isLoading}
-      />
+        onClick={handlePay}
+        disabled={notReady || verifyPayment.isLoading || feeQuote.isFetching || payPhase !== "idle"}
+      >
+        {payButtonLabel(payPhase, `🔒 Pay ${formatNaira(payKobo)}`)}
+      </button>
+      {feeQuote.feeKobo > 0 && (
+        <Typography variant="caption" className="mt-2 block text-center" sx={{ color: "#6b7280" }}>
+          Includes a ₦{nairaText(feeQuote.feeKobo)} {FEE_LABEL.toLowerCase()}
+        </Typography>
+      )}
       {notReady && (
         <Typography variant="body2" className="mt-3 text-center" sx={{ color: "#dc2626", fontWeight: 600 }}>
           We can't confirm payment services are ready right now. Please try again shortly.

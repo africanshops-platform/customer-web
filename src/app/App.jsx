@@ -15,6 +15,7 @@ import { useSelector } from "react-redux";
 import { QueryClient, QueryClientProvider } from "react-query";
 import withAppProviders from "./withAppProviders";
 import AuthenticationProvider from "./auth/AuthenticationProvider";
+import StepUpDialog from "./configs/data/stepUp/StepUpDialog";
 
 // import axios from 'axios';
 /**
@@ -72,6 +73,7 @@ function App() {
                 }}
               >
                 <FuseLayout layouts={themeLayouts} />
+                <StepUpDialog />
               </SnackbarProvider>
             </AuthenticationProvider>
           </FuseTheme>

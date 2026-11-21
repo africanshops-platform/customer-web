@@ -2,7 +2,8 @@ import {
 	verifyPaystackPaymentFromFintechService,
 	getBookingsCheckoutReadiness,
 	getMarketplaceCheckoutReadiness,
-	getFoodCheckoutReadiness
+	getFoodCheckoutReadiness,
+	getCheckoutProcessingStyle
 } from 'app/configs/data/client/RepositoryAuthClient';
 import { handleApiError } from 'app/configs/data/utils/handleApiError';
 import { useMutation, useQuery } from 'react-query';
@@ -55,6 +56,20 @@ export function useMarketplaceCheckoutReadiness(enabled = true) {
 		enabled,
 		select: (res) => res?.data
 	});
+}
+
+/**
+ * 'overlay' (a full-screen cover that blocks the page until the payment is verified) or 'inline' (the loader in the order summary card). An admin
+ * chooses; 'inline' until the server says otherwise, and also if it cannot be read, so the page never has to wait for it or guess.
+ */
+export function useCheckoutProcessingStyle() {
+	const query = useQuery(['__checkoutProcessingStyle'], () => getCheckoutProcessingStyle(), {
+		staleTime: 15000,
+		refetchOnWindowFocus: false,
+		retry: false,
+		select: (res) => (res?.data?.style === 'overlay' ? 'overlay' : 'inline')
+	});
+	return query.data ?? 'inline';
 }
 
 export function useFoodCheckoutReadiness(enabled = true) {

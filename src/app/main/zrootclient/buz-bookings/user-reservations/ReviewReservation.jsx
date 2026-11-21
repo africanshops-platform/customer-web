@@ -5,12 +5,10 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import {
   Button,
-  Backdrop,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  CircularProgress,
 } from "@mui/material";
 import FusePageSimple from "@fuse/core/FusePageSimple";
 import useThemeMediaQuery from "@fuse/hooks/useThemeMediaQuery";
@@ -19,13 +17,20 @@ import {
   useGetUserSingleTrip,
   useCancelUserReservation,
 } from "app/configs/data/server-calls/auth/userapp/a_bookings/use-reservations";
-import { useParams } from "react-router";
-import { formatCurrency, formatDateUtil } from "src/app/main/vendors-shop/PosUtils";
+import { useNavigate, useParams } from "react-router";
+import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
+import { formatStayDay } from "src/app/utils/stayDates";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "react-toastify";
-import { PaystackButton } from "react-paystack";
+import { usePaystackPayment } from "react-paystack";
+import { useQueryClient } from "react-query";
+import { createBookingCheckoutIntentApi } from "app/configs/data/client/RepositoryAuthClient";
+import useCheckoutIntentPay from "../../checkout-intent/useCheckoutIntentPay";
+import useCheckoutFeeQuote from "../../checkout-intent/useCheckoutFeeQuote";
+import { FEE_LABEL, nairaText, payableKobo, payButtonLabel } from "../../checkout-intent/checkoutFee";
+import PaymentProcessingOverlay from "app/shared-components/payment/PaymentProcessingOverlay";
 import { selectUser } from "src/app/auth/user/store/userSlice";
 import { useAppSelector } from "app/store/hooks";
 import {
@@ -35,6 +40,7 @@ import {
 import ClienttErrorPage from "../../components/ClienttErrorPage";
 import PlacedReservation from "./PlacedReservation";
 import MyAddresses from "./MyAddresses";
+import TermsAndConditionsPreview from "../../buz-marketplace/shops/components/TermsAndConditionsPreview";
 
 /**
  * Form Validation Schema
@@ -102,6 +108,12 @@ function ReviewReservation() {
   const email = user?.email;
   const vatRate = Math.round(totalPrice * 0.075);
 
+  // F29 3.4: the same server-made intent as food and marketplace. The page names only the reservation; the server reads the price, adds the customer-paid
+  // Transaction fee when a policy is on, and the one Paystack transaction is reopened (never recreated) on a second Pay.
+  const cartKobo = Math.round(totalPrice * 1.075 * 100);
+  const feeQuote = useCheckoutFeeQuote(cartKobo);
+  const payKobo = payableKobo(cartKobo, feeQuote.feeKobo);
+
   const onSuccess = async (paystackResponse) => {
     //1. Verify payment from backend
     //2. update state of order setting isPaid=true
@@ -155,6 +167,39 @@ function ReviewReservation() {
   const onClose = () => {
     setPaymentCloseDialogOpen(true);
   };
+
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const isPayBlocked =
+    feeQuote.isFetching || // wait for the fee so the total on the button is the total charged
+    _.isEmpty(dirtyFields) ||
+    !isValid ||
+    !name ||
+    !phone ||
+    !address ||
+    verifyPayment?.isLoading ||
+    paymentFailedPermanently ||
+    readiness.data?.healthy === false;
+  // The old Pay (browser-made transaction), kept only for when the server has checkout intents switched off.
+  const legacyPay = usePaystackPayment({
+    reference: `BK-${reservationId}`,
+    email,
+    amount: totalPrice * 1.075 * 100,
+    metadata: { userId: user?.id, reservationId },
+    publicKey: VITE_PAYSTACK_PUBLIC_KEY,
+  });
+  const { payPhase, handlePay } = useCheckoutIntentPay({
+    cartKey: reservationId,
+    createIntentApi: createBookingCheckoutIntentApi,
+    buildOrder: () => ({ name, phone, address }),
+    startLegacy: () => legacyPay({ onSuccess: (ref) => onSuccess(ref), onClose: () => onClose() }),
+    onBooked: (id) => {
+      toast.success("Reservation paid successfully!");
+      queryClient.invalidateQueries(["__tripById", reservationId]);
+      navigate(`/bookings/${id ?? reservationId}/payment-success`);
+    },
+    canPay: () => !isPayBlocked,
+  });
 
   // Handle cancel reservation
   const handleCancelReservation = () => {
@@ -568,68 +613,7 @@ function ReviewReservation() {
                       style={{ lineHeight: "1.6" }}
                     >
                       <div className="flex items-center mb-2" />
-                      <div className="bg-gray-100 p-2 rounded-lg pb-4">
-                        <p className="text-blue-500 font-semibold">
-                          Terms and condition on booking a reservation on Africanshops.
-                        </p>
-                        <p className="text-sm">
-                          This may be because: 1) Your order is below the minimum purchase amount of
-                          2,000 naira or above the maximum purchase amount of 250,000 naira; or 2)
-                          Cash on delivery is not available for your delivery address or the pick-up
-                          station selected; or 3) You have had multiple failed delivery attempts or
-                          cancelled orders; or 4) the number you are using to place the order is a
-                          number that has a restriction
-                        </p>
-                        <p className="text-sm">
-                          This may be because: 1) Your order is below the minimum purchase amount of
-                          2,000 naira or above the maximum purchase amount of 250,000 naira; or 2)
-                          Cash on delivery is not available for your delivery address or the pick-up
-                          station selected; or 3) You have had multiple failed delivery attempts or
-                          cancelled orders; or 4) the number you are using to place the order is a
-                          number that has a restriction
-                        </p>
-                        <p className="text-sm">
-                          This may be because: 1) Your order is below the minimum purchase amount of
-                          2,000 naira or above the maximum purchase amount of 250,000 naira; or 2)
-                          Cash on delivery is not available for your delivery address or the pick-up
-                          station selected; or 3) You have had multiple failed delivery attempts or
-                          cancelled orders; or 4) the number you are using to place the order is a
-                          number that has a restriction
-                        </p>
-                        <p className="text-sm">
-                          This may be because: 1) Your order is below the minimum purchase amount of
-                          2,000 naira or above the maximum purchase amount of 250,000 naira; or 2)
-                          Cash on delivery is not available for your delivery address or the pick-up
-                          station selected; or 3) You have had multiple failed delivery attempts or
-                          cancelled orders; or 4) the number you are using to place the order is a
-                          number that has a restriction
-                        </p>
-
-                        <p className="text-sm">
-                          This may be because: 1) Your order is below the minimum purchase amount of
-                          2,000 naira or above the maximum purchase amount of 250,000 naira; or 2)
-                          Cash on delivery is not available for your delivery address or the pick-up
-                          station selected; or 3) You have had multiple failed delivery attempts or
-                          cancelled orders; or 4) the number you are using to place the order is a
-                          number that has a restriction
-                        </p>
-                        <p className="text-sm">
-                          This may be because: 1) Your order is below the minimum purchase amount of
-                          2,000 naira or above the maximum purchase amount of 250,000 naira; or 2)
-                          Cash on delivery is not available for your delivery address or the pick-up
-                          station selected; or 3) You have had multiple failed delivery attempts or
-                          cancelled orders; or 4) the number you are using to place the order is a
-                          number that has a restriction
-                        </p>
-                        <p className="text-sm">
-                          This may be because: 1) Your order is below the minimum purchase amount of
-                          2,000 naira or above the maximum purchase amount of 250,000 naira; or 2)
-                          Cash on delivery is not available for your delivery address or the pick-up
-                          station selected; or 3) You have had multiple failed delivery attempts or
-                          cancelled orders; or 4) the number you are using to place the order is a
-                          number that has a restriction
-                        </p>
-                      </div>
+                      <TermsAndConditionsPreview />
                       <br />
                       <br />
                       <br />
@@ -736,7 +720,7 @@ function ReviewReservation() {
                           <span className="text-xs font-semibold text-gray-600">Check In</span>
                         </div>
                         <p className="text-xs sm:text-sm font-bold text-gray-800">
-                          {formatDateUtil(singlereservation?.data?.reservation?.startDate)}
+                          {formatStayDay(singlereservation?.data?.reservation?.startDate)}
                         </p>
                       </div>
 
@@ -765,7 +749,7 @@ function ReviewReservation() {
                           <span className="text-xs font-semibold text-gray-600">Check Out</span>
                         </div>
                         <p className="text-xs sm:text-sm font-bold text-gray-800">
-                          {formatDateUtil(singlereservation?.data?.reservation?.endDate)}
+                          {formatStayDay(singlereservation?.data?.reservation?.endDate)}
                         </p>
                       </div>
                     </div>
@@ -871,8 +855,8 @@ function ReviewReservation() {
                             }
                           `}
                         </style>
-                        <PaystackButton
-                          text={`🔒 Pay ₦${formatCurrency(totalPrice * 1.075)}`}
+                        <button
+                          type="button"
                           className={`w-full py-3 sm:py-4 rounded-xl font-bold text-sm sm:text-base md:text-lg transition-all duration-300 ${
                             !isValid || _.isEmpty(dirtyFields) || !name || !phone || !address
                               ? ""
@@ -904,28 +888,16 @@ function ReviewReservation() {
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                           }}
-                          reference={`BK${reservationId}`}
-                          email={email}
-                          amount={totalPrice * 1.075 * 100}
-                          vat={vatRate}
-                          metadata={{
-                            userId: user?.id,
-                            reservationId,
-                          }}
-                          publicKey={VITE_PAYSTACK_PUBLIC_KEY}
-                          onSuccess={(reference) => onSuccess(reference)}
-                          onClose={() => onClose()}
-                          disabled={
-                            _.isEmpty(dirtyFields) ||
-                            !isValid ||
-                            !name ||
-                            !phone ||
-                            !address ||
-                            verifyPayment?.isLoading ||
-                            paymentFailedPermanently ||
-                            readiness.data?.healthy === false
-                          }
-                        />
+                          onClick={handlePay}
+                          disabled={isPayBlocked || payPhase !== "idle"}
+                        >
+                          {payButtonLabel(payPhase, `🔒 Pay ₦${nairaText(payKobo)}`)}
+                        </button>
+                        {feeQuote.feeKobo > 0 && (
+                          <Typography variant="caption" className="mt-2 block text-center" sx={{ color: "#6b7280" }}>
+                            Includes a ₦{nairaText(feeQuote.feeKobo)} {FEE_LABEL.toLowerCase()}
+                          </Typography>
+                        )}
                         {paymentFailedPermanently && (
                           <Typography
                             variant="body2"
@@ -1076,211 +1048,7 @@ function ReviewReservation() {
           />
 
           {/* Payment Processing Backdrop */}
-          <Backdrop
-            sx={{
-              zIndex: (theme) => theme.zIndex.modal + 1000,
-              backgroundColor: "rgba(0, 0, 0, 0.75)",
-              backdropFilter: "blur(8px)",
-            }}
-            open={verifyPayment?.isLoading || false}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
-              className="flex flex-col items-center gap-6 px-4"
-            >
-              {/* Logo with Circular Progress */}
-              <div className="relative">
-                {/* Circular Progress - Orange Theme */}
-                <CircularProgress
-                  size={160}
-                  thickness={3}
-                  sx={{
-                    color: "#ea580c",
-                    position: "absolute",
-                    top: -20,
-                    left: -20,
-                  }}
-                />
-
-                {/* AfricanShops Logo Container */}
-                <div
-                  className="w-[120px] h-[120px] rounded-full flex items-center justify-center shadow-2xl"
-                  style={{
-                    background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-                  }}
-                >
-                  <img
-                    src="/assets/images/afslogo/afslogo.png"
-                    alt="AfricanShops"
-                    className="w-20 h-20"
-                    onError={(e) => {
-                      // Fallback if logo doesn't exist
-                      e.target.style.display = "none";
-                      e.target.parentElement.innerHTML = `
-                        <div style="color: white; font-size: 2.5rem; font-weight: 900;">AS</div>
-                      `;
-                    }}
-                  />
-                </div>
-
-                {/* Pulsing Ring Animation */}
-                <motion.div
-                  animate={{
-                    scale: [1, 1.2, 1],
-                    opacity: [0.5, 0.2, 0.5],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  className="absolute inset-0 rounded-full"
-                  style={{
-                    border: "3px solid #ea580c",
-                    margin: "-20px",
-                  }}
-                />
-              </div>
-
-              {/* Processing Text with Pulse Animation */}
-              <motion.div
-                animate={{ opacity: [0.7, 1, 0.7] }}
-                transition={{
-                  duration: 1.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="text-center"
-              >
-                <Typography
-                  sx={{
-                    fontSize: { xs: "1.5rem", sm: "2rem" },
-                    fontWeight: 800,
-                    background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    backgroundClip: "text",
-                    marginBottom: 2,
-                  }}
-                >
-                  Processing Payment...
-                </Typography>
-
-                <Typography
-                  variant="body1"
-                  sx={{
-                    color: "#e5e7eb",
-                    fontSize: { xs: "0.9rem", sm: "1rem" },
-                    fontWeight: 500,
-                  }}
-                >
-                  Please wait while we verify your payment
-                </Typography>
-              </motion.div>
-
-              {/* Security Icons with Animation */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="flex items-center gap-4 mt-4"
-              >
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm">
-                  <svg
-                    className="w-5 h-5 text-green-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                    />
-                  </svg>
-                  <Typography variant="caption" className="text-white font-semibold">
-                    Secure
-                  </Typography>
-                </div>
-
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm">
-                  <svg
-                    className="w-5 h-5 text-blue-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                    />
-                  </svg>
-                  <Typography variant="caption" className="text-white font-semibold">
-                    Protected
-                  </Typography>
-                </div>
-              </motion.div>
-
-              {/* Warning Message */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="max-w-md mx-auto mt-4"
-              >
-                <div
-                  className="p-4 rounded-xl flex items-start gap-3"
-                  style={{
-                    background: "rgba(234, 88, 12, 0.15)",
-                    border: "2px solid rgba(234, 88, 12, 0.3)",
-                    backdropFilter: "blur(10px)",
-                  }}
-                >
-                  <svg
-                    className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                  <div>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: "#fff",
-                        fontWeight: 600,
-                        fontSize: { xs: "0.8rem", sm: "0.875rem" },
-                      }}
-                    >
-                      Do not close or refresh this page
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "#e5e7eb",
-                        fontSize: { xs: "0.7rem", sm: "0.75rem" },
-                        display: "block",
-                        marginTop: "4px",
-                      }}
-                    >
-                      Your payment is being securely processed
-                    </Typography>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          </Backdrop>
+          <PaymentProcessingOverlay open={verifyPayment?.isLoading || false} />
 
           {/* Payment Close Warning Dialog */}
           <Dialog
@@ -1610,13 +1378,13 @@ function ReviewReservation() {
                     <div className="flex justify-between">
                       <span>Check-in:</span>
                       <span className="font-semibold">
-                        {formatDateUtil(singlereservation?.data?.reservation?.startDate)}
+                        {formatStayDay(singlereservation?.data?.reservation?.startDate)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span>Check-out:</span>
                       <span className="font-semibold">
-                        {formatDateUtil(singlereservation?.data?.reservation?.endDate)}
+                        {formatStayDay(singlereservation?.data?.reservation?.endDate)}
                       </span>
                     </div>
                     <div className="flex justify-between pt-2 border-t border-red-200">

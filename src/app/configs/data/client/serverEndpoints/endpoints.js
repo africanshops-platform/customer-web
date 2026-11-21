@@ -59,6 +59,11 @@ export const API_ENDPOINTS = {
 	UPDATE_FOODCART_QTY: '/rcs-cart-session/update-cart-item', // (Done => Msvs)
 
 	CREATE_FOOD_ORDER: '/paystack-payment/verify-and-create-rcs-order', // (Done => Msvs)
+	CREATE_FOOD_CHECKOUT_INTENT: '/paystack-payment/checkout-intents/food', // F28: the Pay click (server makes or resumes the cart's intent)
+	CREATE_MARKETPLACE_CHECKOUT_INTENT: '/paystack-payment/checkout-intents/marketplace', // F28
+	CREATE_BOOKING_CHECKOUT_INTENT: '/paystack-payment/checkout-intents/booking', // F29 3.4: Pay for a reservation (server prices it)
+	CREATE_ENGINEERING_CHECKOUT_INTENT: '/paystack-payment/checkout-intents/engineering', // F29 3.4: Pay a repair invoice (server prices it)
+	CONFIRM_CHECKOUT_INTENT: '/paystack-payment/checkout-intents', // F28: POST <this>/<reference>/confirm
 	CALCULATE_FOOD_CART_SHIPPING: '/buzshipping/calculate-food-cart', // (Done => Msvs)
 
 	GET_USER_FOOD_ORDER_LIST: '/rcs-food-orders', // (Done => Msvs)

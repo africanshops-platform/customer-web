@@ -5,9 +5,16 @@ import {
   usePayAndPlaceOrder,
   useCalculateCartShipping,
 } from "app/configs/data/server-calls/auth/userapp/a_marketplace/useProductsRepo";
-import { useMarketplaceCheckoutReadiness } from "app/configs/data/server-calls/auth/paystack-payments/usePaystackPaymentsRepo";
+import { useMarketplaceCheckoutReadiness, useCheckoutProcessingStyle } from "app/configs/data/server-calls/auth/paystack-payments/usePaystackPaymentsRepo";
+import { createMarketplaceCheckoutIntentApi } from "app/configs/data/client/RepositoryAuthClient";
+import useCheckoutIntentPay from "../../../checkout-intent/useCheckoutIntentPay";
+import useCheckoutFeeQuote from "../../../checkout-intent/useCheckoutFeeQuote";
+import { FEE_LABEL, nairaText, payableKobo } from "../../../checkout-intent/checkoutFee";
+import PaymentCheckingLoader from "../../../checkout-intent/PaymentCheckingLoader";
+import PaymentProcessingOverlay from "app/shared-components/payment/PaymentProcessingOverlay";
 import { useAppSelector } from "app/store/hooks";
-import { PaystackButton } from "react-paystack";
+import { usePaystackPayment } from "react-paystack";
+import { useNavigate } from "react-router";
 import { useQueryClient } from "react-query";
 import { toast } from "react-toastify";
 import { selectUser } from "src/app/auth/user/store/userSlice";
@@ -61,6 +68,8 @@ const CartSummaryAndPay = ({
   // parent's cart query refetches with the new session.
   const [paymentFailedPermanently, setPaymentFailedPermanently] = useState(false);
   const readiness = useMarketplaceCheckoutReadiness();
+  // Admin setting (founder 2026-11-18): "overlay" covers the page until the payment is verified; "inline" keeps the loader in this card.
+  const processingStyle = useCheckoutProcessingStyle();
   const {
     mutate: calculateCartShipping,
     isLoading: deliveryLoading,
@@ -139,15 +148,47 @@ const CartSummaryAndPay = ({
 
   // Calculate grand total
   const grandTotal = parseInt(subtotal) + parseInt(deliveryFee) + parseInt(vatAmount);
+  // F29 3.4: the customer-paid Transaction fee on top of the cart. The server prices it (0 when no fee policy is on, and the line is then not drawn).
+  const feeQuote = useCheckoutFeeQuote(grandTotal * 100);
+  const payKobo = payableKobo(grandTotal * 100, feeQuote.feeKobo);
 
   const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
 
   const { mutate: verifyPaymentAndCreateOrder, isLoading: loadingWhilePaying } =
     usePayAndPlaceOrder();
 
+  // ── F28: pay through a server-made checkout intent (docs/designs/F28-paid-order-recovery.md) ─────────────────────────────────────────
+  // One reference per CART SESSION, made by the server, so a lost confirm call can never leave a paid cart without an order and a second Pay reopens
+  // the SAME transaction. When the server has intents switched off it answers "not switched on" and the old Pay flow below runs exactly as before.
+  const navigate = useNavigate();
+  const legacyPay = usePaystackPayment({
+    reference: "AFSH" + cartSessionPayload?.id + "REF",
+    email: user?.email,
+    amount: grandTotal * 100,
+    publicKey,
+    metadata: { userId: user?.id, cartSessionId: cartSessionPayload?.id },
+  });
+  const { payPhase, payRef, payStage, handlePay } = useCheckoutIntentPay({
+    cartKey: cartSessionPayload?.id,
+    createIntentApi: createMarketplaceCheckoutIntentApi,
+    // A function, not the value: buildOrderBase is a const declared further down, and reading it here at render time crashed the page (temporal dead zone).
+    buildOrder: () => buildOrderBase(),
+    startLegacy: () => legacyPay({ onSuccess: (ref) => onSuccess(ref), onClose: () => onClose() }),
+    onBooked: (orderId) => {
+      toast.success("Order placed successfully!");
+      queryClient.invalidateQueries(["__cart"]);
+      queryClient.refetchQueries("__cart", { force: true });
+      // The delivery code is on screen only when this page places the order; when the webhook or the booking job does, it is emailed.
+      navigate(orderId ? `/marketplace/order/${orderId}/payment-success` : "/marketplace/user/orders", { state: { deliveryCode: null } });
+    },
+    onCartRefresh: () => queryClient.invalidateQueries(["__cart"]),
+    canPay: () => !isPayDisabled,
+  });
+
   // Shared across the button's class/style/disabled + the "complete fields" warning below —
   // extracted so adding the two delivery-fee checks doesn't mean editing 5 duplicate copies.
   const isPayDisabled =
+    feeQuote.isFetching || // wait for the fee so the total on the button is the total that will be charged
     _.isEmpty(dirtyFields) ||
     !isValid ||
     !name ||
@@ -160,6 +201,7 @@ const CartSummaryAndPay = ({
     deliveryLoading ||
     !!deliveryError ||
     paymentFailedPermanently ||
+    payPhase !== "idle" ||
     readiness.data?.healthy === false;
 
   // Update the processing payment state when mutation is loading
@@ -169,35 +211,36 @@ const CartSummaryAndPay = ({
     }
   }, [loadingWhilePaying, setIsProcessingPayment]);
 
+  // What the page sends to place a marketplace order, minus what only exists once Paystack has the money (the reference and the result).
+  const buildOrderBase = () => ({
+    refOrderId: "AFSH" + cartSessionPayload?.id + "MKT",
+    cartItems: cartSessionPayload?.cartProducts,
+
+    itemsPrice: parseInt(subtotal),
+    shippingPrice: deliveryFee,
+    taxPrice: vatAmount,
+    totalPrice: grandTotal,
+
+    orderCountryDestination: orderCountryDestination,
+    orderStateProvinceDestination: orderStateProvinceDestination,
+    orderLgaDestination: orderLgaDestination,
+    orderMarketPickupDestination: orderMarketPickupDestination,
+
+    paymentMethod: methodOfPay,
+    shoppingCountrySession: cartSessionPayload?.countryId,
+    shoppingStateSession: cartSessionPayload?.stateId,
+    shoppingLgaSession: cartSessionPayload?.lgaId,
+    shoppingDistrictSession: cartSessionPayload?.districtId,
+    shippingAddress: {
+      fullName: name,
+      phone: phone,
+      address: address,
+    },
+  });
+
   const onSuccess = async (paystackResponse) => {
     try {
-      const oderData = {
-        refOrderId: "AFSH" + cartSessionPayload?.id + "MKT",
-        cartItems: cartSessionPayload?.cartProducts,
-
-        itemsPrice: parseInt(subtotal),
-        shippingPrice: deliveryFee,
-        taxPrice: vatAmount,
-        totalPrice: grandTotal,
-
-        orderCountryDestination: orderCountryDestination,
-        orderStateProvinceDestination: orderStateProvinceDestination,
-        orderLgaDestination: orderLgaDestination,
-        orderMarketPickupDestination: orderMarketPickupDestination,
-
-        paymentMethod: methodOfPay,
-        shoppingCountrySession: cartSessionPayload?.countryId,
-        shoppingStateSession: cartSessionPayload?.stateId,
-        shoppingLgaSession: cartSessionPayload?.lgaId,
-        shoppingDistrictSession: cartSessionPayload?.districtId,
-        paymentResult: paystackResponse,
-        shippingAddress: {
-          fullName: name,
-          phone: phone,
-          address: address,
-        },
-        reference: paystackResponse?.reference,
-      };
+      const oderData = { ...buildOrderBase(), paymentResult: paystackResponse, reference: paystackResponse?.reference };
 
       verifyPaymentAndCreateOrder(oderData, {
         onError: (error) => {
@@ -371,6 +414,13 @@ const CartSummaryAndPay = ({
             <span className="font-semibold text-gray-800">₦{formatCurrency(vatAmount)}</span>
           </div>
 
+          {feeQuote.feeKobo > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">{FEE_LABEL}</span>
+              <span className="font-semibold text-gray-800">₦{nairaText(feeQuote.feeKobo)}</span>
+            </div>
+          )}
+
           <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent" />
 
           {/* Grand Total */}
@@ -386,7 +436,7 @@ const CartSummaryAndPay = ({
                   backgroundClip: "text",
                 }}
               >
-                ₦{formatCurrency(grandTotal)}
+                ₦{nairaText(payKobo)}
               </span>
             </div>
           </div>
@@ -428,36 +478,53 @@ const CartSummaryAndPay = ({
                   }
                 `}
               </style>
-              <PaystackButton
-                text={`🔒 Pay ₦${formatCurrency(grandTotal)}`}
+              <button
+                type="button"
                 className={`w-full py-3 sm:py-4 rounded-xl font-bold text-sm sm:text-base md:text-lg transition-all duration-300 ${
                   isPayDisabled ? "" : "paystack-button-enabled"
                 }`}
-                style={{
-                  background: isPayDisabled
-                    ? "linear-gradient(135deg, #fed7aa 0%, #fdba74 100%)"
-                    : "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-                  color: isPayDisabled ? "#9ca3af" : "white",
-                  border: "none",
-                  cursor: isPayDisabled ? "not-allowed" : "pointer",
-                  boxShadow: isPayDisabled ? "none" : "0 4px 15px rgba(234, 88, 12, 0.4)",
-                  filter: isPayDisabled ? "grayscale(20%)" : "none",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-                reference={"AFSH" + cartSessionPayload?.id + "REF"}
-                email={user?.email}
-                amount={grandTotal * 100}
-                metadata={{
-                  userId: user?.id,
-                  cartSessionId: cartSessionPayload?.id,
-                }}
-                publicKey={publicKey}
-                onSuccess={(reference) => onSuccess(reference)}
-                onClose={() => onClose()}
+                onClick={handlePay}
                 disabled={isPayDisabled || loadingWhilePaying}
-              />
+              >
+                {payPhase === "starting"
+                  ? "Starting your payment..."
+                  : payPhase === "confirming"
+                    ? "Confirming your payment..."
+                    : payPhase === "pending" || payPhase === "unsure"
+                      ? "Checking your payment..."
+                      : `🔒 Pay ₦${nairaText(payKobo)}`}
+              </button>
+              {/* Overlay style: the same full-screen "Processing Payment..." cover the hotel booking shows, plus the three steps, until the order exists and we move on. */}
+              <PaymentProcessingOverlay open={processingStyle === "overlay" && payPhase === "confirming"} stage={payStage} />
+              {payPhase === "confirming" && processingStyle !== "overlay" && (
+                <PaymentCheckingLoader stage={payPhase === "unsure" ? "unsure" : payStage} testId="market-pay-confirming" />
+              )}
+              {payPhase === "pending" && (
+                <>
+                <PaymentCheckingLoader stage={payPhase === "unsure" ? "unsure" : payStage} testId="market-pay-pending-loader" />
+                <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#ea580c" }} data-testid="market-pay-pending">
+                  We received your payment and are placing your order. You do not need to pay again. It will appear in{" "}
+                  <a href="/marketplace/user/orders" style={{ textDecoration: "underline" }}>My Orders</a> shortly; we keep checking.
+                  {payRef ? ` Reference: ${payRef}` : ""}
+                </p>
+                </>
+              )}
+              {payPhase === "unsure" && (
+                <>
+                <PaymentCheckingLoader stage={payPhase === "unsure" ? "unsure" : payStage} testId="market-pay-unsure-loader" />
+                <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#ea580c" }} data-testid="market-pay-unsure">
+                  We could not reach our servers to confirm your payment. Please do not pay again. If you were charged, your order will appear in{" "}
+                  <a href="/marketplace/user/orders" style={{ textDecoration: "underline" }}>My Orders</a>. We keep checking, and you can reload this page to check again.
+                  {payRef ? ` Reference: ${payRef}` : ""}
+                </p>
+                </>
+              )}
+              {payPhase === "failed" && (
+                <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#dc2626" }} data-testid="market-pay-failed">
+                  We received your payment but could not place your order. It will be reviewed and refunded if needed.
+                  {payRef ? ` Reference: ${payRef}` : ""}
+                </p>
+              )}
               {paymentFailedPermanently && (
                 <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#dc2626" }}>
                   Your cart was refreshed after the failed payment. Please review your cart and try again.
@@ -468,7 +535,7 @@ const CartSummaryAndPay = ({
                   We can't confirm order services are ready to process payment right now. Please try again shortly.
                 </p>
               )}
-              {isPayDisabled && !deliveryError && (
+              {payPhase === "idle" && isPayDisabled && !deliveryError && (
                 <div className="mt-3 text-center">
                   <div
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg"

@@ -7,6 +7,7 @@ jest.mock("react-router-dom", () => ({ ...jest.requireActual("react-router-dom")
 jest.mock("../../FinanceThemeContext", () => ({ useFinanceTheme: () => ({ tokens: new Proxy({}, { get: () => "#000" }) }) }));
 jest.mock("../../hooks/useFintechApi", () => ({ useProvisionMyDva: () => ({ mutate: jest.fn(), isLoading: false, error: null }), useTransactionHistory: () => ({ data: [] }) }));
 jest.mock("../../financeFormat", () => ({ describeTx: () => ({ title: "" }), isCredit: () => false, nairaFull: (n) => String(n), shortDate: (d) => String(d) }));
+jest.mock("../shared/BankTransferPanel", () => () => null);
 jest.mock("framer-motion", () => ({ motion: new Proxy({}, { get: () => ({ children, ...rest }) => <div {...Object.fromEntries(Object.entries(rest).filter(([k]) => k === "data-testid"))}>{children}</div> }) }));
 
 const renderIt = () => render(<MemoryRouter><FinanceReceiveMoneyContent /></MemoryRouter>);

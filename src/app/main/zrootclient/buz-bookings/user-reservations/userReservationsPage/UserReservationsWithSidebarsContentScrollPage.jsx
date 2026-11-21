@@ -10,6 +10,7 @@ import FusePageSimpleWithMargin from "@fuse/core/FusePageSimple/FusePageSimpleWi
 import {
   useUserCancelledTrips,
   useUserTrips,
+  useUserSealedTrips,
 } from "app/configs/data/server-calls/auth/userapp/a_bookings/use-reservations";
 
 const Root = styled(FusePageSimpleWithMargin)(({ theme }) => ({
@@ -39,6 +40,8 @@ function UserReservationsWithSidebarsContentScrollPage() {
 
   const { data: myreservations, isLoading, isError } = useUserTrips();
 
+  const { data: sealedReservations } = useUserSealedTrips();
+
   const {
     data: cancelledReservations,
     isLoading: isLoadingCanclled,
@@ -63,6 +66,7 @@ function UserReservationsWithSidebarsContentScrollPage() {
           isLoading={isLoading}
           isError={isError}
           cancelledReservations={cancelledReservations?.data?.myreservations}
+          sealedReservations={sealedReservations?.data?.sealedreservations}
         />
       }
       leftSidebarOpen={leftSidebarOpen}
