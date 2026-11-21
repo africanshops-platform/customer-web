@@ -18,7 +18,8 @@ import {
   useCancelUserReservation,
 } from "app/configs/data/server-calls/auth/userapp/a_bookings/use-reservations";
 import { useNavigate, useParams } from "react-router";
-import { formatCurrency, formatDateUtil } from "src/app/main/vendors-shop/PosUtils";
+import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
+import { formatStayDay } from "src/app/utils/stayDates";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -39,6 +40,7 @@ import {
 import ClienttErrorPage from "../../components/ClienttErrorPage";
 import PlacedReservation from "./PlacedReservation";
 import MyAddresses from "./MyAddresses";
+import TermsAndConditionsPreview from "../../buz-marketplace/shops/components/TermsAndConditionsPreview";
 
 /**
  * Form Validation Schema
@@ -611,68 +613,7 @@ function ReviewReservation() {
                       style={{ lineHeight: "1.6" }}
                     >
                       <div className="flex items-center mb-2" />
-                      <div className="bg-gray-100 p-2 rounded-lg pb-4">
-                        <p className="text-blue-500 font-semibold">
-                          Terms and condition on booking a reservation on Africanshops.
-                        </p>
-                        <p className="text-sm">
-                          This may be because: 1) Your order is below the minimum purchase amount of
-                          2,000 naira or above the maximum purchase amount of 250,000 naira; or 2)
-                          Cash on delivery is not available for your delivery address or the pick-up
-                          station selected; or 3) You have had multiple failed delivery attempts or
-                          cancelled orders; or 4) the number you are using to place the order is a
-                          number that has a restriction
-                        </p>
-                        <p className="text-sm">
-                          This may be because: 1) Your order is below the minimum purchase amount of
-                          2,000 naira or above the maximum purchase amount of 250,000 naira; or 2)
-                          Cash on delivery is not available for your delivery address or the pick-up
-                          station selected; or 3) You have had multiple failed delivery attempts or
-                          cancelled orders; or 4) the number you are using to place the order is a
-                          number that has a restriction
-                        </p>
-                        <p className="text-sm">
-                          This may be because: 1) Your order is below the minimum purchase amount of
-                          2,000 naira or above the maximum purchase amount of 250,000 naira; or 2)
-                          Cash on delivery is not available for your delivery address or the pick-up
-                          station selected; or 3) You have had multiple failed delivery attempts or
-                          cancelled orders; or 4) the number you are using to place the order is a
-                          number that has a restriction
-                        </p>
-                        <p className="text-sm">
-                          This may be because: 1) Your order is below the minimum purchase amount of
-                          2,000 naira or above the maximum purchase amount of 250,000 naira; or 2)
-                          Cash on delivery is not available for your delivery address or the pick-up
-                          station selected; or 3) You have had multiple failed delivery attempts or
-                          cancelled orders; or 4) the number you are using to place the order is a
-                          number that has a restriction
-                        </p>
-
-                        <p className="text-sm">
-                          This may be because: 1) Your order is below the minimum purchase amount of
-                          2,000 naira or above the maximum purchase amount of 250,000 naira; or 2)
-                          Cash on delivery is not available for your delivery address or the pick-up
-                          station selected; or 3) You have had multiple failed delivery attempts or
-                          cancelled orders; or 4) the number you are using to place the order is a
-                          number that has a restriction
-                        </p>
-                        <p className="text-sm">
-                          This may be because: 1) Your order is below the minimum purchase amount of
-                          2,000 naira or above the maximum purchase amount of 250,000 naira; or 2)
-                          Cash on delivery is not available for your delivery address or the pick-up
-                          station selected; or 3) You have had multiple failed delivery attempts or
-                          cancelled orders; or 4) the number you are using to place the order is a
-                          number that has a restriction
-                        </p>
-                        <p className="text-sm">
-                          This may be because: 1) Your order is below the minimum purchase amount of
-                          2,000 naira or above the maximum purchase amount of 250,000 naira; or 2)
-                          Cash on delivery is not available for your delivery address or the pick-up
-                          station selected; or 3) You have had multiple failed delivery attempts or
-                          cancelled orders; or 4) the number you are using to place the order is a
-                          number that has a restriction
-                        </p>
-                      </div>
+                      <TermsAndConditionsPreview />
                       <br />
                       <br />
                       <br />
@@ -779,7 +720,7 @@ function ReviewReservation() {
                           <span className="text-xs font-semibold text-gray-600">Check In</span>
                         </div>
                         <p className="text-xs sm:text-sm font-bold text-gray-800">
-                          {formatDateUtil(singlereservation?.data?.reservation?.startDate)}
+                          {formatStayDay(singlereservation?.data?.reservation?.startDate)}
                         </p>
                       </div>
 
@@ -808,7 +749,7 @@ function ReviewReservation() {
                           <span className="text-xs font-semibold text-gray-600">Check Out</span>
                         </div>
                         <p className="text-xs sm:text-sm font-bold text-gray-800">
-                          {formatDateUtil(singlereservation?.data?.reservation?.endDate)}
+                          {formatStayDay(singlereservation?.data?.reservation?.endDate)}
                         </p>
                       </div>
                     </div>
@@ -1437,13 +1378,13 @@ function ReviewReservation() {
                     <div className="flex justify-between">
                       <span>Check-in:</span>
                       <span className="font-semibold">
-                        {formatDateUtil(singlereservation?.data?.reservation?.startDate)}
+                        {formatStayDay(singlereservation?.data?.reservation?.startDate)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span>Check-out:</span>
                       <span className="font-semibold">
-                        {formatDateUtil(singlereservation?.data?.reservation?.endDate)}
+                        {formatStayDay(singlereservation?.data?.reservation?.endDate)}
                       </span>
                     </div>
                     <div className="flex justify-between pt-2 border-t border-red-200">

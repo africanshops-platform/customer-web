@@ -40,6 +40,7 @@ import MyAddresses from "../buz-bookings/user-reservations/MyAddresses";
 import { formatCurrency } from "../../vendors-shop/PosUtils";
 import { selectUser } from "../../../auth/user/store/userSlice";
 import InfoLamp from "src/app/shared-components/InfoLamp";
+import TermsAndConditionsPreview from "../buz-marketplace/shops/components/TermsAndConditionsPreview";
 
 
 
@@ -813,17 +814,9 @@ function FoodCartReview() {
                         className="max-h-64 overflow-y-auto p-4 rounded-xl space-y-3"
                         style={{ background: "rgba(249,250,251,1)", border: "1px solid rgba(229,231,235,1)" }}
                       >
-                        <p className="text-orange-600 font-semibold">
-                          Terms and conditions for food orders on Africanshops
-                        </p>
+                        <TermsAndConditionsPreview />
                         <p className="text-sm text-gray-700 leading-relaxed">
-                          Your order may not be eligible for Cash on Delivery if: 1) The total is below ₦2,000 or above ₦250,000; 2) COD is unavailable for your delivery address or selected pickup station; 3) You have had multiple failed deliveries or cancelled orders; 4) Your phone number has delivery restrictions.
-                        </p>
-                        <p className="text-sm text-gray-700 leading-relaxed">
-                          By placing an order, you agree to our food order delivery terms. All orders are subject to availability and confirmation. Delivery times may vary. We reserve the right to refuse, limit, or cancel orders per person, household, or account.
-                        </p>
-                        <p className="text-sm text-gray-700 leading-relaxed">
-                          Refund policy: Refunds are subject to the individual restaurant's policy as displayed on their profile. Please review the restaurant's refund policy before completing your purchase.
+                          Refunds for food orders follow the individual restaurant's policy shown on its profile.
                         </p>
                       </div>
                     </div>

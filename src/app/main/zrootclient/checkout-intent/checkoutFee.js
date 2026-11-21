@@ -1,9 +1,9 @@
 /**
- * F29 3.4: the customer-paid "Transaction fee" on a card checkout, as the checkout pages show it. The SERVER prices it (the page only asks and shows):
+ * F29 3.4: the customer-paid "Payment gateway fee" on a card checkout, as the checkout pages show it. The SERVER prices it (the page only asks and shows):
  * the quote for the CHECKOUT operation says how much is charged on top of the cart, and it is 0 when no fee policy is on, so a page with no fee looks
- * exactly as it always did. ONE line, always labelled "Transaction fee": never an itemised breakdown.
+ * exactly as it always did. ONE line, always labelled "Payment gateway fee": never an itemised breakdown.
  */
-export const FEE_LABEL = 'Transaction fee';
+export const FEE_LABEL = 'Payment gateway fee';
 
 const wholeKobo = (n) => Number.isSafeInteger(n) && n >= 0;
 
