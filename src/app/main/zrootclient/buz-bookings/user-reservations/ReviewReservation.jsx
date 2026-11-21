@@ -18,7 +18,8 @@ import {
   useCancelUserReservation,
 } from "app/configs/data/server-calls/auth/userapp/a_bookings/use-reservations";
 import { useNavigate, useParams } from "react-router";
-import { formatCurrency, formatDateUtil } from "src/app/main/vendors-shop/PosUtils";
+import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
+import { formatStayDay } from "src/app/utils/stayDates";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -719,7 +720,7 @@ function ReviewReservation() {
                           <span className="text-xs font-semibold text-gray-600">Check In</span>
                         </div>
                         <p className="text-xs sm:text-sm font-bold text-gray-800">
-                          {formatDateUtil(singlereservation?.data?.reservation?.startDate)}
+                          {formatStayDay(singlereservation?.data?.reservation?.startDate)}
                         </p>
                       </div>
 
@@ -748,7 +749,7 @@ function ReviewReservation() {
                           <span className="text-xs font-semibold text-gray-600">Check Out</span>
                         </div>
                         <p className="text-xs sm:text-sm font-bold text-gray-800">
-                          {formatDateUtil(singlereservation?.data?.reservation?.endDate)}
+                          {formatStayDay(singlereservation?.data?.reservation?.endDate)}
                         </p>
                       </div>
                     </div>
@@ -1377,13 +1378,13 @@ function ReviewReservation() {
                     <div className="flex justify-between">
                       <span>Check-in:</span>
                       <span className="font-semibold">
-                        {formatDateUtil(singlereservation?.data?.reservation?.startDate)}
+                        {formatStayDay(singlereservation?.data?.reservation?.startDate)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span>Check-out:</span>
                       <span className="font-semibold">
-                        {formatDateUtil(singlereservation?.data?.reservation?.endDate)}
+                        {formatStayDay(singlereservation?.data?.reservation?.endDate)}
                       </span>
                     </div>
                     <div className="flex justify-between pt-2 border-t border-red-200">

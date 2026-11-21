@@ -7,7 +7,7 @@ import { useGetUserSingleTrip } from "app/configs/data/server-calls/auth/userapp
 import { useParams } from "react-router";
 import { selectUser } from "src/app/auth/user/store/userSlice";
 import { useAppSelector } from "app/store/hooks";
-import { formatDateUtil } from "src/app/main/vendors-shop/PosUtils";
+import { formatStayDay } from "src/app/utils/stayDates";
 import PaymentSuccessful from "./PaymentSuccessful";
 
 const container = {
@@ -86,8 +86,8 @@ function ReviewReservationPaymentSucces() {
         <PaymentSuccessful
           userName={user?.name}
           reservationId={successPaidReservation?.data?.reservation?.id}
-          checkInDate={formatDateUtil(successPaidReservation?.data?.reservation?.startDate)}
-          checkOutDate={formatDateUtil(successPaidReservation?.data?.reservation?.endDate)}
+          checkInDate={formatStayDay(successPaidReservation?.data?.reservation?.startDate)}
+          checkOutDate={formatStayDay(successPaidReservation?.data?.reservation?.endDate)}
           propertyName={successPaidReservation?.data?.reservation?.listing?.title}
         />
       ) : (

@@ -8,6 +8,7 @@ import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
 import ClienttErrorPage from "src/app/main/zrootclient/components/ClienttErrorPage";
 import { useRequestRefundForUserCancelledReservation } from "app/configs/data/server-calls/auth/userapp/a_bookings/use-reservations";
 
+import { formatStayDay } from "src/app/utils/stayDates";
 /**
  * DemoContent Component
  * Beautiful and professional reservation listings with orange gradient branding
@@ -359,13 +360,13 @@ function ActiveReservationsList({ reservations }) {
                     <CalendarToday sx={{ fontSize: "1rem", color: "#ea580c" }} />
                     <span className="text-sm font-medium">Check-in:</span>
                     <span className="text-sm">
-                      {new Date(reservation.startDate).toDateString()}
+                      {formatStayDay(reservation.startDate)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-700">
                     <CalendarToday sx={{ fontSize: "1rem", color: "#ea580c" }} />
                     <span className="text-sm font-medium">Check-out:</span>
-                    <span className="text-sm">{new Date(reservation.endDate).toDateString()}</span>
+                    <span className="text-sm">{formatStayDay(reservation.endDate)}</span>
                   </div>
                 </div>
               </div>
@@ -516,14 +517,14 @@ function CancelledReservationsList({ cancelledReservations }) {
                       <CalendarToday sx={{ fontSize: "1rem", color: "#ef4444" }} />
                       <span className="text-sm font-medium">Check-in:</span>
                       <span className="text-sm">
-                        {new Date(reservation?.startDate).toDateString()}
+                        {formatStayDay(reservation?.startDate)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-gray-700">
                       <CalendarToday sx={{ fontSize: "1rem", color: "#ef4444" }} />
                       <span className="text-sm font-medium">Check-out:</span>
                       <span className="text-sm">
-                        {new Date(reservation?.endDate).toDateString()}
+                        {formatStayDay(reservation?.endDate)}
                       </span>
                     </div>
                   </div>
