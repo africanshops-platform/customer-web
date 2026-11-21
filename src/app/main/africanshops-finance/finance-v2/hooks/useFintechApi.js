@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AuthApi } from 'app/configs/data/client/RepositoryAuthClient';
+import { apiErrorMessage, moneyErrorMessage } from 'src/app/utils/apiErrorMessage';
 
 // Backend uses either `payload` or `data` depending on the route.
 //
@@ -204,7 +205,7 @@ export function useCreateFintechAccount() {
       const res = await AuthApi().post('/fintech-accounts/user/account/create', payload);
       return unwrap(res);
     } catch (err) {
-      const msg = err?.response?.data?.message ?? 'Account creation failed';
+      const msg = apiErrorMessage(err, 'Account creation failed');
       setError(msg);
       throw new Error(msg);
     } finally {
@@ -226,7 +227,7 @@ export function useTransfer() {
       const res = await AuthApi().post('/fintech-accounts/user/transaction/transfer', payload);
       return unwrap(res);
     } catch (err) {
-      const msg = err?.response?.data?.message ?? 'Transfer failed';
+      const msg = moneyErrorMessage(err, 'Transfer failed');
       setError(msg);
       throw new Error(msg);
     } finally {
@@ -669,7 +670,7 @@ export function useWithdrawalInitiate() {
       const res = await AuthApi().post('/fintech-accounts/user/withdrawal/initiate', payload);
       return unwrap(res);
     } catch (err) {
-      const msg = err?.response?.data?.message ?? 'Withdrawal initiation failed';
+      const msg = moneyErrorMessage(err, 'Withdrawal initiation failed');
       setError(msg);
       throw new Error(msg);
     } finally {
@@ -692,7 +693,7 @@ export function useWithdrawalConfirm() {
       return unwrap(res);
     } catch (err) {
       const status = err?.response?.status;
-      let msg = err?.response?.data?.message ?? 'Confirmation failed';
+      let msg = apiErrorMessage(err, 'Confirmation failed');
       if (status === 410) msg = 'OTP expired. Please start a new withdrawal.';
       if (status === 429) msg = 'Too many attempts. Withdrawal cancelled.';
       setError(msg);
@@ -716,7 +717,7 @@ export function useExternalTransferInitiate() {
       const res = await AuthApi().post('/fintech-accounts/user/transfer/external/initiate', payload);
       return unwrap(res);
     } catch (err) {
-      const msg = err?.response?.data?.message ?? 'Transfer initiation failed';
+      const msg = moneyErrorMessage(err, 'Transfer initiation failed');
       setError(msg);
       throw new Error(msg);
     } finally {
@@ -739,7 +740,7 @@ export function useExternalTransferConfirm() {
       return unwrap(res);
     } catch (err) {
       const status = err?.response?.status;
-      let msg = err?.response?.data?.message ?? 'Confirmation failed';
+      let msg = apiErrorMessage(err, 'Confirmation failed');
       if (status === 410) msg = 'OTP expired. Please start a new transfer.';
       if (status === 429) msg = 'Too many attempts. Transfer cancelled.';
       setError(msg);
@@ -856,7 +857,7 @@ export function useCrossCurrencyTransfer() {
       const res = await AuthApi().post('/fintech-accounts/user/transaction/cross-currency-transfer', payload);
       return unwrap(res);
     } catch (err) {
-      const msg = err?.response?.data?.message ?? 'Transfer failed';
+      const msg = moneyErrorMessage(err, 'Transfer failed');
       setError(msg);
       throw new Error(msg);
     } finally {
