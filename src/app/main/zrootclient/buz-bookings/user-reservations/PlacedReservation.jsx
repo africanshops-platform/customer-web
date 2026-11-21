@@ -1,4 +1,5 @@
-import { formatCurrency, formatDateUtil } from "src/app/main/vendors-shop/PosUtils";
+import { formatStayDay } from "src/app/utils/stayDates";
+import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
 import { CircularProgress } from "@mui/material";
 
 /**
@@ -7,8 +8,9 @@ import { CircularProgress } from "@mui/material";
  */
 function PlacedReservation({ reservation, onPayClick, onCancelClick, isCancelling }) {
   const bookingFee = reservation?.totalPrice || 0;
-  const checkInDate = reservation?.startDate?.slice(0, 10) || "";
-  const checkOutDate = reservation?.endDate?.slice(0, 10) || "";
+  // Booking dates are Lagos-midnight instants: format them in Lagos time (the first 10 characters of the UTC string are the day BEFORE).
+  const checkInDate = reservation?.startDate || "";
+  const checkOutDate = reservation?.endDate || "";
   const isPaid = reservation?.isPaid || false;
 
   // Format dates for display
@@ -179,7 +181,7 @@ function PlacedReservation({ reservation, onPayClick, onCancelClick, isCancellin
               <span className="text-xs font-semibold text-gray-600">Check In</span>
             </div>
             <p className="text-sm sm:text-base font-bold text-gray-800">
-              {formatDateUtil(checkInDate)}
+              {formatStayDay(checkInDate)}
             </p>
           </div>
 
@@ -208,7 +210,7 @@ function PlacedReservation({ reservation, onPayClick, onCancelClick, isCancellin
               <span className="text-xs font-semibold text-gray-600">Check Out</span>
             </div>
             <p className="text-sm sm:text-base font-bold text-gray-800">
-              {formatDateUtil(checkOutDate)}
+              {formatStayDay(checkOutDate)}
             </p>
           </div>
         </div>

@@ -7,6 +7,7 @@ import {
 	getMyWishlistApi,
 	getPlacedOrders,
 	getUserInvoices,
+	getUserSealedOrderItems,
 	getUserShoppingCart,
 	getUserShoppingCartForAuthAndGuest,
 	getWishlistItemStatusApi,
@@ -340,6 +341,11 @@ export function useGetAuthUserOrders() {
 	return useQuery(['__authuser_orders'], () => getUserInvoices(), {
 		// enabled: Boolean(userId),
 	});
+}
+
+/** *Get my finished (settled and sealed) order items: the order history */
+export function useGetAuthUserSealedOrders() {
+	return useQuery(['__authuser_sealed_orders'], () => getUserSealedOrderItems(), { staleTime: 15000 });
 }
 
 /** *Get orders and order items  */

@@ -12,6 +12,7 @@ import SignAcceptInviteConfig from "../main/sign-accept-invite/SignAcceptInviteC
 import forgotPasswordConfig from "../main/sign-forgot-password/forgotPasswordPagesConfig";
 import resetPasswordConfig from "../main/sign-reset-password/resetPasswordPagesConfig";
 import SignOutConfig from "../main/sign-out/SignOutConfig";
+import WalkInPayConfig from "../main/walkin-pay/WalkInPayConfig";
 /***##########################Authentication-based-config ends#########################*/
 
 /***Bookings & Reservations-based-config  starts*/
@@ -71,6 +72,7 @@ const routeConfigs = [
   forgotPasswordConfig,
   resetPasswordConfig,
   SignOutConfig,
+  WalkInPayConfig,
   /***
    * ##########################################################################
    * Authentication concern routes ends here

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AuthApi } from 'app/configs/data/client/RepositoryAuthClient';
+import { apiErrorMessage, moneyErrorMessage } from 'src/app/utils/apiErrorMessage';
 
 // Backend uses either `payload` or `data` depending on the route.
 //
@@ -204,7 +205,7 @@ export function useCreateFintechAccount() {
       const res = await AuthApi().post('/fintech-accounts/user/account/create', payload);
       return unwrap(res);
     } catch (err) {
-      const msg = err?.response?.data?.message ?? 'Account creation failed';
+      const msg = apiErrorMessage(err, 'Account creation failed');
       setError(msg);
       throw new Error(msg);
     } finally {
@@ -226,7 +227,7 @@ export function useTransfer() {
       const res = await AuthApi().post('/fintech-accounts/user/transaction/transfer', payload);
       return unwrap(res);
     } catch (err) {
-      const msg = err?.response?.data?.message ?? 'Transfer failed';
+      const msg = moneyErrorMessage(err, 'Transfer failed');
       setError(msg);
       throw new Error(msg);
     } finally {
@@ -530,6 +531,90 @@ export function useConfirmTransferLimitIncrease() {
 
 // Retail-8 (2026-07-12): fund default wallet via card checkout (react-paystack
 // inline popup, same component already used on bookings/marketplace/foodmart)
+// Board F18: a card top-up starts with a server-made intent (reference + quote). The error keeps the response so the screen can tell an
+// older backend (404, no such route) from a refusal (switch off, rate limit) and show the gateway's own sentence.
+export function useCreateFundingIntent() {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const mutate = useCallback(async (accountNumber, amountKobo) => {
+    setIsLoading(true);
+    try {
+      const res = await AuthApi().post(`/fintech-accounts/user/account/${accountNumber}/fund/intent`, { amountKobo });
+      return unwrap(res);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { mutate, isLoading };
+}
+
+// B1a/B1b: start a top-up by direct bank transfer to the company account. The server prices the exact amount and makes the claim that the shared
+// <PayByBankTransfer /> then shows; the reply is { claim, amountToTransferKobo, walletReceivesKobo }.
+export async function createBankTransferFunding(accountNumber, amountKobo) {
+  return unwrap(await AuthApi().post(`/fintech-accounts/user/account/${accountNumber}/fund/bank-transfer`, { amountKobo }));
+}
+
+// What a top-up costs on one channel, from the server's fee policies. Waits for the typing to settle, and does nothing for an amount the
+// server would refuse.
+export function useFeeQuote(operation, amountKobo) {
+  const [state, setState] = useState({ data: null, isFetching: false, error: null });
+  const valid = Number.isInteger(amountKobo) && amountKobo >= 10000 && amountKobo <= 1000000000;
+
+  useEffect(() => {
+    if (!valid) {
+      setState({ data: null, isFetching: false, error: null });
+      return undefined;
+    }
+    let alive = true;
+    setState((cur) => ({ ...cur, isFetching: true, error: null }));
+    const timer = setTimeout(async () => {
+      try {
+        const res = await AuthApi().post('/fintech-accounts/user/fees/quote', { operation, amountKobo });
+        if (alive) setState({ data: unwrap(res), isFetching: false, error: null });
+      } catch (err) {
+        if (alive) setState({ data: null, isFetching: false, error: err });
+      }
+    }, 400);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [operation, amountKobo, valid]);
+
+  return state;
+}
+
+// Board F18 phase 4: what a bank payout costs, from the server (one combined Transfer fee, the stamp duty on its own line, the total taken and
+// whether an emailed code will be needed). A quote only: it moves nothing. Waits for the typing to settle, ignores an amount the server would refuse.
+export function usePayoutQuote(kind, amountKobo) {
+  const [state, setState] = useState({ data: null, isFetching: false, error: null });
+  const valid = Number.isInteger(amountKobo) && amountKobo >= 10000 && amountKobo <= 1000000000;
+
+  useEffect(() => {
+    if (!valid) {
+      setState({ data: null, isFetching: false, error: null });
+      return undefined;
+    }
+    let alive = true;
+    setState((cur) => ({ ...cur, isFetching: true, error: null }));
+    const timer = setTimeout(async () => {
+      try {
+        const res = await AuthApi().post('/fintech-accounts/user/payout/quote', { kind, amountKobo });
+        if (alive) setState({ data: unwrap(res), isFetching: false, error: null });
+      } catch (err) {
+        if (alive) setState({ data: null, isFetching: false, error: err });
+      }
+    }, 400);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [kind, amountKobo, valid]);
+
+  return state;
+}
+
 export function useVerifyWalletFunding() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -585,7 +670,7 @@ export function useWithdrawalInitiate() {
       const res = await AuthApi().post('/fintech-accounts/user/withdrawal/initiate', payload);
       return unwrap(res);
     } catch (err) {
-      const msg = err?.response?.data?.message ?? 'Withdrawal initiation failed';
+      const msg = moneyErrorMessage(err, 'Withdrawal initiation failed');
       setError(msg);
       throw new Error(msg);
     } finally {
@@ -608,7 +693,7 @@ export function useWithdrawalConfirm() {
       return unwrap(res);
     } catch (err) {
       const status = err?.response?.status;
-      let msg = err?.response?.data?.message ?? 'Confirmation failed';
+      let msg = apiErrorMessage(err, 'Confirmation failed');
       if (status === 410) msg = 'OTP expired. Please start a new withdrawal.';
       if (status === 429) msg = 'Too many attempts. Withdrawal cancelled.';
       setError(msg);
@@ -632,7 +717,7 @@ export function useExternalTransferInitiate() {
       const res = await AuthApi().post('/fintech-accounts/user/transfer/external/initiate', payload);
       return unwrap(res);
     } catch (err) {
-      const msg = err?.response?.data?.message ?? 'Transfer initiation failed';
+      const msg = moneyErrorMessage(err, 'Transfer initiation failed');
       setError(msg);
       throw new Error(msg);
     } finally {
@@ -655,7 +740,7 @@ export function useExternalTransferConfirm() {
       return unwrap(res);
     } catch (err) {
       const status = err?.response?.status;
-      let msg = err?.response?.data?.message ?? 'Confirmation failed';
+      let msg = apiErrorMessage(err, 'Confirmation failed');
       if (status === 410) msg = 'OTP expired. Please start a new transfer.';
       if (status === 429) msg = 'Too many attempts. Transfer cancelled.';
       setError(msg);
@@ -772,7 +857,7 @@ export function useCrossCurrencyTransfer() {
       const res = await AuthApi().post('/fintech-accounts/user/transaction/cross-currency-transfer', payload);
       return unwrap(res);
     } catch (err) {
-      const msg = err?.response?.data?.message ?? 'Transfer failed';
+      const msg = moneyErrorMessage(err, 'Transfer failed');
       setError(msg);
       throw new Error(msg);
     } finally {

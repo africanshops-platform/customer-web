@@ -5,6 +5,7 @@ import { resetSessionForShopUsers } from 'app/configs/utils/authUtils';
 import jwtAuthConfig from 'src/app/auth/services/jwt/jwtAuthConfig';
 import { getAdminAccessToken } from '../utils/opsUtils';
 import { API_ENDPOINTS } from './serverEndpoints/endpoints';
+import { STEP_UP_HEADER, requestStepUp, stepUpChallengeOf } from '../stepUp/stepUp';
 
 // ─── Token-refresh state (module-level so all AuthApi() instances share it) ──
 let isRefreshing = false;
@@ -119,6 +120,23 @@ export function AuthApi() {
 				}
 			}
 
+			// F30: a payment that needs the authenticator code. Ask for it, then repeat the same request with the approval.
+			const challenge = stepUpChallengeOf(error);
+
+			if (challenge && !originalRequest._stepUpTried) {
+				originalRequest._stepUpTried = true;
+
+				try {
+					const approvedId = await requestStepUp(challenge);
+
+					originalRequest.headers = { ...originalRequest.headers, [STEP_UP_HEADER]: approvedId };
+
+					return Api(originalRequest);
+				} catch (cancelled) {
+					return Promise.reject(error); // closed the dialog: nothing moved, no scary message
+				}
+			}
+
 			if (error?.response?.status === 403) {
 				toast.error(
 					error.response?.data?.message ?? 'Access denied. You do not have permission to perform this action.'
@@ -201,6 +219,9 @@ export const onSuccessENairaPlacedOrdersPay = (id, shopFormData) =>
 	AuthApi().put(`/userorders/successenairapay/${id}`, shopFormData);
 
 export const getUserInvoices = () => AuthApi().get(`/user-orders/my-orders`); // (Msvs => Done)
+/** History: my finished (settled and sealed) marketplace order items */
+export const getUserSealedOrderItems = (limit = 50, offset = 0) =>
+	AuthApi().get(`/user-orders/my-orders/sealed`, { params: { limit, offset } });
 
 export const cancelUserItemInInvoiceApi = (id) => {
 	return AuthApi().put(`/userorders/${id}/cancel-orderitem`);
@@ -281,6 +302,11 @@ export const getMarketplaceCheckoutReadiness = () => {
 	return AuthApi().get(`checkout-readiness/marketplace`);
 };
 
+/** Founder 2026-11-18: how the checkout shows a payment being confirmed ('overlay' | 'inline'); an admin chooses. Display only. */
+export const getCheckoutProcessingStyle = () => {
+	return AuthApi().get(`checkout-readiness/processing-style`);
+};
+
 export const getFoodCheckoutReadiness = () => {
 	return AuthApi().get(`checkout-readiness/food`);
 };
@@ -325,6 +351,11 @@ export const listingReservationUpdateOnPayment = (reservationId, formData) => {
 export const getUserTrips = () => {
 	return AuthApi().get(`${API_ENDPOINTS.GET_USER_TRIPS}`);
 }; // (Done => Msvs)
+
+/** *History: my finished (settled and sealed) apartment reservations */
+export const getUserSealedTrips = (limit = 50, offset = 0) => {
+	return AuthApi().get(`/reservations/get-user-sealed-reservations`, { params: { limit, offset } });
+};
 
 export const getUseTripByReservationId = (reservationId) => {
 	return AuthApi().get(`${API_ENDPOINTS.GET_USER_SINGLE_TRIP}/${reservationId}`);
@@ -388,6 +419,18 @@ export const payAndPlaceFoodOrderApi = (formData) => {
 	// console.log("food cart", formData);
 	return AuthApi().post(`${API_ENDPOINTS.CREATE_FOOD_ORDER}`, formData);
 }; // (Mcsvs => Done)
+
+/** F28: the Pay click. The server prices the cart and answers OPEN (new), REOPEN (same transaction) or CONFIRMED (already paid: do not open Paystack). */
+export const createFoodCheckoutIntentApi = (body) => AuthApi().post(`${API_ENDPOINTS.CREATE_FOOD_CHECKOUT_INTENT}`, body);
+export const createMarketplaceCheckoutIntentApi = (body) => AuthApi().post(`${API_ENDPOINTS.CREATE_MARKETPLACE_CHECKOUT_INTENT}`, body);
+// F29 3.4: the page names only WHICH record; the server reads the price. The shared pay hook calls these with { cartSessionId, order }.
+export const createBookingCheckoutIntentApi = ({ cartSessionId, order }) =>
+	AuthApi().post(`${API_ENDPOINTS.CREATE_BOOKING_CHECKOUT_INTENT}`, { reservationId: cartSessionId, name: order?.name, phone: order?.phone, address: order?.address });
+export const createEngineeringCheckoutIntentApi = ({ cartSessionId }) =>
+	AuthApi().post(`${API_ENDPOINTS.CREATE_ENGINEERING_CHECKOUT_INTENT}`, { bookingId: cartSessionId });
+/** F28: asks the server whether the payment has become an order. Safe to repeat. */
+export const confirmCheckoutIntentApi = (reference) =>
+	AuthApi().post(`${API_ENDPOINTS.CONFIRM_CHECKOUT_INTENT}/${encodeURIComponent(reference)}/confirm`);
 
 export const getUserFoodInvoicesEnpoint = () => AuthApi().get(`${API_ENDPOINTS.GET_USER_FOOD_ORDER_LIST}`); // (Mcsvs => Done)
 
@@ -755,6 +798,11 @@ export const getMyServiceBookingsApi = () => {
 	return AuthApi().get(`/engineering/my-bookings`);
 };
 
+/** *History: my finished (settled and sealed) service bookings */
+export const getMySealedServiceBookingsApi = (limit = 50, offset = 0) => {
+	return AuthApi().get(`/engineering/my-bookings/sealed`, { params: { limit, offset } });
+};
+
 /** *Get a single service booking (customer-owned) */
 export const getServiceBookingByIdApi = (bookingId) => {
 	return AuthApi().get(`/engineering/bookings/${bookingId}`);
@@ -776,3 +824,17 @@ export const cancelServiceBookingApi = (bookingId, cancellationReason) => {
  * @returns
  * ############################################################
  */
+
+/**
+ * F30: authenticator set-up and the step-up approval. A PLAIN client: no refresh-and-logout interceptor, because a wrong code answers 401
+ * and must show "wrong code", not end the session.
+ */
+export function PlainAuthApi() {
+	return axios.create({ baseURL: baseUrl, headers: { 'Content-Type': 'application/json', userauthcredential: `${getAdminAccessToken()}` } });
+}
+
+export const setup2fa = () => PlainAuthApi().post('/auth-user/2fa/setup');
+export const confirm2fa = (totpCode) => PlainAuthApi().post('/auth-user/2fa/confirm', { totpCode });
+export const disable2fa = ({ password, totpCode }) => PlainAuthApi().delete('/auth-user/2fa', { data: { password, totpCode } });
+export const setProtectAll = (enabled) => PlainAuthApi().put('/auth-user/2fa/protect-all', { enabled });
+export const verifyStepUp = ({ challengeId, code }) => PlainAuthApi().post('/user/step-up/verify', { challengeId, code });

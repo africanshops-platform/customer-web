@@ -52,6 +52,14 @@ function Row({ tx, tokens, onOpen }) {
   );
 }
 
+// F18m: show only the user-facing fee lines (one Transaction fee, stamp duty as its own line); never an itemised split.
+export function feeRows(tx) {
+  const lines = Array.isArray(tx?.metadata?.feeLines) ? tx.metadata.feeLines : [];
+  return lines
+    .filter((l) => l && (l.code === 'TRANSFER_FEE' || l.kind === 'LEVY') && Number(l.amountKobo) > 0)
+    .map((l) => [l.code === 'TRANSFER_FEE' ? 'Transaction fee' : String(l.label || 'Stamp duty'), nairaFull(Number(l.amountKobo))]);
+}
+
 export default function FinanceTransactionsContent() {
   useOutletContext();
   const { tokens } = useFinanceTheme();
@@ -248,6 +256,7 @@ export default function FinanceTransactionsContent() {
                 ['Status', STATUS_LABEL[(tx?.status ?? 'COMPLETED').toUpperCase()] ?? tx?.status],
                 ['Date', tx?.createdAt ? new Date(tx.createdAt).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : '—'],
                 ['Details', tx?.description ?? '—'],
+                ...feeRows(tx),
                 ['Reference', tx?.sourceReference ?? tx?.id ?? '—'],
               ].map(([l, v], i, arr) => (
                 <div key={l} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '10px 0', borderBottom: i < arr.length - 1 ? `1px dashed ${tokens.borderColor}` : 0, fontSize: 14, color: tokens.textSecondary }}>

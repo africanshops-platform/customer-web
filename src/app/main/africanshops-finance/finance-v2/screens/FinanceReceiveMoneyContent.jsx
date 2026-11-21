@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useProvisionMyDva, useTransactionHistory } from '../hooks/useFintechApi';
+import BankTransferPanel from './shared/BankTransferPanel';
 import { useFinanceTheme } from '../FinanceThemeContext';
 import { describeTx, isCredit, nairaFull, shortDate } from '../financeFormat';
 
@@ -34,13 +35,14 @@ function CopyRow({ label, value, mono = true }) {
 }
 
 export default function FinanceReceiveMoneyContent() {
-  const { account, refetchFinanceData } = useOutletContext();
+  const { account, balance, refetchFinanceData } = useOutletContext();
   const { tokens } = useFinanceTheme();
   const { mutate: provisionDva, isLoading: provisioning, error: provisionError } = useProvisionMyDva();
   const { data: txData } = useTransactionHistory({ accountNumber: account?.accountNumber, limit: 60 });
 
   const [dvaJustProvisioned, setDvaJustProvisioned] = useState(null);
   const [shared, setShared] = useState('');
+  const [transferAmount, setTransferAmount] = useState('');
 
   const card = { background: tokens.cardBg, border: `1px solid ${tokens.cardBorder}`, boxShadow: tokens.cardShadow, borderRadius: 20, padding: 20 };
   const dvaProvisioned = dvaJustProvisioned ?? (account?.dvaProvisioned && account?.dvaAccountNumber);
@@ -117,6 +119,19 @@ export default function FinanceReceiveMoneyContent() {
           </div>
         </motion.div>
 
+        {dvaProvisioned && (
+          <motion.div variants={item} style={{ gridColumn: '1 / 2' }}>
+            <BankTransferPanel
+              amount={transferAmount}
+              onAmountChange={setTransferAmount}
+              showAmountInput
+              balanceKobo={balance?.availableBalance}
+              refetch={refetchFinanceData}
+              onReceived={() => refetchFinanceData?.()}
+            />
+          </motion.div>
+        )}
+
         <motion.div variants={item} style={{ ...card, gridColumn: '1 / 2', marginTop: -2 }}>
           <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: tokens.textPrimary }}>How it works</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 12 }}>
@@ -134,7 +149,7 @@ export default function FinanceReceiveMoneyContent() {
           </div>
         </motion.div>
 
-        <motion.div variants={item} style={{ display: 'grid', gap: 16, minWidth: 0, gridColumn: '2 / 3', gridRow: '1 / span 2' }}>
+        <motion.div variants={item} style={{ display: 'grid', gap: 16, minWidth: 0, gridColumn: '2 / 3', gridRow: '1 / span 3' }}>
           <div style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: tokens.textPrimary }}>Recent bank deposits</h3>

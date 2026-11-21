@@ -1,13 +1,20 @@
 import _ from "@lodash";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { PaystackButton } from "react-paystack";
+import { usePaystackPayment } from "react-paystack";
+import { useNavigate } from "react-router";
 import { toast } from "react-toastify";
 import {
   usePayAndPlaceFoodOrder,
   useCalculateFoodCartShipping,
 } from "app/configs/data/server-calls/auth/userapp/a_foodmart/useFoodMartsRepo";
-import { useFoodCheckoutReadiness } from "app/configs/data/server-calls/auth/paystack-payments/usePaystackPaymentsRepo";
+import { useFoodCheckoutReadiness, useCheckoutProcessingStyle } from "app/configs/data/server-calls/auth/paystack-payments/usePaystackPaymentsRepo";
+import { createFoodCheckoutIntentApi } from "app/configs/data/client/RepositoryAuthClient";
+import useCheckoutIntentPay from "../../checkout-intent/useCheckoutIntentPay";
+import useCheckoutFeeQuote from "../../checkout-intent/useCheckoutFeeQuote";
+import { FEE_LABEL, nairaText, payableKobo } from "../../checkout-intent/checkoutFee";
+import PaymentCheckingLoader from "../../checkout-intent/PaymentCheckingLoader";
+import PaymentProcessingOverlay from "app/shared-components/payment/PaymentProcessingOverlay";
 import { useAppSelector } from "app/store/hooks";
 import { useQueryClient } from "react-query";
 import { selectUser } from "../../../../auth/user/store/userSlice";
@@ -61,6 +68,8 @@ function FoodCartSummaryAndPay({
   // parent's food cart query refetches with the new session.
   const [paymentFailedPermanently, setPaymentFailedPermanently] = useState(false);
   const readiness = useFoodCheckoutReadiness();
+  // Admin setting (founder 2026-11-18): "overlay" covers the page until the payment is verified; "inline" keeps the loader in this card.
+  const processingStyle = useCheckoutProcessingStyle();
 
   // Build subtotal from cart items
   const checkItemsArray = (intemsInCart || []).map((el) => ({
@@ -121,6 +130,10 @@ function FoodCartSummaryAndPay({
 
   const grandTotal = parseInt(subtotal || 0, 10) + parseInt(deliveryFee, 10) + parseInt(vatAmount, 10);
 
+  // F29 3.4: the customer-paid Transaction fee on top of the cart. The server prices it (0 when no fee policy is on, and the line is then not drawn).
+  const feeQuote = useCheckoutFeeQuote(grandTotal * 100);
+  const payKobo = payableKobo(grandTotal * 100, feeQuote.feeKobo);
+
   const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
   const { mutate: verifyPaymentAndCreateOrder, isLoading: payFoodLoading } =
     usePayAndPlaceFoodOrder();
@@ -129,29 +142,29 @@ function FoodCartSummaryAndPay({
     if (setIsProcessingPayment) setIsProcessingPayment(payFoodLoading);
   }, [payFoodLoading, setIsProcessingPayment]);
 
+  // What the page sends to place a food order, minus what only exists once Paystack has the money (the reference and the result).
+  const buildOrderBase = () => ({
+    refOrderId: `AFSHFMKT${cartSession?.id}`,
+    foodCartItems: intemsInCart,
+    itemsPrice: parseInt(subtotal, 10),
+    shippingPrice: deliveryFee,
+    taxPrice: vatAmount,
+    totalPrice: grandTotal,
+    orderCountryDestination,
+    orderStateProvinceDestination,
+    orderLgaDestination,
+    ...(exactPoint ? { destinationLat: exactPoint.lat, destinationLng: exactPoint.lng } : {}),
+    ...(deliverBy ? { requestedDeliverBy: new Date(deliverBy).toISOString() } : {}),
+    district,
+    paymentMethod: methodOfPay,
+    shoppingLgaSession: cartSession?.lgaId,
+    shippingAddress: { fullName: name, phone, address },
+    foodMart: cartSession?.foodmartId,
+  });
+
   const onSuccess = async (paystackResponse) => {
     try {
-      const orderData = {
-        //|| generateClientUID()
-        refOrderId: `AFSHFMKT${cartSession?.id}`,
-        foodCartItems: intemsInCart,
-        itemsPrice: parseInt(subtotal, 10),
-        shippingPrice: deliveryFee,
-        taxPrice: vatAmount,
-        totalPrice: grandTotal,
-        orderCountryDestination,
-        orderStateProvinceDestination,
-        orderLgaDestination,
-        ...(exactPoint ? { destinationLat: exactPoint.lat, destinationLng: exactPoint.lng } : {}),
-        ...(deliverBy ? { requestedDeliverBy: new Date(deliverBy).toISOString() } : {}),
-        district,
-        paymentMethod: methodOfPay,
-        shoppingLgaSession: cartSession?.lgaId,
-        paymentResult: paystackResponse,
-        shippingAddress: { fullName: name, phone, address },
-        foodMart: cartSession?.foodmartId,
-        reference: paystackResponse?.reference,
-      };
+      const orderData = { ...buildOrderBase(), paymentResult: paystackResponse, reference: paystackResponse?.reference };
       verifyPaymentAndCreateOrder(orderData, {
         onError: (error) => {
           const errorMessage =
@@ -177,6 +190,33 @@ function FoodCartSummaryAndPay({
     // Handled by parent dialog — no action needed here
   };
 
+  // ── F28: pay through a server-made checkout intent (docs/designs/F28-paid-order-recovery.md) ─────────────────────────────────────────
+  // One reference per CART SESSION, made by the server, so a lost confirm call can never leave a paid cart without an order and a second Pay reopens
+  // the SAME transaction. When the server has intents switched off it answers "not switched on" and the old Pay flow above runs exactly as before.
+  const navigate = useNavigate();
+  const legacyPay = usePaystackPayment({
+    reference: `AFSHFMKT${cartSession?.id || generateClientUID()}`,
+    email: user?.email,
+    amount: grandTotal * 100,
+    publicKey,
+    metadata: { userId: user?.id, foodCartSessionId: cartSession?.id },
+  });
+  const { payPhase, payRef, payStage, handlePay } = useCheckoutIntentPay({
+    cartKey: cartSession?.id,
+    createIntentApi: createFoodCheckoutIntentApi,
+    buildOrder: buildOrderBase,
+    startLegacy: () => legacyPay({ onSuccess: (ref) => onSuccess(ref), onClose: () => onClose() }),
+    onBooked: (orderId) => {
+      toast.success("Order placed successfully!");
+      queryClient.invalidateQueries(["__foodcart"]);
+      queryClient.refetchQueries("__foodcart", { force: true });
+      // The delivery code is on screen only when this page places the order; when the webhook does, it is emailed.
+      navigate(orderId ? `/foodmarts/${orderId}/payment-success` : "/foodmarts/user/food-orders", { state: { deliveryCode: null } });
+    },
+    onCartRefresh: () => queryClient.invalidateQueries(["__foodcart"]),
+    canPay: () => !isFormIncomplete,
+  });
+
   const isFormIncomplete =
     _.isEmpty(dirtyFields) ||
     !isValid ||
@@ -189,6 +229,7 @@ function FoodCartSummaryAndPay({
     deliveryLoading ||
     !!deliveryError ||
     paymentFailedPermanently ||
+    payPhase !== "idle" ||
     readiness.data?.healthy === false;
 
   return (
@@ -286,6 +327,13 @@ function FoodCartSummaryAndPay({
             <span className="font-semibold text-gray-800">₦{formatCurrency(vatAmount)}</span>
           </div>
 
+          {feeQuote.feeKobo > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">{FEE_LABEL}</span>
+              <span className="font-semibold text-gray-800">₦{nairaText(feeQuote.feeKobo)}</span>
+            </div>
+          )}
+
           <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent" />
 
           {/* Grand total */}
@@ -300,7 +348,7 @@ function FoodCartSummaryAndPay({
                 backgroundClip: "text",
               }}
             >
-              ₦{formatCurrency(grandTotal)}
+              ₦{nairaText(payKobo)}
             </span>
           </div>
         </div>
@@ -338,33 +386,51 @@ function FoodCartSummaryAndPay({
                 }
                 .food-paystack-enabled:active { transform: translateY(0); }
               `}</style>
-              <PaystackButton
-                text={`🔒 Pay ₦${formatCurrency(grandTotal)}`}
+              <button
+                type="button"
                 className={`w-full py-3 sm:py-4 rounded-xl font-bold text-sm sm:text-base transition-all duration-300 ${isFormIncomplete ? "" : "food-paystack-enabled"}`}
-                style={{
-                  background: isFormIncomplete
-                    ? "linear-gradient(135deg, #fed7aa 0%, #fdba74 100%)"
-                    : "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-                  color: isFormIncomplete ? "#9ca3af" : "white",
-                  border: "none",
-                  cursor: isFormIncomplete ? "not-allowed" : "pointer",
-                  boxShadow: isFormIncomplete ? "none" : "0 4px 15px rgba(234,88,12,0.4)",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-                reference={`AFSHFMKT${cartSession?.id || generateClientUID()}`}
-                email={user?.email}
-                amount={grandTotal * 100}
-                metadata={{
-                  userId: user?.id,
-                  foodCartSessionId: cartSession?.id,
-                }}
-                publicKey={publicKey}
-                onSuccess={(ref) => onSuccess(ref)}
-                onClose={() => onClose()}
-                disabled={isFormIncomplete || payFoodLoading}
-              />
+                onClick={handlePay}
+                disabled={isFormIncomplete || payFoodLoading || feeQuote.isFetching}
+              >
+                {payPhase === "starting"
+                  ? "Starting your payment..."
+                  : payPhase === "confirming"
+                    ? "Confirming your payment..."
+                    : payPhase === "pending" || payPhase === "unsure"
+                      ? "Checking your payment..."
+                      : `🔒 Pay ₦${nairaText(payKobo)}`}
+              </button>
+              {/* Overlay style: the same full-screen "Processing Payment..." cover the hotel booking shows, plus the three steps, until the order exists and we move on. */}
+              <PaymentProcessingOverlay open={processingStyle === "overlay" && payPhase === "confirming"} stage={payStage} />
+              {payPhase === "confirming" && processingStyle !== "overlay" && (
+                <PaymentCheckingLoader stage={payPhase === "unsure" ? "unsure" : payStage} testId="food-pay-confirming" />
+              )}
+              {payPhase === "pending" && (
+                <>
+                <PaymentCheckingLoader stage={payPhase === "unsure" ? "unsure" : payStage} testId="food-pay-pending-loader" />
+                <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#ea580c" }} data-testid="food-pay-pending">
+                  We received your payment and are placing your order. You do not need to pay again. It will appear in{" "}
+                  <a href="/foodmarts/user/food-orders" style={{ textDecoration: "underline" }}>My Orders</a> shortly; we keep checking.
+                  {payRef ? ` Reference: ${payRef}` : ""}
+                </p>
+                </>
+              )}
+              {payPhase === "unsure" && (
+                <>
+                <PaymentCheckingLoader stage={payPhase === "unsure" ? "unsure" : payStage} testId="food-pay-unsure-loader" />
+                <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#ea580c" }} data-testid="food-pay-unsure">
+                  We could not reach our servers to confirm your payment. Please do not pay again. If you were charged, your order will appear in{" "}
+                  <a href="/foodmarts/user/food-orders" style={{ textDecoration: "underline" }}>My Orders</a>. We keep checking, and you can reload this page to check again.
+                  {payRef ? ` Reference: ${payRef}` : ""}
+                </p>
+                </>
+              )}
+              {payPhase === "failed" && (
+                <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#dc2626" }} data-testid="food-pay-failed">
+                  We received your payment but could not place your order. It will be reviewed and refunded if needed.
+                  {payRef ? ` Reference: ${payRef}` : ""}
+                </p>
+              )}
               {paymentFailedPermanently && (
                 <p className="mt-3 text-center text-sm font-semibold" style={{ color: "#dc2626" }}>
                   Your cart was refreshed after the failed payment. Please review your cart and try again.
@@ -375,7 +441,7 @@ function FoodCartSummaryAndPay({
                   We can't confirm order services are ready to process payment right now. Please try again shortly.
                 </p>
               )}
-              {isFormIncomplete && (
+              {payPhase === "idle" && isFormIncomplete && (
                 <div className="mt-3 text-center">
                   <div
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg"
