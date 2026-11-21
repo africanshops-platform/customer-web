@@ -27,8 +27,8 @@ describe('checkoutFee', () => {
 		expect(isQuotable(NaN)).toBe(false);
 	});
 
-	it('the line is always called Transaction fee', () => {
-		expect(FEE_LABEL).toBe('Transaction fee');
+	it('the line is always called Payment gateway fee', () => {
+		expect(FEE_LABEL).toBe('Payment gateway fee');
 	});
 
 	it('the Pay button says what is happening, and its own text when nothing is', () => {
