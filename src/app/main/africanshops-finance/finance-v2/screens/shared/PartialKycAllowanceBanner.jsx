@@ -25,8 +25,8 @@ export default function PartialKycAllowanceBanner({ submission }) {
         heroicons-outline:information-circle
       </FuseSvgIcon>
       <Typography style={{ fontSize: '1.44rem', color: tokens.textPrimary, lineHeight: 1.5 }}>
-        You can move up to <b>₦{remainingNaira.toLocaleString('en-NG')}</b> more this month (₦
-        {usedNaira.toLocaleString('en-NG')} of ₦{capNaira.toLocaleString('en-NG')} used) while your
+        You can move up to <b>₦{remainingNaira.toLocaleString('en-NG')}</b> more (₦
+        {usedNaira.toLocaleString('en-NG')} of ₦{capNaira.toLocaleString('en-NG')} used in the last 30 days) while your
         KYC is pending.{' '}
         <NavLink to="/africanshops/finance-v2/kyc" style={{ fontWeight: 700, textDecoration: 'underline', color: tokens.warning }}>
           Complete KYC
