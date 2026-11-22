@@ -95,7 +95,7 @@ function Limits({ account, verified, tokens }) {
     const cap = Number(kycStatus.monthlyCapKobo);
     return (
       <Card title="Your limits" tokens={tokens}>
-        <div style={row}><span>This month</span><b style={{ color: tokens.textPrimary }}>₦{nairaCompact(used)} / ₦{nairaCompact(cap)}</b></div>
+        <div style={row}><span>Last 30 days</span><b style={{ color: tokens.textPrimary }}>₦{nairaCompact(used)} / ₦{nairaCompact(cap)}</b></div>
         {meter((used / cap) * 100)}
         <div style={row}><span>Verified accounts get ₦500,000 a day</span></div>
         <NavLink
