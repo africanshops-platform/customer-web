@@ -21,6 +21,9 @@ import TransactionPinField from './shared/TransactionPinField';
 import ForgotPinDialog from './shared/ForgotPinDialog';
 import PartialKycAllowanceBanner, { exceedsMonthlyAllowance } from './shared/PartialKycAllowanceBanner';
 
+/** Q10: the sender's optional note on a bank transfer. The server cleans it and caps it at the same 100 characters. */
+export const NARRATION_MAX = 100;
+
 /**
  * Phase C (2026-07-11) — the external counterpart to the internal, free
  * wallet-to-wallet FinanceTransferContent: sends money to a DIFFERENT
@@ -46,7 +49,7 @@ export default function FinanceExternalTransferContent() {
   }, [banks]);
 
   const [step, setStep] = useState('form'); // form -> confirm -> otp (conditional) -> success
-  const [form, setForm] = useState({ amountNGN: '' });
+  const [form, setForm] = useState({ amountNGN: '', narration: '' });
   const [beneficiary, setBeneficiary] = useState(null);
   const [pin, setPin] = useState('');
   const [otp, setOtp] = useState('');
@@ -90,6 +93,7 @@ export default function FinanceExternalTransferContent() {
         beneficiaryId: beneficiary.id,
         idempotencyKey: idempotencyKey.current,
         transactionPin: pin,
+        ...(form.narration.trim() ? { narration: form.narration.trim().slice(0, NARRATION_MAX) } : {}),
       };
       const res = await initiate(payload);
       setBtxData(res);
@@ -128,7 +132,7 @@ export default function FinanceExternalTransferContent() {
 
   function restart() {
     setStep('form');
-    setForm({ amountNGN: '' });
+    setForm({ amountNGN: '', narration: '' });
     setBeneficiary(null);
     setPin('');
     setOtp('');
@@ -158,6 +162,22 @@ export default function FinanceExternalTransferContent() {
                 </div>
 
                 <AmountField value={form.amountNGN} onChange={(v) => update('amountNGN', v)} tokens={tokens} helper={amountHelperText} isError={(amountNGN > availableNGN && amountNGN > 0) || overMonthlyAllowance} />
+
+                <div>
+                  <label htmlFor="transfer-description" style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6, color: tokens.textPrimary }}>
+                    Description <span style={{ color: tokens.textMuted, fontWeight: 500 }}>(optional)</span>
+                  </label>
+                  <input
+                    id="transfer-description"
+                    data-testid="transfer-description"
+                    value={form.narration}
+                    maxLength={NARRATION_MAX}
+                    onChange={(e) => update('narration', e.target.value)}
+                    placeholder="e.g. Rent for November"
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: 14, border: `1px solid ${tokens.borderColor}`, background: tokens.cardBg, color: tokens.textPrimary, fontSize: 14 }}
+                  />
+                  <div data-testid="transfer-description-count" style={{ fontSize: 12, color: tokens.textMuted, textAlign: 'right', marginTop: 4 }}>{form.narration.length}/{NARRATION_MAX}</div>
+                </div>
 
                 <PartialKycAllowanceBanner submission={kycSubmission} />
               </div>
@@ -196,6 +216,7 @@ export default function FinanceExternalTransferContent() {
                   ['To', beneficiary?.beneficiaryAccountName ?? '—'],
                   ['Bank', bankName ?? '—'],
                   ['Account', beneficiary?.beneficiaryAccountNumber ?? '—'],
+                  ...(form.narration.trim() ? [['Description', form.narration.trim()]] : []),
                   ['Amount', `₦${amountNGN.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`],
                   ['Fees', quote ? nairaFull(quote.chargeKobo) : 'Added on top, shown next'],
                   ...(quote ? [['Total from your wallet', nairaFull(quote.grossKobo)]] : []),
@@ -226,6 +247,12 @@ export default function FinanceExternalTransferContent() {
                     <Typography style={{ fontSize: F.small, color: tokens.textSecondary }}>Bank</Typography>
                     <Typography style={{ fontSize: F.small, color: tokens.textPrimary }}>{bankName} · {beneficiary?.beneficiaryAccountNumber}</Typography>
                   </div>
+                  {form.narration.trim() && (
+                    <div className="flex justify-between mt-6" data-testid="confirm-description">
+                      <Typography style={{ fontSize: F.small, color: tokens.textSecondary }}>Description</Typography>
+                      <Typography style={{ fontSize: F.small, color: tokens.textPrimary, textAlign: 'right', wordBreak: 'break-word', maxWidth: '65%' }}>{form.narration.trim()}</Typography>
+                    </div>
+                  )}
                 </div>
 
                 {quote && (
@@ -375,6 +402,12 @@ export default function FinanceExternalTransferContent() {
                 <Typography style={{ fontSize: F.body, color: tokens.textSecondary, marginBottom: 24 }}>
                   {result?.message ?? 'Funds will arrive within minutes.'}
                 </Typography>
+                {(result?.narration || form.narration.trim()) && (
+                  <div className="rounded-xl p-12 mb-12" data-testid="success-description" style={{ background: tokens.pageBg, border: `1px solid ${tokens.borderColor}` }}>
+                    <Typography style={{ fontSize: F.small, color: tokens.textMuted, marginBottom: 4 }}>Description</Typography>
+                    <Typography style={{ fontSize: F.body, color: tokens.textPrimary, wordBreak: 'break-word' }}>{result?.narration ?? form.narration.trim()}</Typography>
+                  </div>
+                )}
                 {result?.transferCode && (
                   <div className="rounded-xl p-12 mb-20" style={{ background: tokens.pageBg, border: `1px solid ${tokens.borderColor}` }}>
                     <Typography style={{ fontSize: F.small, color: tokens.textMuted, marginBottom: 4 }}>Transfer Code</Typography>

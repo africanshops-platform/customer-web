@@ -27,14 +27,17 @@ const F = {
 const container = { show: { transition: { staggerChildren: 0.07 } } };
 const item = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0 } };
 
-function StatusPill({ status, tokens }) {
+function StatusPill({ status, tokens, reviewKind }) {
   const map = {
     pending: { label: 'NOT STARTED', color: tokens.textSecondary, bg: tokens.borderColor },
     submitted: { label: 'UNDER REVIEW', color: tokens.warning, bg: tokens.warningBg },
     verified: { label: 'VERIFIED', color: tokens.success, bg: tokens.successBg },
     rejected: { label: 'REJECTED', color: tokens.danger, bg: tokens.dangerBg },
   };
-  const s = map[status] ?? map.pending;
+  // Q11: a document the reviewer sent back for more information is not a hard rejection (the status stays 'rejected' so older apps still work)
+  const s = status === 'rejected' && reviewKind === 'INFO_REQUESTED'
+    ? { label: 'MORE INFO NEEDED', color: tokens.warning, bg: tokens.warningBg }
+    : map[status] ?? map.pending;
   return (
     <span style={{ background: s.bg, color: s.color, fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', borderRadius: 99, padding: '3px 10px' }}>
       {s.label}
@@ -42,7 +45,7 @@ function StatusPill({ status, tokens }) {
   );
 }
 
-function DocumentCard({ title, description, tokens, status, rejectionReason, children }) {
+function DocumentCard({ title, description, tokens, status, rejectionReason, reviewKind, children }) {
   return (
     <motion.div
       variants={item}
@@ -51,12 +54,12 @@ function DocumentCard({ title, description, tokens, status, rejectionReason, chi
     >
       <div className="flex items-center justify-between mb-8">
         <Typography style={{ fontSize: F.label, fontWeight: 700, color: tokens.textPrimary }}>{title}</Typography>
-        <StatusPill status={status} tokens={tokens} />
+        <StatusPill status={status} tokens={tokens} reviewKind={reviewKind} />
       </div>
       <Typography style={{ fontSize: F.body, color: tokens.textMuted, marginBottom: 16 }}>{description}</Typography>
       {rejectionReason && (
-        <Typography style={{ fontSize: F.body, color: tokens.danger, marginBottom: 12 }}>
-          Rejected: {rejectionReason} — please resubmit below.
+        <Typography data-testid="review-message" style={{ fontSize: F.body, color: reviewKind === 'INFO_REQUESTED' ? tokens.warning : tokens.danger, marginBottom: 12 }}>
+          {reviewKind === 'INFO_REQUESTED' ? 'We need more from you' : 'Rejected'}: {rejectionReason} — please {reviewKind === 'INFO_REQUESTED' ? 'upload it again' : 'resubmit'} below.
         </Typography>
       )}
       {status !== 'submitted' && status !== 'verified' && children}
@@ -64,7 +67,7 @@ function DocumentCard({ title, description, tokens, status, rejectionReason, chi
   );
 }
 
-function NationalIdCard({ account, submission, tokens }) {
+function NationalIdCard({ account, submission, tokens, onSubmitted }) {
   const [idNumber, setIdNumber] = useState('');
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -78,6 +81,7 @@ function NationalIdCard({ account, submission, tokens }) {
       setUploading(false);
       await submitNationalId({ accountNumber: account.accountNumber, nationalIdNumber: idNumber.trim(), nationalIdImageUrl });
       toast.success('National ID submitted — pending admin review.');
+      onSubmitted?.(); // Q11: show the new status at once, not only after a reload
     } catch (error) {
       setUploading(false);
       toast.error(error?.message ?? 'Could not submit National ID — please try again.');
@@ -93,6 +97,7 @@ function NationalIdCard({ account, submission, tokens }) {
       tokens={tokens}
       status={submission?.nationalIdStatus}
       rejectionReason={submission?.nationalIdRejectionReason}
+      reviewKind={submission?.nationalIdReviewKind}
     >
       <div className="flex flex-col gap-12">
         <TextField label="ID number" value={idNumber} onChange={(e) => setIdNumber(e.target.value)} size="small" fullWidth />
@@ -128,7 +133,7 @@ function NationalIdCard({ account, submission, tokens }) {
   );
 }
 
-function IdentityCard({ account, submission, tokens }) {
+function IdentityCard({ account, submission, tokens, onSubmitted }) {
   const [identityType, setIdentityType] = useState('BVN');
   const [identityNumber, setIdentityNumber] = useState('');
   const { mutate: submitIdentity, isLoading } = useSubmitIdentity();
@@ -143,6 +148,7 @@ function IdentityCard({ account, submission, tokens }) {
         toast.error(`${identityType} could not be verified — check the number and try again.`);
       }
       setIdentityNumber('');
+      onSubmitted?.();
     } catch (error) {
       toast.error(error?.message ?? 'Could not verify identity');
     }
@@ -191,7 +197,7 @@ function IdentityCard({ account, submission, tokens }) {
   );
 }
 
-function UtilityBillCard({ account, submission, tokens }) {
+function UtilityBillCard({ account, submission, tokens, onSubmitted }) {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const { mutate: submitUtilityBill, isLoading } = useSubmitUtilityBill();
@@ -204,6 +210,7 @@ function UtilityBillCard({ account, submission, tokens }) {
       setUploading(false);
       await submitUtilityBill({ accountNumber: account.accountNumber, utilityBillImageUrl });
       toast.success('Utility bill submitted — pending admin review.');
+      onSubmitted?.();
     } catch (error) {
       setUploading(false);
       toast.error(error?.message ?? 'Could not submit utility bill — please try again.');
@@ -219,6 +226,7 @@ function UtilityBillCard({ account, submission, tokens }) {
       tokens={tokens}
       status={submission?.utilityBillStatus}
       rejectionReason={submission?.utilityBillRejectionReason}
+      reviewKind={submission?.utilityBillReviewKind}
     >
       <div className="flex flex-col gap-12">
         <label htmlFor="utility-bill-upload">
@@ -305,7 +313,7 @@ function SideCards({ submission, tokens }) {
 export default function FinanceKycContent() {
   const { account } = useOutletContext();
   const { tokens } = useFinanceTheme();
-  const { data: submission, isLoading } = useFintechKycStatus(account?.accountNumber);
+  const { data: submission, isLoading, refetch } = useFintechKycStatus(account?.accountNumber);
 
   if (isLoading) {
     return (
@@ -349,9 +357,9 @@ export default function FinanceKycContent() {
     <div className="w-full px-16 md:px-24 xl:px-32 py-24">
       <motion.div variants={container} initial="hidden" animate="show" style={{ display: 'grid', gap: 20, gridTemplateColumns: 'minmax(0,1.5fr) minmax(0,1fr)', alignItems: 'start' }}>
         <div className="grid gap-20" style={{ minWidth: 0 }}>
-        <NationalIdCard account={account} submission={submission} tokens={tokens} />
-        <IdentityCard account={account} submission={submission} tokens={tokens} />
-        <UtilityBillCard account={account} submission={submission} tokens={tokens} />
+        <NationalIdCard account={account} submission={submission} tokens={tokens} onSubmitted={refetch} />
+        <IdentityCard account={account} submission={submission} tokens={tokens} onSubmitted={refetch} />
+        <UtilityBillCard account={account} submission={submission} tokens={tokens} onSubmitted={refetch} />
         </div>
         <SideCards submission={submission} tokens={tokens} />
       </motion.div>
