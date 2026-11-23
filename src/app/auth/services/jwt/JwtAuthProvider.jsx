@@ -13,6 +13,13 @@ import {
 // import { useAdminLogin } from "app/configs/data/server-calls/merchant-auth";
 import { useShopAdminLogin } from "app/configs/data/server-calls/auth/admin-auth";
 import { revokeSessionApi } from "app/configs/data/client/RepositoryAuthClient";
+import { healHalfSignedIn, USER_COOKIE_OPTIONS } from "./signInLanding";
+
+// Runs once when the app starts, before anything reads the session (see healHalfSignedIn).
+healHalfSignedIn({
+  hasUser: Boolean(Cookie.get(config.adminCredentials)),
+  keys: [config.tokenStorageKey, config.refreshTokenStorageKey, config.sessionIdStorageKey, config.isAuthenticatedStatus, config.authStatus],
+});
 
 const defaultAuthContext = {
   isAuthenticated: false,
@@ -84,7 +91,7 @@ function JwtAuthProvider(props) {
    * HANDLE USER DAT STORAGE
    */
   const setUserCredentialsStorage = useCallback((userCredentials) => {
-    Cookie.set(config.adminCredentials, JSON.stringify({ userCredentials }));
+    Cookie.set(config.adminCredentials, JSON.stringify({ userCredentials }), USER_COOKIE_OPTIONS);
   }, []);
 
   /**Get User credentials */

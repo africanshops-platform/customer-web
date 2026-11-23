@@ -34,3 +34,23 @@ export function hasValidSession(storage = window.localStorage, now = Date.now())
     return false;
   }
 }
+
+/**
+ * A browser can hold a session token but have lost the stored user (the user cookie used to have no expiry, so it went when the browser
+ * closed while the token lived on). The app then waits forever for a user it cannot find and shows a blank page. Found 23 Nov 2026.
+ * Call once at start-up: when a token exists without its user, the stale session is cleared so the app opens as a guest and the person
+ * signs in again. Returns true when it cleared something. `keys` are the storage keys of the session (token, refresh, session id, flags).
+ */
+export function healHalfSignedIn({ hasUser, storage = window.localStorage, keys }) {
+  try {
+    const [tokenKey, ...others] = keys;
+    if (hasUser || !storage.getItem(tokenKey)) return false;
+    [tokenKey, ...others].forEach((k) => storage.removeItem(k));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The stored user lives as long as the refresh token (7 days), not just the browser session. */
+export const USER_COOKIE_OPTIONS = { expires: 7 };
