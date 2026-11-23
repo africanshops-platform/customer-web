@@ -1,3 +1,4 @@
+import GuestOnly from '../../auth/services/jwt/GuestOnly';
 // import SignUpPage from "./SignUpPage";
 import authRoles from "../../auth/authRoles";
 import RegisterUserPage from "./RegisterUserPage";
@@ -30,7 +31,11 @@ const SignUpConfig = {
     {
       path: "sign-up",
       // element: <SignUpPage />
-      element: <RegisterUserPage />,
+      element: (
+        <GuestOnly to="/">
+          <RegisterUserPage />
+        </GuestOnly>
+      ),
     },
   ],
 };

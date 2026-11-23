@@ -63,7 +63,9 @@ class FuseAuthorization extends Component {
 
     const { route } = matched;
     const userHasPermission = FuseUtils.hasPermission(route.auth, userRole);
-    const ignoredPaths = ["/", "/callback", "/sign-in", "/sign-out", "/logout", "/404"];
+    // The login and registration screens are never remembered as a place to come back to (a signed-in person sent away from /sign-up used to
+    // end on /404, and the remembered address could drag a later sign-in back there).
+    const ignoredPaths = ["/", "/callback", "/sign-in", "/sign-up", "/forgot-password", "/reset-password", "/sign-out", "/logout", "/404"];
 
     if (matched && !userHasPermission && !ignoredPaths.includes(pathname)) {
       setSessionRedirectUrl(pathname);
