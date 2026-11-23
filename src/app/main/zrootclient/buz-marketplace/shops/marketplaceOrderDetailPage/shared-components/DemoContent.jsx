@@ -17,6 +17,7 @@ import {
   useRequestRefundOnOrderItem,
 } from "app/configs/data/server-calls/auth/userapp/a_marketplace/useProductsRepo";
 import RaiseDisputeDialog from "src/app/main/zrootclient/buz-disputes/RaiseDisputeDialog";
+import { paymentSummary } from "src/app/main/zrootclient/shared/paymentSummary";
 import { DeliveryCodePanel } from "../../../components/DeliveryCodeCard";
 import { canCancelItem, complaintWindow, droppedLabel, isWarehouseRouted, warehouseStatusLabel, warehouseTimeline } from "./orderTracking";
 
@@ -25,6 +26,8 @@ import { canCancelItem, complaintWindow, droppedLabel, isWarehouseRouted, wareho
  */
 function DemoContent(props) {
   const { isLoading, isError, userOrder, orderId } = props;
+  // What the card was actually charged (order total + the payment gateway fee the customer paid), null when the payment record has no usable amount.
+  const paid = paymentSummary(userOrder?.totalPrice, userOrder?.paymentResult);
   const cancelOrderItem = useCancleOrderItem();
   const requestRefund = useRequestRefundOnOrderItem();
 
@@ -699,12 +702,32 @@ function DemoContent(props) {
                   </span>
                 </div>
               )}
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Total Amount:</span>
-                <span className="font-bold text-orange-600">
-                  ₦{formatCurrency(userOrder?.totalPrice)}
-                </span>
-              </div>
+              {/* What the card was actually charged: the order total plus the payment gateway fee the customer paid on top (null when unknown). */}
+              {paid && paid.gatewayFeeNaira > 0 ? (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Order Total:</span>
+                    <span className="font-semibold text-gray-900">₦{formatCurrency(userOrder?.totalPrice)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm" data-testid="order-gateway-fee">
+                    <span className="text-gray-600">Payment gateway fee:</span>
+                    <span className="font-semibold text-gray-900">₦{formatCurrency(paid.gatewayFeeNaira)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Total Paid:</span>
+                    <span className="font-bold text-orange-600" data-testid="order-total-paid">
+                      ₦{formatCurrency(paid.chargedNaira)}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Total Amount:</span>
+                  <span className="font-bold text-orange-600">
+                    ₦{formatCurrency(userOrder?.totalPrice)}
+                  </span>
+                </div>
+              )}
             </div>
           </motion.div>
 
