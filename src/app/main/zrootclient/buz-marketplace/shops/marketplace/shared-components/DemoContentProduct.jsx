@@ -14,6 +14,7 @@ import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
 import ClienttErrorPage from "src/app/main/zrootclient/components/ClienttErrorPage";
 import ProductPaginationBar from "./ProductPaginationBar";
 import ContentLoadingPlaceholder from "./ContentLoadingPlaceholder";
+import { isItemAvailable, NOT_AVAILABLE_LABEL, NOT_AVAILABLE_NOTE, unavailableLook } from "../../../../shared/itemAvailability";
 
 /**
  * ProductCard - Individual product card component
@@ -22,6 +23,7 @@ function ProductCard({ product, index }) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
+  const available = isItemAvailable(product);
   const hasDiscount = product?.listprice && product?.listprice > product?.price;
   const discountPercent = hasDiscount
     ? Math.round(((product.listprice - product.price) / product.listprice) * 100)
@@ -42,8 +44,19 @@ function ProductCard({ product, index }) {
           src={product?.imageLinks[0]?.url || "https://via.placeholder.com/400x300?text=No+Image"}
           alt={product?.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          style={{ minHeight: "250px", maxHeight: "250px", objectFit: "cover" }}
+          style={{ minHeight: "250px", maxHeight: "250px", objectFit: "cover", ...(available ? {} : unavailableLook) }}
         />
+
+        {/* Not available: the picture is greyed and this badge says why */}
+        {!available && (
+          <Chip
+            label={NOT_AVAILABLE_LABEL}
+            size="small"
+            data-testid="not-available-badge"
+            className="absolute top-3 left-3 font-bold shadow-lg"
+            sx={{ backgroundColor: "#374151", color: "white", fontWeight: "bold", zIndex: 2 }}
+          />
+        )}
 
         {/* Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -103,7 +116,7 @@ function ProductCard({ product, index }) {
       </div>
 
       {/* Content Section */}
-      <div className="p-5 flex flex-col flex-grow">
+      <div className="p-5 flex flex-col flex-grow" style={available ? undefined : { color: "#6b7280" }}>
         {/* Shop Badge */}
         {product?.shop?.shopname && (
           <Chip
@@ -177,6 +190,12 @@ function ProductCard({ product, index }) {
           </div>
         </div>
 
+        {!available && (
+          <Typography variant="caption" className="text-gray-600" data-testid="not-available-note">
+            {NOT_AVAILABLE_NOTE}
+          </Typography>
+        )}
+
         {/* Action Buttons */}
         <div className="flex gap-2 mt-auto pt-4">
           <Button
@@ -186,14 +205,18 @@ function ProductCard({ product, index }) {
             variant="contained"
             startIcon={<Visibility />}
             className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-semibold py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
-            sx={{
-              background: "linear-gradient(to right, #ea580c, #dc2626)",
-              "&:hover": {
-                background: "linear-gradient(to right, #c2410c, #b91c1c)",
-              },
-            }}
+            sx={
+              available
+                ? {
+                    background: "linear-gradient(to right, #ea580c, #dc2626)",
+                    "&:hover": {
+                      background: "linear-gradient(to right, #c2410c, #b91c1c)",
+                    },
+                  }
+                : { background: "#9ca3af", "&:hover": { background: "#6b7280" } }
+            }
           >
-            View more
+            {available ? "View more" : "View details"}
           </Button>
         </div>
       </div>
