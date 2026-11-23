@@ -88,7 +88,8 @@ const setUserCredentialsStorage = (userCredentials) => {
 
 	const landing = signInLandingUrl(redirectUrl, window.location.pathname);
 	if (landing) {
-		window.location.href = landing;
+		// replace, not assign: the sign-in page must not stay in the history, or Back would return to the login form
+		window.location.replace(landing);
 	} else {
 		window.location.reload();
 	}

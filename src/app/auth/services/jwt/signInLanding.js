@@ -22,3 +22,15 @@ export function markSignedIn(storage = window.localStorage) {
     // storage blocked: the gate falls back to what it does today
   }
 }
+
+/** True when this browser holds an access token that has not expired. Reads only the token's own expiry; the server still decides on every call. */
+export function hasValidSession(storage = window.localStorage, now = Date.now()) {
+  try {
+    const token = storage.getItem('jwt_access_token');
+    if (!token) return false;
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload.exp === 'number' && payload.exp * 1000 > now;
+  } catch {
+    return false;
+  }
+}
