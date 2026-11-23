@@ -19,6 +19,7 @@ import { useGetMartMenu } from "app/configs/data/server-calls/auth/userapp/a_foo
 import { formatCurrency } from "../../../vendors-shop/PosUtils";
 import ClienttErrorPage from "../../components/ClienttErrorPage";
 import FoodMartMapSingle from "../components/maps/FoodMartMapSingle";
+import { isItemAvailable, NOT_AVAILABLE_LABEL, NOT_AVAILABLE_NOTE, unavailableLook } from "../../shared/itemAvailability";
 
 const container = {
   show: {
@@ -165,12 +166,22 @@ function VisitFoodMartPage() {
                       <div className="relative h-[150px]">
                         <img
                           src={item?.imageSrc}
-                          alt="MacBook Pro"
+                          alt={item?.title || "Menu item"}
                           className="w-full h-[150px] rounded-8 transition ease-in-out delay-150  hover:scale-105 object-cover"
+                          style={isItemAvailable(item) ? undefined : unavailableLook}
                         />
-                        <span className="absolute top-2 left-2 bg-black text-white text-xs px-2 py-1 rounded">
-                          Black Friday deal
-                        </span>
+                        {isItemAvailable(item) ? (
+                          <span className="absolute top-2 left-2 bg-black text-white text-xs px-2 py-1 rounded">
+                            Black Friday deal
+                          </span>
+                        ) : (
+                          <span
+                            data-testid="not-available-badge"
+                            className="absolute top-2 left-2 bg-gray-700 text-white text-xs px-2 py-1 rounded"
+                          >
+                            {NOT_AVAILABLE_LABEL}
+                          </span>
+                        )}
                       </div>
                       <div className="mt-4 flex flex-col">
                         <div className=" justify-between">
@@ -200,11 +211,17 @@ function VisitFoodMartPage() {
 
                       <div className="flex justify-between items-center mt-4">
                         <i className="far fa-heart text-xl"></i>
+                        {!isItemAvailable(item) && (
+                          <span data-testid="not-available-note" className="text-xs text-gray-600 mr-2">
+                            {NOT_AVAILABLE_NOTE}
+                          </span>
+                        )}
                         <Button
                           size="xs"
+                          disabled={!isItemAvailable(item)}
                           className="bg-orange-400 hover:bg-orange-800 text-black px-4 py-2 rounded w-full"
                         >
-                          ADD TO CART
+                          {isItemAvailable(item) ? "ADD TO CART" : NOT_AVAILABLE_LABEL}
                         </Button>
                       </div>
                     </div>

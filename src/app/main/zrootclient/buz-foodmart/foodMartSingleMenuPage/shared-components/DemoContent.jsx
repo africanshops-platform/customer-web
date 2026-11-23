@@ -23,6 +23,7 @@ import FoodMartDetailsWithReviews from "./FoodMartDetailsWithReviews";
 import FoodMartImageGalleryView from "./FoodMartImageGalleryView";
 import OffPlatformNotice from "../../../shared-contact/OffPlatformNotice";
 import { PLATFORM_ORDER_PHONE, PLATFORM_ORDER_TEL } from "../../../shared-contact/platformContact";
+import { isItemAvailable, NOT_AVAILABLE_NOTE } from "../../../shared/itemAvailability";
 
 const PLACEHOLDER_IMG = "https://placehold.co/500x500/fff7ed/ea580c?text=No+Image";
 
@@ -313,13 +314,28 @@ function DemoContent({ isLoading, isError, menuData, onAddToFoodCart, addFoodCar
 
               {/* Add to cart */}
               <div className="mb-6">
-                <AddToFoodCartButton
-                  onSubmit={onAddToFoodCart}
-                  loading={addFoodCartLoading}
-                  productId={menuData?.id}
-                  cartItems={foodCart?.cartProducts}
-                  quantityLeft={menuData?.quantity}
-                />
+                {isItemAvailable(menuData) ? (
+                  <AddToFoodCartButton
+                    onSubmit={onAddToFoodCart}
+                    loading={addFoodCartLoading}
+                    productId={menuData?.id}
+                    cartItems={foodCart?.cartProducts}
+                    quantityLeft={menuData?.quantity}
+                  />
+                ) : (
+                  <div
+                    role="alert"
+                    data-testid="menu-not-available"
+                    className="rounded-xl border border-gray-300 bg-gray-100 p-4 text-gray-700"
+                  >
+                    <Typography variant="subtitle1" className="font-bold">
+                      Not available
+                    </Typography>
+                    <Typography variant="body2">
+                      {NOT_AVAILABLE_NOTE} The restaurant has not made it available to order. You can look at it, but it cannot be added to your cart.
+                    </Typography>
+                  </div>
+                )}
               </div>
 
               {/* Quick actions */}
