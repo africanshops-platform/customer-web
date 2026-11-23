@@ -1,4 +1,4 @@
-import SignInPage from "./SignInPage";
+import SignInGate from "./SignInGate";
 import authRoles from "../../auth/authRoles";
 
 const SignInConfig = {
@@ -28,7 +28,7 @@ const SignInConfig = {
   routes: [
     {
       path: "sign-in",
-      element: <SignInPage />,
+      element: <SignInGate />,
     },
   ],
 };

@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import { handleApiError } from 'app/configs/data/utils/handleApiError';
 import { clientSigin, verify2faLogin } from '../../client/RepositoryClient';
 import config from '../../../../auth/services/jwt/jwtAuthConfig';
-import { markSignedIn, signInLandingUrl } from '../../../../auth/services/jwt/signInLanding';
+import { markSignedIn, signInLandingUrl, USER_COOKIE_OPTIONS } from '../../../../auth/services/jwt/signInLanding';
 
 
 
@@ -80,7 +80,7 @@ const isTokenValid = (accessToken) => {
 };
 
 const setUserCredentialsStorage = (userCredentials) => {
-	Cookie.set(config.adminCredentials, JSON.stringify({ userCredentials }));
+	Cookie.set(config.adminCredentials, JSON.stringify({ userCredentials }), USER_COOKIE_OPTIONS);
 	markSignedIn();
 
 	const redirectUrl = getSessionRedirectUrl();
@@ -88,7 +88,8 @@ const setUserCredentialsStorage = (userCredentials) => {
 
 	const landing = signInLandingUrl(redirectUrl, window.location.pathname);
 	if (landing) {
-		window.location.href = landing;
+		// replace, not assign: the sign-in page must not stay in the history, or Back would return to the login form
+		window.location.replace(landing);
 	} else {
 		window.location.reload();
 	}

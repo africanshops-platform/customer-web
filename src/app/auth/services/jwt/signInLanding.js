@@ -22,3 +22,35 @@ export function markSignedIn(storage = window.localStorage) {
     // storage blocked: the gate falls back to what it does today
   }
 }
+
+/** True when this browser holds an access token that has not expired. Reads only the token's own expiry; the server still decides on every call. */
+export function hasValidSession(storage = window.localStorage, now = Date.now()) {
+  try {
+    const token = storage.getItem('jwt_access_token');
+    if (!token) return false;
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload.exp === 'number' && payload.exp * 1000 > now;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A browser can hold a session token but have lost the stored user (the user cookie used to have no expiry, so it went when the browser
+ * closed while the token lived on). The app then waits forever for a user it cannot find and shows a blank page. Found 23 Nov 2026.
+ * Call once at start-up: when a token exists without its user, the stale session is cleared so the app opens as a guest and the person
+ * signs in again. Returns true when it cleared something. `keys` are the storage keys of the session (token, refresh, session id, flags).
+ */
+export function healHalfSignedIn({ hasUser, storage = window.localStorage, keys }) {
+  try {
+    const [tokenKey, ...others] = keys;
+    if (hasUser || !storage.getItem(tokenKey)) return false;
+    [tokenKey, ...others].forEach((k) => storage.removeItem(k));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The stored user lives as long as the refresh token (7 days), not just the browser session. */
+export const USER_COOKIE_OPTIONS = { expires: 7 };
