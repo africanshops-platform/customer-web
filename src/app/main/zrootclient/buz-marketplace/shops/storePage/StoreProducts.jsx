@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { formatCurrency } from "src/app/main/vendors-shop/PosUtils";
+import { isItemAvailable, NOT_AVAILABLE_LABEL, NOT_AVAILABLE_NOTE, unavailableLook } from "../../../shared/itemAvailability";
 
 const ART = [
   "#ef9a5a",
@@ -17,15 +18,24 @@ function StoreProductCard({ product, index, onAdd, adding }) {
   const off = hasDiscount ? Math.round((1 - product.price / product.listprice) * 100) : 0;
   const image = product?.imageLinks?.[0]?.url;
   const tint = ART[index % ART.length];
+  const available = isItemAvailable(product);
+  let buttonLabel = "Add to cart";
+  if (!available) buttonLabel = NOT_AVAILABLE_LABEL;
+  else if (adding) buttonLabel = "Adding…";
 
   return (
     <article className="sp-card" data-testid="store-product-card">
       <Link to={`/marketplace/product/${product?.slug}/view`} aria-label={`View ${product?.name}`}>
         <div
           className="sp-art"
-          style={image ? undefined : { background: `linear-gradient(145deg, ${tint}, ${tint}aa)` }}
+          style={{ ...(image ? {} : { background: `linear-gradient(145deg, ${tint}, ${tint}aa)` }), ...(available ? {} : unavailableLook) }}
         >
           {hasDiscount && <span className="sp-off num">-{off}%</span>}
+          {!available && (
+            <span className="sp-off num" data-testid="not-available-badge" style={{ background: "#374151", color: "#fff" }}>
+              {NOT_AVAILABLE_LABEL}
+            </span>
+          )}
           {image ? (
             <img src={image} alt={product?.name} loading="lazy" />
           ) : (
@@ -52,8 +62,13 @@ function StoreProductCard({ product, index, onAdd, adding }) {
             {hasDiscount && <s>{formatCurrency(product.listprice)}</s>}
           </div>
         </Link>
-        <button type="button" className="sp-add" onClick={() => onAdd(product)} disabled={adding}>
-          {adding ? "Adding…" : "Add to cart"}
+        {!available && (
+          <small data-testid="not-available-note" style={{ display: "block", color: "#6b7280", margin: "4px 0" }}>
+            {NOT_AVAILABLE_NOTE}
+          </small>
+        )}
+        <button type="button" className="sp-add" onClick={() => onAdd(product)} disabled={adding || !available}>
+          {buttonLabel}
         </button>
       </div>
     </article>
