@@ -101,7 +101,7 @@ export function DeliveryCodePanel({ order, orderId, useReissue = useReissueDeliv
         <div className="flex-1">
           <h3 className="font-bold text-gray-900 mb-1">Your delivery code</h3>
           <p className="text-sm text-gray-700">
-            You were shown a code when you paid (and we emailed it). Give it to {who} when your order
+            We emailed you a delivery code when you paid. Give it to {who} when your order
             arrives — never before. Lost it? Get a new one; the old code then stops working.
           </p>
         </div>
