@@ -28,6 +28,7 @@ import {
   PLATFORM_ORDER_PHONE,
   PLATFORM_ORDER_TEL,
 } from "../../../../shared-contact/platformContact";
+import { isItemAvailable, NOT_AVAILABLE_NOTE } from "../../../../shared/itemAvailability";
 
 /**
  * Demo Content - Single Product Page
@@ -341,13 +342,28 @@ function DemoContentSingleProduct(props) {
 
               {/* Add to Cart Button */}
               <div className="mb-6">
-                <AddToProductCartButton
-                  onSubmit={onSubmit}
-                  loading={loading}
-                  productId={productId}
-                  cartItems={cartItems}
-                  quantityLeft={productData?.quantityInStock}
-                />
+                {isItemAvailable(productData) ? (
+                  <AddToProductCartButton
+                    onSubmit={onSubmit}
+                    loading={loading}
+                    productId={productId}
+                    cartItems={cartItems}
+                    quantityLeft={productData?.quantityInStock}
+                  />
+                ) : (
+                  <div
+                    role="alert"
+                    data-testid="product-not-available"
+                    className="rounded-xl border border-gray-300 bg-gray-100 p-4 text-gray-700"
+                  >
+                    <Typography variant="subtitle1" className="font-bold">
+                      Not available
+                    </Typography>
+                    <Typography variant="body2">
+                      {NOT_AVAILABLE_NOTE} The seller has not made it available to buy. You can look at it, but it cannot be added to your cart.
+                    </Typography>
+                  </div>
+                )}
               </div>
 
               {/* Quick Actions */}
