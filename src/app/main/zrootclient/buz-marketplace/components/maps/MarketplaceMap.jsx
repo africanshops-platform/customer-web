@@ -232,7 +232,7 @@ function MarketplaceMap({ cartData }) {
             textAlign: "center",
           }}
         >
-          You can only shop in one state at a time
+          You can only shop from one market at a time
         </Typography>
       </div>
 
