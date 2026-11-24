@@ -73,7 +73,7 @@ function MarketplaceDemoSidebarRight(props) {
             textAlign: "center",
           }}
         >
-          You can only shop from one state at a time
+          You can only shop from one market at a time
         </Typography>
       </div>
     </div>
