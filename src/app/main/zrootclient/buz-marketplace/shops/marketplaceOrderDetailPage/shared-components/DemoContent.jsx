@@ -628,7 +628,7 @@ function DemoContent(props) {
                   )}
                   {userOrder?.isDelivered && complaintWindow(userOrder).state === "closed" && (
                     <p className="w-full text-xs text-gray-500" data-testid="complaint-window-closed">
-                      The 48-hour window to report an issue with this order has closed.
+                      The window to report an issue with this order has closed.
                     </p>
                   )}
                   {userOrder?.isDelivered && complaintWindow(userOrder).state !== "closed" && (
