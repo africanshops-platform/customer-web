@@ -20,6 +20,7 @@ import ClienttErrorPage from "src/app/main/zrootclient/components/ClienttErrorPa
 import { differenceInCalendarDays } from "date-fns";
 import { useCancelUserReservation } from "app/configs/data/server-calls/auth/userapp/a_bookings/use-reservations";
 import PropertyChatDialog from "./PropertyChatDialog";
+import StayCodesCard from "../../StayCodesCard";
 
 import { formatStayDay } from "src/app/utils/stayDates";
 /**
@@ -259,6 +260,9 @@ function DemoContent(props) {
               </div>
             </div>
           </div>
+
+          {/* The guest's check-in / check-out code on screen (it used to arrive only by email) */}
+          <StayCodesCard reservation={reservation} />
 
           {/* Cancellation Section */}
           {!reservation?.isCheckIn && (
