@@ -61,7 +61,7 @@ function ProcessingState({ title = 'Working on it', subtitle = 'Please do not cl
 						'@media (prefers-reduced-motion: reduce)': { animation: 'none' }
 					}}
 				>
-					<img src="/assets/images/afslogo/aflogo.png" alt="" style={{ width: 50, height: 50, objectFit: 'contain' }} />
+					<img src="/assets/images/afslogo/afslogo.png" alt="" style={{ width: 50, height: 50, objectFit: 'contain' }} />
 				</Box>
 			</Box>
 			<Typography sx={{ color: '#FF6B35', fontWeight: 700, textAlign: 'center' }}>{title}</Typography>

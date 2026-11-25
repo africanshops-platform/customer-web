@@ -118,7 +118,7 @@ function SectionSkeleton({ label = 'Loading', variant = 'list', rows, columns = 
 							'@media (prefers-reduced-motion: reduce)': { animation: 'none' }
 						}}
 					>
-						<img src="/assets/images/afslogo/aflogo.png" alt="" style={{ width: 17, height: 17, objectFit: 'contain' }} />
+						<img src="/assets/images/afslogo/afslogo.png" alt="" style={{ width: 17, height: 17, objectFit: 'contain' }} />
 					</Box>
 					<Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>{label}</Typography>
 				</Box>
