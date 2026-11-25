@@ -5,6 +5,7 @@ import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import FuseSvgIcon from "@fuse/core/FuseSvgIcon";
 import { useEffect, useState } from "react";
+import { PageSkeleton } from "app/shared-components/loading";
 import useSellerCountries from "app/configs/data/server-calls/countries/useCountries";
 import {
   Avatar,
@@ -89,7 +90,7 @@ function AccountTab() {
   const { avatar, businessCountry, businezState, businezLga } = watch();
 
   const [loading, setLoading] = useState(false);
-  const { data: userProfileData } = useGetAuthUserDetails();
+  const { data: userProfileData, isLoading: isProfileLoading } = useGetAuthUserDetails();
   const { data: countryData } = useSellerCountries();
   const updateUserDetails = useUserUpdateMutation();
 
@@ -262,6 +263,12 @@ function AccountTab() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // First load: the form used to draw with empty fields and fill about a second later, which looked blank.
+  // Show the page skeleton (settings pages use the boxed badge) until the profile arrives.
+  if (isProfileLoading) {
+    return <PageSkeleton centerpiece="box" body="form" title="Loading your settings" />;
   }
 
   return (
